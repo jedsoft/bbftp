@@ -76,6 +76,8 @@
 #define SETTOZERO    0
 #define SETTOONE     1
 
+#define JED_SSL_PATCH 1
+
 extern  int     timestamp ;
 extern  int     usessh ;
 extern	int		usecert ;
@@ -486,7 +488,7 @@ int connectviassh()
 
 *****************************************************************************/
 
-int connectviapassword() 
+int connectviapassword(void)
 {
 #if defined(SUNOS) || defined(_HPUX_SOURCE) || defined(IRIX)
     int     addrlen ;
@@ -590,6 +592,7 @@ int connectviapassword()
         /* 
         ** RSA
         */
+       BIGNUM *rsa_n, *rsa_e;
         /*
         ** Load the error message from the crypto lib
         */
@@ -629,28 +632,63 @@ int connectviapassword()
         /*
         ** Getting BIGNUM structures to store the key and exponent
         */
+#ifdef JED_SSL_PATCH
+       if (NULL == (rsa_n = BN_new()))
+	 {
+	    RSA_free (hisrsa);
+	    free (readbuffer);
+	    close (tmpctrlsock);
+            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            return -1 ;
+	 }
+       if (NULL == (rsa_e = BN_new()))
+	 {
+	    BN_free (rsa_n);
+	    RSA_free (hisrsa);
+            free(readbuffer) ;
+            close(tmpctrlsock) ;
+            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            return -1 ;
+	 }
+       if (1 != RSA_set0_key (hisrsa, rsa_n, rsa_e, NULL))
+	 {
+	    /* The man page does not say what to do with rsa_n/e if RSA_set0_key fails.
+	     * To avoid a possible double free, do not free rsa_n/e.
+	     */
+	    RSA_free (hisrsa);
+            free(readbuffer) ;
+            close(tmpctrlsock) ;
+            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","RSA_set0_key",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            return -1 ;
+	 }
+#else
         if ( (hisrsa->n = BN_new()) == NULL) {
             free(readbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
         }
-        if ( (hisrsa->e = BN_new()) == NULL) { 
+        if ( (hisrsa->e = BN_new()) == NULL) {
             free(readbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
         }
+
+       rsa_n = hisrsa->n;	       /* Added by JED */
+       rsa_e = hisrsa->e;	       /* Added by JED */
+#endif				       /* JED_SSL_PATCH */
+       
         /*
         ** Copy the key and exponent received
         */
-        if ( BN_mpi2bn(pubkey,lenkey,hisrsa->n) == NULL ) {
+        if ( BN_mpi2bn(pubkey,lenkey,rsa_n) == NULL ) {
             free(readbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","copying pubkey",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
         }
-        if ( BN_mpi2bn(pubexponent,lenexpo,hisrsa->e) == NULL ) {
+        if ( BN_mpi2bn(pubexponent,lenexpo,rsa_e) == NULL ) {
             free(readbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","copying pubexponent",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
