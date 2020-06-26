@@ -136,14 +136,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
     char    *dupbuffercmd ;
     char    *action ;
     char    *startfn ;
-    char    *remotefilename ;
     int     j ;
-    int     nbtry ;
-    int     retcode ;
-    int     errcode ;
-    int     nooption ;
-    int     alluse ;
-    char    *localfilename ;
     struct decodedTURL *dLocalTurl = NULL;
     struct decodedTURL *dRemoteTurl = NULL;
 
@@ -157,12 +150,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
     ** Strip leading blank
     */
     mybuffercmd = dupbuffercmd ;
-    j = 0 ;
-    while ( *mybuffercmd == ' ' && j < strlen(dupbuffercmd) ) {
-        j++ ;
-        *mybuffercmd++ ;
-    }
-        
+    while (*mybuffercmd == ' ') mybuffercmd++;
+
         /*
     if ( *mybuffercmd == '!' ) {
         ** This is a comment
@@ -173,11 +162,12 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
     /*
     ** Strip trailing blank 
     */
-    j = strlen(mybuffercmd) - 1 ;
-    while ( mybuffercmd[j] == ' ' && j >= 0 ) {
-        j-- ;
-    }
-    mybuffercmd[j+1] = 0 ;
+    j = strlen(mybuffercmd);
+    while ((j > 0) && (mybuffercmd[j-1] == ' '))
+     {
+	j--;
+	mybuffercmd[j] = 0;
+     }
         /*
     if ( strlen(mybuffercmd) == 0 ) {
         ** Null command ignore it

@@ -52,6 +52,8 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 extern  int     incontrolsock ;
 extern  int     outcontrolsock ;
 extern  int     sshchildpid  ;
@@ -65,7 +67,8 @@ extern  int     *mychildren ;
 extern  int     debug ;
 extern  int     requestedstreamnumber ;
 
-my64_t convertlong(my64_t v) {
+#if 0
+static my64_t convertlong(my64_t v) {
     struct bb {
         int    fb ;
         int sb ;
@@ -73,14 +76,15 @@ my64_t convertlong(my64_t v) {
     struct bb *bbpt ;
     int     tmp ;
     my64_t    tmp64 ;
-    
+
     tmp64 = v ;
     bbpt = (struct bb *) &tmp64 ;
     tmp = bbpt->fb ;
     bbpt->fb = ntohl(bbpt->sb) ;
-    bbpt->sb = ntohl(tmp) ;    
+    bbpt->sb = ntohl(tmp) ;
     return tmp64 ;
 }
+#endif
 
 #ifndef HAVE_NTOHLL
 my64_t ntohll(my64_t v) {

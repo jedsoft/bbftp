@@ -59,6 +59,8 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <common.h>
 #include <client.h>
 #include <client_proto.h>
@@ -189,7 +191,7 @@ int bbftp_retrlistdir(char *pattern,char **filelist,int *filelistlen,char *logme
         }
         strcpy(dirpath,"/") ;
         pointer++ ;
-    } else if ( lastslash == strlen(pointer) - 1 ) {
+    } else if ( lastslash == (int)strlen(pointer) - 1 ) {
         /*
         ** The filename end with a slash ..... error
         */
@@ -561,8 +563,8 @@ int bbftp_retrcheckfile(char *filename,char *logmessage,int *errcode)
     } else {
         filemode = statbuf.st_mode;
     }
-    sprintf(lastaccess,"%08x",statbuf.st_atime) ;
-    sprintf(lastmodif,"%08x",statbuf.st_mtime) ;
+    sprintf(lastaccess,"%08lx",statbuf.st_atime) ;
+    sprintf(lastmodif,"%08lx",statbuf.st_mtime) ;
     lastaccess[8] = '\0' ;
     lastmodif[8]  = '\0' ;
     filesize = statbuf.st_size ;
@@ -634,10 +636,8 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
 
     struct mess_compress *msg_compress ;
     struct message *msg ;
-    int     compressionon ;
     int     sendsock ;
     int     *portnumber ;
-    extern  int     simulation_mode ;
 
     /*
     ** Check if it is a rfio transfer
@@ -753,6 +753,7 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
             ** socket
             **/
             nfds = sysconf(_SC_OPEN_MAX) ;
+	    (void) nfds;
             FD_ZERO(&selectmask) ;
             FD_SET(sendsock,&selectmask) ;
             /*

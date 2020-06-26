@@ -219,6 +219,7 @@ int bbftp_put(char *remotefilename,int  *errcode)
     */
 waitcontrol1:
     nfds = sysconf(_SC_OPEN_MAX) ;
+   (void) nfds;
     FD_ZERO(&selectmask) ;
     FD_SET(incontrolsock,&selectmask) ;
     wait_timer.tv_sec  = 100 ;

@@ -31,6 +31,8 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <client.h>
 #include <client_proto.h>
 #include <common.h>
@@ -51,7 +53,7 @@ extern  int     statoutput ;
 
 int bbftp_dir(char *remotefile, int  *errcode)
 {
-    char    logmessage[1024] ;
+    /* char    logmessage[1024] ; */
     int     retcode ;
     char    *filelist ;
     int     filelistlen ;

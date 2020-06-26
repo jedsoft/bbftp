@@ -83,7 +83,7 @@ int getdatasock(int nbsock, int *errcode)
     int tos_value, tos_len;
     int qbss_value = 0x20;
     tos_len = sizeof(tos_value);
-
+    (void) tos_len;
 
     mysockfree = mysockets ;
     myportfree = myports ;

@@ -38,10 +38,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #if HAVE_STRING_H
 # include <string.h>
 #endif
+
+#include "_bbftp.h"
 
 #include <client.h>
 #include <client_proto.h>
@@ -80,12 +83,13 @@ int treatcommand(char *buffercmd)
     char    *action ;
     char    *startfn ;
     char    *remotefilename ;
-    int     j ;
+    unsigned int uj;
     int     nbtry ;
     int     retcode ;
     int     errcode ;
     int     nooption ;
     int     alluse ;
+   unsigned int ualluse;
     char    *localfilename ;
     
     if ( (dupbuffercmd = (char *) malloc (strlen(buffercmd)+1) ) == NULL ) {
@@ -96,12 +100,8 @@ int treatcommand(char *buffercmd)
     ** Strip leading blank
     */
     mybuffercmd = dupbuffercmd ;
-    j = 0 ;
-    while ( *mybuffercmd == ' ' && j < strlen(dupbuffercmd) ) {
-        j++ ;
-        *mybuffercmd++ ;
-    }
-        
+    while (*mybuffercmd == ' ') mybuffercmd++;
+
     if ( *mybuffercmd == '!' ) {
         /*
         ** This is a comment
@@ -112,11 +112,13 @@ int treatcommand(char *buffercmd)
     /*
     ** Strip trailing blank 
     */
-    j = strlen(mybuffercmd) - 1 ;
-    while ( mybuffercmd[j] == ' ' && j >= 0 ) {
-        j-- ;
-    }
-    mybuffercmd[j+1] = 0 ;
+    uj = strlen(mybuffercmd);
+   while ((uj > 0) && (mybuffercmd[uj-1] == ' '))
+     {
+	uj--;
+	mybuffercmd[uj] = 0;
+     }
+
     if ( strlen(mybuffercmd) == 0 ) {
         /*
         ** Null command ignore it
@@ -124,7 +126,7 @@ int treatcommand(char *buffercmd)
         free(dupbuffercmd) ;
         return 0 ;
     }
-        
+
     action = mybuffercmd ;
     action = (char *) strchr (action, ' ');
     /*
@@ -936,16 +938,16 @@ int treatcommand(char *buffercmd)
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                retcode = sscanf(action,"%o",&alluse) ;
-                if ( retcode != 1  || alluse < 0 ) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (localumask must be numeric)\n",buffercmd) ;
+                retcode = sscanf(action,"%o",&ualluse) ;
+                if ( retcode != 1) {
+                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (localumask must be octal numeric)\n",buffercmd) ;
                     myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : %s\n",buffercmd) ;
                 umask(alluse) ;
-                localumask = alluse ;
+                localumask = ualluse ;
                 free(dupbuffercmd) ;
                 if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
                 return 0 ;
@@ -1133,16 +1135,16 @@ int treatcommand(char *buffercmd)
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                retcode = sscanf(action,"%o",&alluse) ;
-                if ( retcode != 1 || alluse < 0) {
+                retcode = sscanf(action,"%o",&ualluse) ;
+                if ( retcode != 1) {
                      printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (remoteumask must be numeric octal)\n",buffercmd) ;
                     myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                retcode = bbftp_setremoteumask(alluse,&errcode) ;
-                if ( retcode == BB_RET_OK ) remoteumask = alluse ;
-            } else if (  !strncmp(mybuffercmd,"setrecvwinsize",14) ) {         
+                retcode = bbftp_setremoteumask(ualluse,&errcode) ;
+                if ( retcode == BB_RET_OK ) remoteumask = ualluse ;
+            } else if (  !strncmp(mybuffercmd,"setrecvwinsize",14) ) {
 /*******************************************************************************
 ** setrecvwinsize                                                              *
 *******************************************************************************/

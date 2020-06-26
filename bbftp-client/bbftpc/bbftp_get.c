@@ -63,6 +63,8 @@
 #include <common.h>
 #include <structures.h>
 
+#include "_bbftp.h"
+
 extern  int     debug ;
 extern  int     warning ;
 extern  int     verbose ;
@@ -121,8 +123,6 @@ int bbftp_get(char *remotefilename,int  *errcode)
     float   s, bs;
     int     status ;
     pid_t   pid ;
-    struct  utimbuf ftime ;
-    extern  int simulation_mode ;
 
     if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : get %s %s\n",remotefilename,curfilename) ;
     /*
@@ -225,6 +225,7 @@ int bbftp_get(char *remotefilename,int  *errcode)
     
 waitcontrol1:
     nfds = sysconf(_SC_OPEN_MAX) ;
+   (void) nfds;
     FD_ZERO(&selectmask) ;
     FD_SET(incontrolsock,&selectmask) ;
     wait_timer.tv_sec  = 100 ;
@@ -459,7 +460,8 @@ waitcontrol1:
         if ( (transferoption & TROPT_ACC ) == TROPT_ACC ) {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
             if ( (transferoption & TROPT_RFIO_O ) != TROPT_RFIO_O ) {
-                sscanf(lastaccess,"%08x",&ftime.actime) ;
+	       struct  utimbuf ftime ;
+	        sscanf(lastaccess,"%08x",&ftime.actime) ;
                 sscanf(lastmodif,"%08x",&ftime.modtime) ;
                 if ( utime(realfilename,&ftime) < 0 ) {
                     printmessage(stderr,CASE_ERROR,84,timestamp,"Error changing access time : %s\n",strerror(errno));
@@ -1087,6 +1089,7 @@ waitcontrol:
             if ( (transferoption & TROPT_ACC ) == TROPT_ACC ) {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
                 if ( (transferoption & TROPT_RFIO_O ) != TROPT_RFIO_O ) {
+		   struct  utimbuf ftime ;
                     sscanf(lastaccess,"%08x",&ftime.actime) ;
                     sscanf(lastmodif,"%08x",&ftime.modtime) ;
                     if ( utime(realfilename,&ftime) < 0 ) {

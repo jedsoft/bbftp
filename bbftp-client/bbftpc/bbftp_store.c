@@ -56,6 +56,8 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <common.h>
 #include <client.h>
 #include <client_proto.h>
@@ -114,6 +116,7 @@ extern  int     protocol ;
 
 int bbftp_storeclosecastfile(char *filename,char *logmessage)
 {
+   (void) filename; (void) logmessage;
 
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
     if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
@@ -525,10 +528,10 @@ int bbftp_storecreatefile(char *filename,char *logmessage, int *errcode)
     int     savederrno ;
     int     retcode ;
 #ifdef STANDART_FILE_CALL
-    off_t     toseek ;
+    /* off_t     toseek ; */
     struct stat statbuf ;
 #else
-    off64_t     toseek ;
+    /* off64_t     toseek ; */
     struct stat64 statbuf ;
 #endif
     
@@ -567,7 +570,7 @@ int bbftp_storecreatefile(char *filename,char *logmessage, int *errcode)
         ** A slash in first position so we suppose the "/" directory 
         ** exist ... nothing to do
         */
-    } else if ( lastslash == strlen(filepath) - 1 ) {
+    } else if ( lastslash == (int)strlen(filepath) - 1 ) {
         /*
         ** The filename end with a slash ..... error
         */
@@ -655,10 +658,11 @@ int bbftp_storecreatefile(char *filename,char *logmessage, int *errcode)
     ** We create the file
     */
 #ifdef STANDART_FILE_CALL
-    if ((fd = open(filepath,O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,0666)) < 0 ) {
+    if ((fd = open(filepath,O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,0666)) < 0 )
 #else
-    if ((fd = open64(filepath,O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,0666)) < 0 ) {
+    if ((fd = open64(filepath,O_WRONLY|O_CREAT|O_TRUNC|O_BINARY,0666)) < 0 )
 #endif
+      {
         /*
         ** Depending on errno we are going to tell the client to 
         ** retry or not
@@ -821,7 +825,6 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
     int     compressionon ;
     int     sendsock ;
     int     *portnumber ;
-	extern int		simulation_mode;
     /*
     ** Check if it is a rfio transfer
     */
@@ -952,6 +955,7 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
             ** socket
             **/
             nfds = sysconf(_SC_OPEN_MAX) ;
+	       (void) nfds;
             FD_ZERO(&selectmask) ;
             FD_SET(sendsock,&selectmask) ;
             /*

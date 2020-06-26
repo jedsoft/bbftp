@@ -67,6 +67,8 @@
 # include <string.h>
 #endif
 
+#include <getopt.h>
+
 #include <client.h>
 #include <client_proto.h>
 #include <bbftp_turl.h>
@@ -353,15 +355,15 @@ cmd_list *commandList = NULL;
 cmd_list *first = NULL;
 cmd_list *iterator = NULL;
 
-void addCommand(char *newcmd) {
+static void addCommand(char *lnewcmd) {
     cmd_list *newCommand = NULL;
     if ((newCommand  = (cmd_list *)malloc(sizeof(cmd_list))) == NULL) {
            printmessage(stderr,CASE_FATAL_ERROR,23,timestamp,"Unable to malloc memory for command list : %s\n",strerror(errno)) ;
     }
-    if ((newCommand->cmd = (char *) malloc( strlen(newcmd) + 1)) == NULL) {
+    if ((newCommand->cmd = (char *) malloc( strlen(lnewcmd) + 1)) == NULL) {
 	   printmessage(stderr,CASE_FATAL_ERROR,23,timestamp,"Unable to malloc memory for command : %s\n",strerror(errno)) ;
     }
-    strcpy(newCommand->cmd, newcmd);
+    strcpy(newCommand->cmd, lnewcmd);
     newCommand->next = NULL;
     if (iterator == NULL) {
 	    iterator = newCommand;
@@ -372,13 +374,10 @@ void addCommand(char *newcmd) {
     }
 }
 
-int main(argc, argv, envp)
-    int argc;
-    char **argv;
-    char **envp;
+int main(int argc, char **argv)
 {
-    extern char *optarg;
-    extern int optind, opterr, optopt;
+    /* extern char *optarg; */
+    /* extern int optind, opterr, optopt; */
 /*
 ** Variable set by options
 */
@@ -406,16 +405,20 @@ int main(argc, argv, envp)
     struct  stat    statbuf ;
     int     retcode ;
     int     i, j, k ;
+   unsigned int uj;
     int     stderrfd ;
     int     stdoutfd ;
     int     infd ;
     char    calcmaxline[1] ;
-    int     maxlen ;
+   unsigned int     maxlen ;
     int     lengthread ;
     char    *buffercmd ;
     int     alluse ;
+    unsigned int ualluse ;
     char    *tmpsshremotecmd ;
+#ifdef PRIVATE_AUTH
     char    logmessage[1024] ;
+#endif
     char    minbuffer[MINMESSLEN] ;
     struct  message *msg ;
 /*
@@ -893,19 +896,19 @@ int main(argc, argv, envp)
                     remotecos = alluse ;
                 }
             } else if (!strncmp(startcmd,"setlocalumask",13)) {
-                retcode = sscanf(startcmd,"setlocalumask %o",&alluse) ;
-                if ( retcode != 1 || alluse < 0) {
-                    if ( warning ) printmessage(stderr,CASE_WARNING,16,timestamp,"Local umask in bbftprc file must be numeric\n") ;
+                retcode = sscanf(startcmd,"setlocalumask %o",&ualluse) ;
+                if ( retcode != 1) {
+                    if ( warning ) printmessage(stderr,CASE_WARNING,16,timestamp,"Local umask in bbftprc file must be octal numeric\n") ;
                 } else {
-                    localumask = alluse ;
+                    localumask = ualluse ;
                     umask(localumask) ;
                 }
             } else if (!strncmp(startcmd,"setremoteumask",14)) {
-                retcode = sscanf(startcmd,"setremoteumask %o",&alluse) ;
-                if ( retcode != 1  || alluse < 0) {
-                    if ( warning ) printmessage(stderr,CASE_WARNING,17,timestamp,"Remote umask in bbftprc file must be numeric\n") ;
+                retcode = sscanf(startcmd,"setremoteumask %o",&ualluse) ;
+                if ( retcode != 1) {
+                    if ( warning ) printmessage(stderr,CASE_WARNING,17,timestamp,"Remote umask in bbftprc file must be octal numeric\n") ;
                 }else {
-                    remoteumask = alluse ;
+                    remoteumask = ualluse ;
                     umask(localumask) ;
                 }
             } else if (!strncmp(startcmd,"setsendwinsize",14)) {
@@ -995,7 +998,7 @@ int main(argc, argv, envp)
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
                         transferoption = transferoption | TROPT_RFIO_O ;
 #else
-                        if (warning) printmessage(stderr,CASE_WARNING,20,timestamp,"Incorrect command : setoption localrfio (RFIO not supported)\n",buffercmd) ;
+                        if (warning) printmessage(stderr,CASE_WARNING,20,timestamp,"Incorrect command : setoption localrfio (RFIO not supported)\n", "");
 #endif
                     }
                 } else if ( !strncmp(startcmd,"keepmode",8) ) {
@@ -1014,11 +1017,11 @@ int main(argc, argv, envp)
                     if ( nooption ) {
                         transferoption = transferoption & ~TROPT_GZIP ;
                     } else {
-#ifdef WITH_GZIP                        
+#ifdef WITH_GZIP
                         transferoption = transferoption | TROPT_GZIP ;
 #else
                         printmessage(stderr,CASE_FATAL_ERROR,7,timestamp,"gzip option is not available: bbftp was built without compression support\n") ;
-#endif                        
+#endif
                     }
                 } else if ( !strncmp(startcmd,"qbss",4) ) {
                     if ( nooption ) {
@@ -1049,10 +1052,11 @@ int main(argc, argv, envp)
             printmessage(stderr,CASE_FATAL_ERROR,21,timestamp,"Error opening input file (%s) : %s\n",inputfile,strerror(errno)) ;
         }
 #ifdef DARWIN
-		if ( (resfd = open(resultfile,O_CREAT|O_WRONLY|O_TRUNC,0777)) < 0 ) {
+		if ( (resfd = open(resultfile,O_CREAT|O_WRONLY|O_TRUNC,0777)) < 0 )
 #else
-        if ( (resfd = open(resultfile,O_CREAT|O_WRONLY|O_SYNC|O_TRUNC,0777)) < 0 ) {
+        if ( (resfd = open(resultfile,O_CREAT|O_WRONLY|O_SYNC|O_TRUNC,0777)) < 0 )
 #endif
+	   {
      		printmessage(stderr,CASE_FATAL_ERROR,22,timestamp,"Error opening result file (%s) : %s\n",resultfile,strerror(errno)) ;
         }
         /*
@@ -1060,22 +1064,22 @@ int main(argc, argv, envp)
         ** the buffer
         */
         maxlen = 0 ;
-        j = 0 ;
+        uj = 0 ;
         while ( (lengthread = read (infd,calcmaxline,1)) == 1 ) {
             if ( calcmaxline[0] == 10 ) {
-                if ( j > maxlen ) {
-                    maxlen = j  ;
+                if ( uj > maxlen ) {
+                    maxlen = uj  ;
                 }
-                j = 0 ;
+                uj = 0 ;
             } else {
-                j++ ;
+                uj++ ;
             }
         }
         if ( lengthread < 0 ) {
             printmessage(stderr,CASE_FATAL_ERROR,24,timestamp,"Error reading input file (%s) : %s\n",inputfile,strerror(errno)) ;
         } else if ( lengthread == 0 ) {
-            if ( j > maxlen ) {
-                maxlen = j  ;
+            if ( uj > maxlen ) {
+                maxlen = uj  ;
             }
         }
        /*
@@ -1090,7 +1094,7 @@ int main(argc, argv, envp)
              printmessage(stderr,CASE_FATAL_ERROR,23,timestamp,"Unable to malloc memory for command : %s\n",strerror(errno)) ;
          }
     }
-      
+
 /*
 ** Check hostname
 */          
@@ -1168,15 +1172,15 @@ int main(argc, argv, envp)
 /*
 ** Check if hostname is in numeric format 
 */
-    for (j=0 ; j < strlen(hostname) ; j++) {
-        if ( isalpha(hostname[j]) ) {
+    for (uj=0 ; uj < strlen(hostname) ; uj++) {
+        if ( isalpha(hostname[uj]) ) {
             /*
             ** One alpha caractere means no numeric form
             */
             hosttype = 1 ;
             break ;
-        } else if ( isdigit(hostname[j]) ) {
-        } else if ( hostname[j] == '.' ) {
+        } else if ( isdigit(hostname[uj]) ) {
+        } else if ( hostname[uj] == '.' ) {
         } else {
             printmessage(stderr,CASE_FATAL_ERROR,15,timestamp,"Invalid hostname (%s)\n",hostname) ;
         }
@@ -1187,7 +1191,7 @@ int main(argc, argv, envp)
        */
         hisctladdr.sin_addr.s_addr = 0 ;
         hisctladdr.sin_addr.s_addr = inet_addr(hostname) ;
-        if (hisctladdr.sin_addr.s_addr == -1 ) {
+        if (hisctladdr.sin_addr.s_addr == INADDR_NONE ) {
             printmessage(stderr,CASE_FATAL_ERROR,16,timestamp,"Invalid IP address (%s)\n",hostname) ;
         }
         calchostname = (char *)inet_ntoa(hisctladdr.sin_addr) ;
@@ -1389,25 +1393,25 @@ int main(argc, argv, envp)
 ** Start the infinite loop
 */
     {
-      cmd_list *iterator;
-      iterator = commandList;
-      while (iterator != NULL) {
-        if ( treatcommand(iterator->cmd) == 0 ) {
+      cmd_list *literator;
+      literator = commandList;
+      while (literator != NULL) {
+        if ( treatcommand(literator->cmd) == 0 ) {
             if ( inputfile != NULL ) {
-                write(resfd,iterator->cmd,strlen(iterator->cmd)) ;                
+                write(resfd,literator->cmd,strlen(literator->cmd)) ;
                 write(resfd," OK\n",4) ;
             } else {
-                if (!verbose && !statoutput) printmessage(stdout,CASE_NORMAL,0,timestamp,"%s OK\n",iterator->cmd);
+                if (!verbose && !statoutput) printmessage(stdout,CASE_NORMAL,0,timestamp,"%s OK\n",literator->cmd);
             }
         } else {
             if ( inputfile != NULL ) {
-                write(resfd,iterator->cmd,strlen(iterator->cmd)) ;                
+                write(resfd,literator->cmd,strlen(literator->cmd)) ;
                 write(resfd," FAILED\n",8) ;
             } else {
-                if (!verbose && !statoutput) printmessage(stdout,CASE_NORMAL,0,timestamp,"%s FAILED\n",iterator->cmd);
+                if (!verbose && !statoutput) printmessage(stdout,CASE_NORMAL,0,timestamp,"%s FAILED\n",literator->cmd);
             }
         }
-	iterator = iterator->next;
+	 literator = literator->next;
       }
     }
     if ( inputfile != NULL ) {

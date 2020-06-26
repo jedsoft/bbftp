@@ -76,29 +76,29 @@ int bbftp_setremoteumask(int mask,int  *errcode) ;
 ** Prototype for utilities
 */
 void strip_trailing_slashes (char *path) ;
-void bbftp_close_control()  ;
-void bbftp_free_all_var()  ;
-void bbftp_clean_child() ;
+void bbftp_close_control(void)  ;
+void bbftp_free_all_var(void)  ;
+void bbftp_clean_child(void) ;
 void printmessage(FILE *strm , int flag, int errcode, int tok, char *fmt, ...) ;
-void Usage() ;
+void Usage(void) ;
 /*
 ** Prototype for signal routines
 */
 void bbftp_sigchld(int sig) ;
 void bbftp_sigint(int sig) ;
 void bbftp_sigterm(int sig) ;
-void blockallsignals() ;
-void bbftp_setsignals() ;
-void bbftp_setsignal_sigchld() ;
-void bbftp_unsetsignal_sigchld() ;
+void blockallsignals(void) ;
+void bbftp_setsignals(void) ;
+void bbftp_setsignal_sigchld(void) ;
+void bbftp_unsetsignal_sigchld(void) ;
 /*
 ** Prototype for connection routines
 */
 /* static int splitargs (const char* s, char** argv, size_t maxargs, char* buf, size_t maxbuf); */
-int connectviassh() ;
-int connectviapassword() ;
-int todoafterconnection();
-void reconnecttoserver() ;
+int connectviassh(void) ;
+int connectviapassword(void) ;
+int todoafterconnection(void);
+void reconnecttoserver(void) ;
 /*
 ** Prototype for sockets routines
 */
@@ -107,7 +107,7 @@ int discardmessage(int sock,int msglen,int to,int fromchild) ;
 int discardandprintmessage(int sock,int to,int fromchild) ;
 int getdatasock(int nbsock, int *errcode) ;
 int readmessage(int sock,char *buffer,int msglen,int to,int fromchild) ;
-int sendproto() ;
+int sendproto(void) ;
 int writemessage(int sock,char *buffer,int msglen,int to,int fromchild) ;
 /*
 ** Prototype for command routines

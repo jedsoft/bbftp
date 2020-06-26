@@ -83,6 +83,7 @@ int writemessage(int sock,char *buffer,int msglen,int to,int fromchild)
 */
     while ( nbsent < msgsize ) {
         nfds = sysconf(_SC_OPEN_MAX) ;
+       (void) nfds;
         FD_ZERO(&selectmask) ;
         FD_SET(sock,&selectmask) ;
         wait_timer.tv_sec  = to ;

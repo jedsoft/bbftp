@@ -208,7 +208,7 @@ int connectviassh()
 ** Ssh options 
 */
     char **ssh_options = NULL;
-    int ssh_options_cnt = 0;
+    unsigned int ssh_options_cnt = 0;
     
     int pin[2], pout[2], reserved[2];
     int retcode ;
@@ -514,7 +514,7 @@ int connectviapassword(void)
     char            cryptbuffer[CRYPTMESSLEN] ;
     int     lenkey ;
     int     lenexpo ;
-    int     i ;
+    unsigned int ui ;
 
 #ifdef WITH_SSL
     RSA     *hisrsa ;
@@ -607,8 +607,8 @@ int connectviapassword(void)
         gettimeofday(&tp,NULL) ;
         seed = tp.tv_usec ;
         srandom(seed) ;
-        for (i=0; i < sizeof(buffrand) ; i++) {
-            buffrand[i] = random() ;
+        for (ui=0; ui < sizeof(buffrand) ; ui++) {
+            buffrand[ui] = random() ;
         }
         /*
         ** Initialize the random generator
@@ -696,12 +696,12 @@ int connectviapassword(void)
         }
         lenrsa = RSA_size(hisrsa) ;
        
-        if (strlen(username) > lenrsa - 41 ) {
+        if ((int)strlen(username) > lenrsa - 41 ) {
             free(readbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_FATAL_ERROR,56,timestamp,"Error reading encrypted message : %s (%d/%d)\n","username too long",strlen(username),lenrsa-41) ;
         }
-        if (strlen(password) > lenrsa - 41 ) {
+        if ((int)strlen(password) > lenrsa - 41 ) {
             free(readbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_FATAL_ERROR,56,timestamp,"Error reading encrypted message : %s (%d/%d)\n","password too long",strlen(password),lenrsa-41) ;

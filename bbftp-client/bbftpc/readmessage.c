@@ -85,6 +85,7 @@ int readmessage(int sock,char *buffer,int msglen,int to,int fromchild)
 */
     while ( nbget < msgsize ) {
         nfds = sysconf(_SC_OPEN_MAX) ;
+       (void) nfds;
         FD_ZERO(&selectmask) ;
         FD_SET(sock,&selectmask) ;
         wait_timer.tv_sec  = to ;
@@ -141,6 +142,7 @@ int discardmessage(int sock,int msglen,int to,int fromchild)
     nbget = 0 ;
     while ( nbget < msglen ) {
         nfds = sysconf(_SC_OPEN_MAX) ;
+       (void) nfds;
         FD_ZERO(&selectmask) ;
         FD_SET(sock,&selectmask) ;
         wait_timer.tv_sec  = to ;
@@ -195,6 +197,7 @@ int discardandprintmessage(int sock,int to,int fromchild)
     
     while ( 1 == 1 ) {
         nfds = sysconf(_SC_OPEN_MAX) ;
+       (void) nfds;
         FD_ZERO(&selectmask) ;
         FD_SET(sock,&selectmask) ;
         wait_timer.tv_sec  = to ;

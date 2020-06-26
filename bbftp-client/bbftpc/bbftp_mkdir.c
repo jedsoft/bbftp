@@ -130,6 +130,7 @@ int bbftp_mkdir(char *dirpath,int  *errcode)
     */
 waitcontrol:
     nfds = sysconf(_SC_OPEN_MAX) ;
+   (void) nfds;
     FD_ZERO(&selectmask) ;
     FD_SET(incontrolsock,&selectmask) ;
     retcode = select(FD_SETSIZE,&selectmask,0,0,0) ;

@@ -50,11 +50,13 @@ extern  int     sshchildpid ;
 extern  int     state ;
 extern  char    *realfilename;
 
-void bbftp_sigchld(int sig) 
+void bbftp_sigchld(int sig)
 {
+   (void) sig;
 }
 void bbftp_sigint(int sig) 
 {
+   (void) sig;
     /*
     ** Check if a transfer is occuring
     ** if yes kill the child, destroy the children, and erase the file 
@@ -76,6 +78,7 @@ void bbftp_sigint(int sig)
 }
 void bbftp_sigterm(int sig) 
 {
+   (void) sig;
     /*
     ** Check if a transfer is occuring
     ** if yes kill the child, destroy the children, and erase the file 

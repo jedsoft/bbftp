@@ -89,6 +89,7 @@ int bbftp_createdatasock(int portnumber/*,char *logmessage*/)
     int tos_value, tos_len;
     int qbss_value = 0x20;
     tos_len = sizeof(tos_value);
+    (void) tos_len;
 
     sock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
     if ( sock < 0 ) {
