@@ -1,0 +1,284 @@
+
+   Title: bbFTP ChangeLog
+
+  bbFTP ChangeLog
+
+     * 3.2.1
+          + Fixes
+               o Bug: Fix client crash when using IP adress instead of hostname
+               o Bug: Fix implicit declaration issues in 64 bits
+               o Bug: Remove gcc optimization flags (-O2) to avoid crash on
+                 Ubuntu 10.04 32 bit
+     * 3.2.0
+          + New features
+               o New client program "bbftpstatus"
+               o Add  message STATUS to server in order to send to client
+                 "bbftpstatus"
+               o Port to Darwin (by Andrew Goodney)
+               o Port to SX (By Gilles Gallot)
+          + Fixes
+               o Bug: empty result file (*.res) with -m option
+               o Bug: multiple IP addresses now works with SSH (by Gilles
+                 Gallot)
+               o Configure:  add --with-globus-flavor option (gcc32dbg by
+                 default)
+     * 3.1.0
+          + New features
+               o Port to Solaris2.9
+               o Support of Transfer URL (TURL) like 'bbftp://'
+               o Support of 'dir', 'rm', 'stat' and 'df' remote operations
+               o Multi IP addresses support: does not work with SSH (by Gilles
+                 GALLOT)
+               o Support of secondary groups (by Gilles GALLOT)
+               o Support of site configuration files (/etc/bbftp.conf and
+                 /etc/bbftpd.conf).
+                 WARNING:  on  the  server  side,  the name of the user's
+                 configuration  file  has  changed  from  '~/.bbftprc' to
+                 '~/.bbftpdrc'
+               o build with PAM now optional
+               o -u client option now optional in ssh mode
+          + Fixes
+               o Bug with big files put in a new HPSS directory
+               o several bug fixes on AIX 5.2 (by Gilles GALLOT)
+               o Server side: if both -f and -e are used, the listening control
+                 port is chosen in the range. moreover an additional option is
+                 now available in the configuration file: [no]fixeddataport
+     * 3.0.2
+          + New features
+               o Port BBFTP client to Cygwin (by Petr Holub)
+          + Fixes
+               o Time-out problem while getting empty files
+               o Change tmpfile name in order to avoid multiple access to the
+                 same file
+               o Bugs with RFIO 64 bits
+     * 3.0.1
+          + New features
+               o Add -D client option to enable non-passive mode between client
+                 > 3.x and server > 3.x (implemented by Dan Schrager)
+               o Start/Shutdown script for the daemon
+          + Fixes
+               o In passive mode, it is now possible to use more than 1 data
+                 stream
+               o Possible overflow of opened sockets now fixed
+               o In case of storing failure, the father process unlinks the
+                 file, and not each child process like before
+               o The client now computes the best number of data streams for
+                 PUT operations (fixed by Shuwei Ye)
+     * 3.0.0
+          + New features
+               o Port Certificate authentication mode to Solaris
+               o Implementation of the passive mode with customized ports range
+               o Transfer statistics logged on server side
+          + Fixes
+          + Installation
+     * 2.2.2
+          + New features
+               o Port to AIX5.1 and OSF1 5.1
+               o Support of RFIO64 (ability to retrieve/store files > 2Gb
+                 from/into hpss and/or CASTOR)
+               o Support  of  the  Globus  Toolkit  2.2  for  certificate
+                 authentication
+               o If BBFTPD has been built with certificates authentication
+                 module,  it  can  now  be  launched  with authentication
+                 restrictions(allow certificates only or allow user/password
+                 only). See BBFTPD man page.
+               o Add option -g in the client command line to specify a Globus
+                 service name (certificate mode). Idea and implementation by
+                 Rod Walker and Kostas Georgiou.
+          + Fixes
+               o Bug with 2Gb files transfers on Linux 2.4 fixed
+               o During the transfer, the file size is now growing in real time
+               o Add -lcrypt in bbftpd linkedit when PAM is not used nor AFS.
+          + Installation
+               o GFW (GSS FrameWork) is now included in the BBFTP distribution
+                 archive and it is automatically compiled and linked during the
+                 build process.
+     * 2.2.1
+          + Improvements
+               o Allow the daemon to be terminated by the kill command
+               o Allow  the  same  BBFTPD  executable  to  accept  client
+                 authentication via password, ssh and certificates
+               o Allow the same BBFTP executable to authenticate via password,
+                 ssh and certificates
+          + Fixes
+               o Put/Get errors on RH7.1/7.2 against gcc2.96 due to strict
+                 aliasing optimizations
+               o If the daemon cannot change directory into remote user home,
+                 it uses /tmp instead of sending an error
+               o Short hostname in command line is now working in certificates
+                 mode
+               o Remove RFIO temporary file only once in case of multi-stream
+                 transfer failure (server side)
+     * 2.2.0-beta1
+          + Add -n option to simulate the transfer
+          + Fix certificate/local user mapping bug
+          + Improve error messages between the daemon and the client
+          + One connection try only while connecting with a certificate
+     * 2.2.0-beta0
+          + Add new authentication mode using certificates (available on Linux
+            intel only)
+          + Add -q flag (and setoption qbss) on client side in order to mark
+            packets for QBSS (developed by Paola Grosso)
+          + Add control commands in .bbftprc file to customize control stream
+            and data stream time-outs (client and server)
+          + Increase default time-outs for Control stream (180s) and Data
+            stream (300s)
+          + Support of Solaris2.8
+          + Add $VERSION variable for multi-version installation
+     * 2.2.0
+          + Build process
+               o Remove OpenSSL and Zlib packages from the distribution
+               o Make compression and encryption optional in client
+               o Make compression optional in server
+               o Use configure script to setup build options
+          + New features
+               o Add 'get remoteFile localDir/' and 'put localFile remoteDir/'
+                 commands
+               o Port the certificate mode for Solaris2.7
+          + Fixes
+               o Remove dirty 'x' flag in chmod with option 'nokeepmode'
+               o Use AFS password request when built with AFS
+               o Remove RFIO temporary file only once in case of multi-stream
+                 transfer failure
+          + Licence
+               o Add COPYING file
+               o Insert licence notice in source files
+     * 2.1.2
+          + Fix COS 0 bug for HPSS/RFIO interface
+     * 2.1.1
+          + Add libraries for AFS support on AIX 4.3
+     * 2.1.0
+          + Port to Linux Power PC
+          + Add the possibility to include a private authentication scheme
+          + Add the -l option on daemon in order to define the log level. By
+            default the daemon will not log anything.
+          + Add the -m option on client to have special output for speed rate
+            calculation
+          + Correct bug on control file reading. If the last line ends without
+            any carriage return it was not executed.
+          + Modify Build, configure and Makefiles in order to have only one
+            Makefile for all platforms.
+          + Routines reorganisation in client and daemon
+          + Add a deconnection message in order for the daemon to stop cleanly
+     * 2.0.2
+          + Corrects return code treatment in various routines
+          + Corrects  problems  on the Linux version due to malign-double
+            compilation parameter (severe)
+          + Automatic detection of RFIO (instead of doing it in config.h)
+          + Adapt client and daemon to CASTOR (RFIO at CERN)
+     * 2.0.1
+          + Correct the frequent "Interrupted system call" on the bbftpd daemon
+            (patch01 and patch03 of 2.0.0)
+          + Corrects put, mput and mget severe bug (patch02 of 2.0.0)
+          + Port to IRIX64
+          + Correct the bug on multiple ouput (bug shown by Alvise Dorigo)
+          + Automaticly add "-s" option inside the "bbftpd command line" for -E
+            option (to conform to version 1.9.4-tja1)
+     * 2.0.0
+          + Warning Release 2.0.0 is a major release, and the changes in the
+            protocol between the client and the server lead to the following
+            situation :
+               o bbftpd server works with bbftp clients in version 2.0.0 and
+                 1.x.x
+               o bbftpc and bbftpcd are not provided in release 2.0.0
+               o bbftp client in version 2.0.0 works only with bbftpd server
+                 version 2.0.0
+               o Default control port has been changed from 4021 to 5021. 
+          + New authentication method using ssh (Tim Adye idea)
+          + No more limitation on file name
+          + No more limitation on stream number
+          + New features on client command line
+               o -L "ssh command"
+               o -E "bbftpd command line"
+               o -s for ssh mode
+               o -S for ssh mode in batch (always not asking for a password)
+               o -W for warning on stderr
+               o -V for verbose mode (the old standart mode with the >> )
+               o -e "control command ; control command" (several commands may
+                 be entered separated by ;)
+               o -F "bbftprc file" (explained later)
+          + New features on server command line
+               o -v to print version number and default on stdout
+               o -f not to use a fixed date port
+               o -s to run started by ssh
+          + New control commands
+               o setbuffersize %d : define the read (and write) buffer size in
+                 Kbytes for each stream
+               o setlocalcos %d : Define the local COS (RFIO only)
+               o setremotecos %d : Define the remote COS (RFIO only)
+               o setlocalumask %o : Define the local umask (default is the
+                 process umask)
+               o setremoteumask %o : Define the remote umask (default 022)
+               o setsendwinsize %d : Define the send window size (in Kbytes) on
+                 each stream for the server (in this case the receive window of
+                 the client is set to this value)
+               o setrecvwinsize %d : Define the receive window size (in Kbytes)
+                 on each stream for the server (in this case the send window of
+                 the client is set to this value)
+               o setnbstream %d : You can override the -p option with that
+                 command (all further commands are going to use this number of
+                 streams)
+               o setoption [ [no]createdir | [no]tmpfile | [no]remoterfio |
+                 [no]localrfio | [no]keepmode |[no]keepaccess | [no]gzip ]
+                    # creatdir  : automatic directory creation (default :
+                      creatdir)
+                    # tmpfile : always use a temporary file name (default :
+                      tmpfile)
+                    # remoterfio : set the server in rfio mode (default :
+                      noremoterfio)
+                    # localrfio  : set the client in rfio mode (default :
+                      nolocalrfio)
+                    # keepmode : keep file mode (default : keepmode)
+                    # keepaccess  :  keep last access and last modif time
+                      (default : keepaccess)
+                    # gzip : compress on the flight (defaul : nogzip except if
+                      -c flag was used on command line)
+          + New behaviour
+               o If  the  option  tmpfile  is used then if the new file (
+                 RemoteFile for a put or LocalFile for a get) did not exist
+                 before, bbftp ensures that the file transfer was correct if
+                 the file exists
+               o In case of an already existing file, if the size, the last
+                 access and modification time are correct (if option keepaccess
+                 has been set) bbftp ensures that the file transfer was correct
+               o After a successful connection to the daemon the client is
+                 going  to  execute  all  control commands located in the
+                 $HOME/.bbftprc file. The location of this file can be changed
+                 with option -F.
+          + bbftp is now able to work on both side with RFIO, as RFIO is able
+            to work with HPSS it is now
+     * 1.9.4
+          + Add -b options in bbftpd. This option allows a daemon compiled with
+            DAEMONMODE equal a zero to be run in background.
+          + Add -w options in bbftpd. This option tells bbftpd to listen on a
+            different  port. (Useful for debugging purposes or if several
+            deamons have to run under several uid). This option cannot be used
+            if running under inetd.
+          + Add -w options in bbftp and bbftpcd. This option allows to connect
+            to a bbftpd daemon listening a different port than the default.
+          + Add a FIXEDDATAPORT in config.h parameter in order to tell bbftpd
+            to use CONTROLPORT-1 localport for data socket.
+          + Back to socket in blocking mode because Sun and Linux have a non
+            documented behaviour if no network buffers are available.
+          + Compilation and Installation guide changed.
+     * 1.9.1
+          + Correct a bug in PAM authentication in bbftpd.
+          + Change the command putrfio in rfioput (if RFIO is supported).
+          + Add the command rfioget (if RFIO is supported).
+          + Add the command setlocalcos (if RFIO is supported).
+          + Add -l option on bbftp and bbftpc clients to define the COS (mainly
+            for use in bbftpc -e) (if RFIO is supported)
+          + Add -o option on bbftpcd in order to keep the bbftpcd pid in a file
+          + Change the output of all -v option in order to know if the client
+            has been compiled with RFIO
+          + Support for HP-UX 10.20
+     * 1.9.0
+          + Add putrfio command in all clients (if RFIO is supported).
+          + Add support for PAM authentication.
+          + Add support for shadow password in authentication.
+          + Use of the autoconf utilitie in order to help port for clients and
+            daemon.
+          + Support for AIX 4.3
+          + Ability to stop clients via Ctrl^C or via SIGTERM
+          + Add -r option on client to define the number of tries
+          + Manual pages in html format

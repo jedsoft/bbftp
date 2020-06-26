@@ -1,0 +1,204 @@
+BBFTP protocol version 1
+------------------------
+
+This protocol is available starting with bbftp version 1.9.0 and will be supported 
+by all version 1.9.x and 2.x.x. It describe the message handling and the structures
+used for the message exchange.
+
+
+Connection and Login
+--------------------
+
+
+Client Side                                                       Server Side
+
+                                        connection
+                                 --------------------->
+Wait for MSG_CRYPT and                                      Generate RSA key
+a known crypt type. In case
+of error the control connection
+has to be closed
+                                        MSG_CRYPT
+                                 <----------------------
+
+Use the RSA pub key to encrypt                              Wait for MSG_LOG. All errors
+username and password.                                      generate the death of the process
+Send MSG_LOG plus the
+encrypted username and password.
+                                        MSG_LOG
+                                  --------------------->
+ 
+Wait for MSG_BAD, MSG_BAD_NO_RETRY                          Check username and password.
+or MSG_OK. In case of error the                             All errors generate the death
+control connection has to be closed                         of the process.
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+If MSG_OK can start command                                 if MSG_OK set the state to
+else retry connection.                                      S_LOGGED.
+
+
+
+The S_LOGGED State
+-------------------
+
+In this state the server is expecting the following messages. 
+
+    MSG_STORE
+    MSG_STORE_C
+    MSG_RETR
+	MSG_RETR_C
+	MSG_RETR_RFIO
+	MSG_RETR_RFIO_C
+	MSG_MKDIR
+	MSG_CHDIR
+	MSG_LIST
+
+Within all version 1.9.X the server only reads eight bytes to know the message type
+and generate a MSG_BAD answer. After that it reads the following eight bytes ... etc,
+etc and that can lead to a stupid behaviour. (No new command can be implemented...)
+So starting with version 2.0.0 the server is going to read all the datas and generate
+a MSG_BAD_NO_RETRY. That allow further command to be accepted.
+
+
+The MSG_STORE and MSG_STORE_C message
+-------------------------------------
+
+	   Client Side                                                       Server Side
+
+Do checking. Get the sockets.
+Start the children.
+                                       MSG_STORE
+                                  --------------------->
+									  MSG_STORE_C
+Wait for MSG_BAD,BAD_NO_RETRY								Get the message and read it.
+or MSG_OK. Any other message								In case of error break the
+lead to the break of the control 							connection.
+connection.													Do some checks, if they fail return
+The children are waiting for a								MSG_BAD or MSB_BAD_NO_RETRY
+connection.															
+															Fork all children and start them.
+															
+															set the state to S_RECEIVING.
+															
+															In case of error send MSG_BAD or 
+															MSB_BAD_NO_RETRY.
+															
+															Any message received during this 
+															phase interrupt the transfer and
+															the control connection is closed.
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+
+The difference between MSG_STORE and MSG_STORE_C is that all data send by the children
+are starting with a header in MSG_STORE_C.
+
+The MSG_RETR and all related
+----------------------------
+
+	   Client Side                                                       Server Side
+
+Do checking. Get the data sokets.
+                                       MSG_RETR
+                                  --------------------->
+
+
+Wait for MSG_RETR_OK,  								   		Get the message and read it.
+MSG_BAD or MSG_BAD_NO_RETRY. Any							In case of error break the
+other message will lead to break							connection.
+the control connection. 									Do some checks, if they fail return
+															MSG_BAD or MSB_BAD_NO_RETRY
+															
+															Send MSG_RETR_OK 
+                                     MSG_RETR_OK
+                                 <----------------------
+								 MSG_BAD MSG_BAD_NO_RETRY
+
+If the file length is zero 			 					    Wait for MSG_RETR_START,
+then							 						  	MSG_ABR or MSG_CREATE_ZERO.
+   if creation is successfull 
+      send MSG_CREATE_ZERO									Any other message will
+   else 													break the control connection
+      send MSG_ABORT							   		    
+else 														
+   do checking. Get the sockets.
+   Start the children.
+   In case of error send a
+   MSG_ABR.
+
+                                    MSG_RETR_START
+                                  --------------------->
+								 MSG_CREATE_ZERO MSG_ABR
+
+Wait for MSG_BAD,BAD_NO_RETRY								Fork all children and start them.
+,MSG_OK. 
+Any other message lead to the 								set the state to S_RECEIVING.
+break of the control connection.							
+The children are waiting for a								In case of error send MSG_BAD or
+connection.													MSB_BAD_NO_RETRY.
+															
+															Any message except MSG_ABR
+															received during this phase 
+															interrupt the transfer and
+															the control connection is closed.
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+
+									
+															
+The MSG_MKDIR message
+---------------------
+
+Do checking.
+                                       MSG_MKDIR
+                                  --------------------->
+
+Wait for MSG_BAD, MSG_BAD_NO_RETRY							Get the message and read it.
+or MSG_OK. Any other message will 							In case of error break the
+lead to break the control connection.						connection.
+ 									 						Create the directory
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+
+
+
+The MSG_CHDIR message
+---------------------
+
+Do checking.
+                                       MSG_CHDIR
+                                  --------------------->
+
+Wait for MSG_BAD, MSG_BAD_NO_RETRY	    				    Get the message and read it.
+or MSG_OK. Any other message will 						    In case of error break the
+lead to break the control connection    				    connection.
+ 									 					    Change to directory
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+															
+The MSG_LIST message
+---------------------
+
+Do checking.
+                                       MSG_LIST
+                                  --------------------->
+
+Wait for MSG_BAD, MSG_BAD_NO_RETRY	    				    Get the message and read it.
+or MSG_LIST_REPL. Any other message will 					In case of error break the
+lead to break the control connection    				    connection.
+ 									 					    Get the file list and send it
+															back
+                                      MSG_LIST_REPL
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+															
+															

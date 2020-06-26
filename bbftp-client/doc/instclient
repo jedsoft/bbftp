@@ -1,0 +1,91 @@
+    Configuring the client
+
+   In the bbftpc directory, run:
+   % ./configure
+
+   The configure script accepts the following standard options:
+
+   +----------------------------------------------------------------+
+   |--prefix=DIR   |Defines the directory to install BBFTP client   |
+   +----------------------------------------------------------------+
+
+   The configure script accepts the following additional options:
+
+   +----------------------------------------------------------------+
+   |                                    |Enable compression         |
+   |--with-gzip                         |(automatic search + dynamic|
+   |                                    |link if possible) (DEFAULT)|
+   |------------------------------------+---------------------------|
+   |                                    |Enable compression where   |
+   |--with-gzip=DIR                     |libs are in DIR/lib and    |
+   |                                    |includes in DIR/include    |
+   |                                    |(static link)              |
+   |------------------------------------+---------------------------|
+   |--without-gzip                      |Disable compression        |
+   |------------------------------------+---------------------------|
+   |                                    |Enable encryption          |
+   |--with-ssl                          |(automatic search + dynamic|
+   |                                    |link if possible) (DEFAULT)|
+   |------------------------------------+---------------------------|
+   |                                    |Enable encryption where    |
+   |--with-ssl=DIR                      |libs are in DIR/lib and    |
+   |                                    |includes in DIR/include    |
+   |                                    |(static link)              |
+   |------------------------------------+---------------------------|
+   |                                    |Disable OpenSSL encryption.|
+   |--without-ssl                       |Cannot be used in private  |
+   |                                    |authentication mode        |
+   |------------------------------------+---------------------------|
+   |                                    |Enable RFIO interface      |
+   |--with-rfio                         |(automatic search in       |
+   |                                    |"/usr/local" + static link)|
+   |                                    |(DEFAULT)                  |
+   |------------------------------------+---------------------------|
+   |                                    |Enable RFIO interface where|
+   |--with-rfio=DIR                     |libs are in DIR/lib and    |
+   |                                    |includes in DIR/include    |
+   |                                    |(static link)              |
+   |------------------------------------+---------------------------|
+   |--without-rfio                      |Disable RFIO interface     |
+   |------------------------------------+---------------------------|
+   |--with-afs                          |Use AFS for standard       |
+   |                                    |authentication             |
+   |------------------------------------+---------------------------|
+   |                                    |Use AFS for standard       |
+   |--with-afs=DIR                      |authentication where libs  |
+   |                                    |are in DIR/lib and includes|
+   |                                    |in DIR/include             |
+   |------------------------------------+---------------------------|
+   |--without-afs                       |Do not use AFS for standard|
+   |                                    |authentication (DEFAULT)   |
+   |------------------------------------+---------------------------|
+   |                                    |Use the private            |
+   |--enable-authentication=private     |authentication module. This|
+   |                                    |mode requires OpenSSL      |
+   |------------------------------------+---------------------------|
+   |--enable-authentication=certificates|Use the certificate        |
+   |                                    |authentication module      |
+   +----------------------------------------------------------------+
+
+   The following options should be used in certificate mode only:
+
+   +----------------------------------------------------------------+
+   |              |Defines where to find the Globus GSI software    |
+   |--with-gsi=DIR|(DEFAULT=$GLOBUS_LOCATION or "/opt/globus",      |
+   |              |static link)                                     |
+   +----------------------------------------------------------------+
+
+    Building the client
+
+   In the bbftpc directory, run:
+   % make
+
+    Installing the client
+
+   In the bbftpc directory, run:
+   % make install
+
+    Binary Windows installation
+
+   unzip the file bbftp-VERSION-client-cygwin.zip. The file cygwin1.dll must
+   be installed in the same directory.

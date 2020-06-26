@@ -1,0 +1,54 @@
+VERSION=@version@
+
+INSTALL_DIR=@prefix@
+
+ARCHIVE_EXT=@archive_ext@
+LIB_NAME=libgfw$(ARCHIVE_EXT)
+
+CC=@CC@
+CFLAGS=@CFLAGS@
+CPPFLAGS=@CPPFLAGS@
+LN_S=@LN_S@
+
+all: $(LIB_NAME)
+
+$(LIB_NAME): gfw_init.o gfw_accept.o gfw_acquire.o gfw-server.o gfw-client.o gfw-misc.o
+	rm -f $@
+	ar -cq $@ gfw_init.o gfw_accept.o gfw_acquire.o gfw-server.o gfw-client.o gfw-misc.o
+
+gfw_init.o:	gfw_init.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c gfw_init.c
+
+gfw_accept.o:	gfw_accept.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c gfw_accept.c
+
+gfw_acquire.o:	gfw_acquire.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c gfw_acquire.c
+
+gfw-client.o:	gfw-client.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c gfw-client.c
+
+gfw-misc.o:	gfw-misc.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c gfw-misc.c
+
+gfw-server.o:	gfw-server.c
+	$(CC) $(CFLAGS) $(CPPFLAGS) -c gfw-server.c
+
+test:
+	
+install: $(LIB_NAME) gfw.h
+	rm -f $(INSTALL_DIR)/lib/$(LIB_NAME).$(VERSION)
+	mkdir -p $(INSTALL_DIR)/lib
+	cp $(LIB_NAME) $(INSTALL_DIR)/lib/$(LIB_NAME).$(VERSION)
+	rm -f $(INSTALL_DIR)/lib/$(LIB_NAME)
+	rm -f $(INSTALL_DIR)/include/gfw.h.$(VERSION)
+	mkdir -p $(INSTALL_DIR)/include
+	cp gfw.h $(INSTALL_DIR)/include/gfw.h.$(VERSION)
+	rm -f $(INSTALL_DIR)/include/gfw.h
+	cd $(INSTALL_DIR)
+	$(LN_S) $(INSTALL_DIR)/lib/$(LIB_NAME).$(VERSION) $(INSTALL_DIR)/lib/$(LIB_NAME)
+	$(LN_S) $(INSTALL_DIR)/include/gfw.h.$(VERSION) $(INSTALL_DIR)/include/gfw.h
+
+clean:
+	rm -f *.o
+	rm -f $(LIB_NAME)

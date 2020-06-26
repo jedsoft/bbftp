@@ -1,0 +1,29 @@
+    Control connection
+
+   In the standard mode, the control connection is initiated by the client.
+   The connection is required on port 5021 on the server side. This port can
+   be changed at compile-time (#define CONTROLPORT in includes/config.h)
+   or/and at run-time (option -w). If the server port is not the default one
+   (5021), a client which want to connect to this server must specify the
+   port (option -w).
+
+   In the SSH mode, the server listens on port std+1 (ie 5022 by default). It
+   cannot be changed at run-time.
+
+    Data connection
+
+   Whereas the FTP protocol implements one data connection only, BBFTP opens
+   multiple data connections depending on the number of streams required
+   (client option -p and server option -m).
+
+     * Passive mode (client 3 against server 3 only)
+       The server listens on ephemeral ports which are sent to the client.
+       These ports can be chosen in a range defined at compile-time or at
+       run-time.
+     * Non-passive mode (other configurations)
+       The server initiates the data connection(s) after the client has sent
+       him its private IP address and the listening port(s). This(these)
+       port(s) is(are) ephemeral ports (>1023). (it is possible to define a
+       range of ports when starting the client using the -D option) The
+       server can then establish the connection(s) to the specified port(s)
+       from its port std-1 (ie 5020 by default).

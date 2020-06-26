@@ -1,0 +1,87 @@
+   Starting with release 2.1.0 it is possible to implement a private
+   authentication mechanism without. The private authentication mode disables
+   all the other authentication modes (standard, ssh and certificates).
+
+    On the client side
+
+   Write your authentication code in the file bbftp/bbftp_private_user.c.
+
+     * extern char *username;
+
+       This variable contains the username given on the command line (-u
+       option).
+     * extern char *privatestr;
+
+       This variable contains the string given on the command line with the
+       -P option (or NULL if not used).
+     * int bbftp_private_getargs(char *logmessage)
+
+       This routine is called at the begining of the login sequence (just
+       before setting the process in background if needed) in order to allow
+       the programmer to set variables or to request input from the user.
+
+       The return code and the variables are explained in the file.
+
+       After having called this routine the main program will exchange RSA
+       keys with the server in order to crypt all messages sent during the
+       authentication procedure. Then the hand will be given to the next
+       routine :
+
+     * int bbftp_private_auth(char *logmessage)
+
+       This routine will allow the user exchange data between the client and
+       the server. For that it will use two routines bbftp_private_recv and
+       bbftp_private_send whose descriptions are given in the
+       bbftp_private_user.c file.
+
+       When all this data exchange has ended, the routine will return to main
+       code with a return code of 0 in case of success or with a return code
+       of -1 and the string logmessage filled in case of error.
+
+    On the server side
+
+   Write your authentication code in the file bbftpd/bbftpd_private_user.c.
+
+     * extern char currentusername[MAXLEN];
+
+       It has to be filled by the bbftpd_private_auth routine.
+     * int bbftpd_private_auth(char *logmessage)
+
+       As on the client side, this routine will exchange data using
+       bbftpd_private_send and bbftpd_private_recv routines (whose
+       decriptions are given in the bbftpd_private_user.c file), do all
+       checks needed and return 0 in case of success or -1 and the string
+       logmessage filled in case of error.
+
+    Building BBFTP with a private authentication module
+
+    On the client side
+
+   In the bbftpc directory, run
+   % ./configure --enable-authentication=private
+
+   Then run:
+   % make
+
+   Then run:
+   % make install
+
+    On the server side
+
+   In the bbftpd directory, run
+   % ./configure --enable-authentication=private
+
+   Then run:
+   % make
+
+   Then run:
+   % make install
+
+   See the installation pages for [1]the client and for [2]the server for
+   more information about the BBFTP build process.
+
+References
+
+   Visible links
+   1. file:///afs/in2p3.fr/home/b/bbftp/release/bbftp/doc/text/private.html#instclient
+   2. file:///afs/in2p3.fr/home/b/bbftp/release/bbftp/doc/text/instserver

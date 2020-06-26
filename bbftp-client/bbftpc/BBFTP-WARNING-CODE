@@ -1,0 +1,36 @@
+#
+# Warning related to options (00001-0005)
+#
+BBFTP-WARNING-00001 : Local COS is meaningfull when not compiled with RFIO option
+#
+# Warning related to rc file (00006-00)
+#
+BBFTP-WARNING-00005 : Buffersize in .bbftprc file must be numeric > 0
+BBFTP-WARNING-00006 : Unable to get passwd entry, .bbftprc will not be used
+BBFTP-WARNING-00007 : No home directory, .bbftprc will not be used
+BBFTP-WARNING-00008 : Error allocationg space for bbftprc file name , .bbftprc will not be used
+BBFTP-WARNING-00009 : Error stating bbftprc file (%s)
+BBFTP-WARNING-00010 : Error allocation memory for bbftprc, .bbftprc will not be used
+BBFTP-WARNING-00011 : Error opening .bbftprc file (%s) : %s
+BBFTP-WARNING-00012 : Error reading .bbftprc file (%s)
+BBFTP-WARNING-00013 : Unkown command in .bbftprc file .bbftprc file (%s)
+BBFTP-WARNING-00014 : Local COS in .bbftprc file must be numeric
+BBFTP-WARNING-00015 : Remote COS in .bbftprc file must be numeric
+BBFTP-WARNING-00016 : Local umask in .bbftprc file must be numeric
+BBFTP-WARNING-00017 : Remote umask in .bbftprc file must be numeric
+BBFTP-WARNING-00018 : Send window size in .bbftprc file must be numeric
+BBFTP-WARNING-00019 : Receive window size in .bbftprc file must be numeric
+BBFTP-WARNING-00020 : Unknown option in .bbftprc file (%s)
+BBFTP-WARNING-00021 : Number of stream in bbftprc file must be numeric and > 0
+#
+#
+#
+BBFTP-WARNING-00022 : Retrying connection waiting %d s
+BBFTP-WARNING-00023 : Unable to get send buffer size : %s
+BBFTP-WARNING-00024 : Send buffer cannot be set to %d Bytes, Value is %d Bytes
+BBFTP-WARNING-00025 : Unable to get receive buffer size : %s
+BBFTP-WARNING-00026 : Receive buffer cannot be set to %d Bytes, Value is %d Bytes
+#
+#
+#
+BBFTP-WARNING-00100 : %s

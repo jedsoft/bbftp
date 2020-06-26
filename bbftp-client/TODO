@@ -1,0 +1,9 @@
+* Improve return code in case of child error in bbftp (mainly a read or write
+  error).
+  
+* Improve return code in case of failure of one try. In this particular case 
+  bbftp will return a non zero error code even if all files have been
+  transferred correctly.
+  
+* Implement directory limitation on server 
+  Request from David Flagan (D0)

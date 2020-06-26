@@ -1,0 +1,487 @@
+BBFTP protocol version 3 
+------------------------
+
+Started to be used with version 3.0.0.
+
+Connection and Login
+--------------------
+
+    1a) Standart method (client and server compiled with SSL option)
+        ------------------------------------------------------------
+       
+       Client Side                                                       Server Side
+
+                                        connection
+                                 --------------------->
+Wait for MSG_CRYPT and                                      Generate RSA key
+a known crypt type. In case
+of error the control connection
+has to be closed
+                                        MSG_CRYPT
+                                 <----------------------
+
+Use the RSA pub key to encrypt                              Wait for MSG_LOG. All errors
+username and password.                                      generate the death of the process
+Send MSG_LOG plus the
+encrypted username and password.
+                                        MSG_LOG
+                                  --------------------->
+ 
+Wait for MSG_BAD, MSG_BAD_NO_RETRY                          Check username and password.
+or MSG_OK. In case of error the                             All errors generate the death
+control connection has to be closed                         of the process.
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+If MSG_OK can start command                                 if MSG_OK set the state to
+else retry connection.                                      S_PROTWAIT.
+
+    1b) Standart method (server compiled with SSL option, but not client)
+        -----------------------------------------------------------------
+       
+       Client Side                                                       Server Side
+
+                                        connection
+                                 --------------------->
+Wait for MSG_CRYPT and                                      Generate RSA key
+a known crypt type. In case
+of error the control connection
+has to be closed
+                                        MSG_CRYPT
+                                 <----------------------
+Cannot encrypt so send the                                  
+message back with NO_CRYPT
+                                        MSG_CRYPT
+                                 ---------------------->
+Wait for MSG_BAD, MSG_BAD_NO_RETRY                          If server has been launched with -u
+or MSG_OK. In case of error the                             option, send MSG_OK, else MSG_BAD
+control connection has to be closed
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+If MSG_OK                                                   Wait for MSG_LOG. All errors
+Send MSG_LOG + username & password                          generate the death of the process
+                                        MSG_LOG
+                                  --------------------->
+ 
+Wait for MSG_BAD, MSG_BAD_NO_RETRY                          Check username and password.
+or MSG_OK. In case of error the                             All errors generate the death
+control connection has to be closed                         of the process.
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+If MSG_OK can start command                                 if MSG_OK set the state to
+else retry connection.                                      S_PROTWAIT.
+
+
+    2) Remotly started DAEMON
+       ----------------------
+
+       Client Side                                                       Server Side
+
+The client start the remote daemon 
+with the method of his choice. Care
+is to be taken if this remote start
+fails. The control socket will be 
+replaced by stdin and stdout.
+
+                                        connection
+                                 --------------------->
+Wait for MSG_LOGGED_STDIN.                                  The daemon is started with
+In case of error the control                                stdin and stdout as control
+connection has to be closed.                                connection.
+Care has to be taken because
+control socket is stdin and
+stdout.....
+                                     MSG_LOGGED_STDIN
+                                 <----------------------
+
+                                                            
+                                                            Wait for a connection on the
+                                                            port send with MSG_LOGGED_STDIN
+                                     connection
+                                 --------------------->
+                            MSG_IPADDR (on the new connection)
+                                 --------------------->
+
+                         MSG_IPADDR_OK (on the control connection)
+                                 <----------------------
+                                                            Set the state to S_PROTWAIT
+                                                            
+
+
+
+                                 +-------------------+
+                                 | The daemon states |
+                                 +-------------------+
+
+The S_PROTWAIT State
+--------------------
+
+In this state the server is expecting the following messages.
+
+    MSG_PROT
+    or 
+    MSG_STORE
+    MSG_STORE_C
+    MSG_RETR
+    MSG_RETR_C
+    MSG_RETR_RFIO
+    MSG_RETR_RFIO_C
+    MSG_MKDIR
+    MSG_CHDIR
+    MSG_LIST
+
+From the server side
+
+    If the first received message is not MSG_PROT. Then that means that the client is using
+    protocol version 1. So the state will be change to S_LOGGED.
+
+From the client side
+    
+    Send the MSG_PROT message with protocol version
+
+
+The S_LOGGED State
+-------------------
+
+In this state the server is expecting the following messages. 
+
+    MSG_CHDIR
+    MSG_CHUMASK    
+    MSG_LIST_V2
+    MSG_MKDIR_V2
+    MSG_RETR_V2
+    MSG_STORE_V2
+
+Any other message will be read, discarded and will generate a MSG_BAD_NO_RETRY message.
+    
+The S_WAITING_STORE_START State
+-------------------------------
+
+In this state the server is expecting the following messages. 
+
+    MSG_TRANS_START_V3
+    MSG_TRANS_SIMUL_V3
+    MSG_ABORT
+    
+Any other message will break the control connection.
+
+The S_RECEIVING State
+---------------------
+
+In this state the server is expecting the following messages. 
+
+    MSG_ABORT
+    
+Any other message will break the control connection.
+
+The S_WAITING_CREATE_ZERO State
+-------------------------------
+
+In this state the server is expecting the following messages. 
+
+    MSG_CREATE_ZERO 
+    MSG_ABORT
+    
+Any other message will break the control connection.
+
+The S_WAITING_RETR_START State
+------------------------------
+
+In this state the server is expecting the following messages. 
+
+    MSG_TRANS_START_V3
+    MSG_TRANS_SIMUL_V3
+    MSG_ABORT
+    
+Any other message will break the control connection.
+
+The S_SENDING State
+---------------------
+
+In this state the server is expecting the following messages. 
+
+    MSG_ABORT
+    
+Any other message will break the control connection.
+
+                                 +--------------+
+                                 | The messages |
+                                 +--------------+
+The MSG_PROT message
+--------------------
+
+       Client Side                                                       Server Side
+                                       MSG_PROT
+                                  --------------------->
+
+Wait for MSG_BAD, MSG_BAD_NO_RETRY                          Look at his own proto and send
+or MSG_PROT_ANS. If the answer                              it. The lowest will be chosen.
+is MSG_BAD or MSG_BAD_NO_RETRY
+that means that the server is using
+protocol version 1.
+Any other answer will close the
+connection.
+                                     MSG_PROT_ANS
+                                 <----------------------
+                                 MSG_BAD MSG_BAD_NO_RETRY
+If the message is MSG_PROT_ANS
+Look at his own proto and send                              Wait for MSG_PROT_ANS. All errors
+it. The lowest will be chosen.                              generate the death of the process
+                                      MSG_PROT_ANS
+                                  --------------------->
+
+                                                            Set the state to S_LOGGED
+               
+                
+The MSG_STORE_V2 message
+------------------------
+
+       Client Side                                                       Server Side
+
+Do checking.
+                                       MSG_STORE_V2
+                                  --------------------->
+                                                            Get the message and read it.
+                                                            In case of error break the
+                                       MSG_FILENAME         connection.
+                                  --------------------->
+
+Wait for MSG_TRANS_OK_V3,                                   Get the message and read it.
+MSG_BAD or MSG_BAD_NO_RETRY. Any                            In case of error break the
+other message will lead to break                            connection.
+the control connection.                                     Do some checks, if they fail return
+                                                            MSG_BAD or MSB_BAD_NO_RETRY
+In case of zero length file
+wait for MSG_OK, MSG_BAD or                                 If the filelen is zero and the
+MSG_BAD_NO_RETRY.                                           creation succeeded then send
+                                                            MSG_OK and set state to S_LOGGED
+                                                            
+                                                            Check the negotiated paremeters
+                                                            and resend the structure with the
+                                                            accepted parameters. Any unkown
+                                                            parameter will be reset to zero.
+                                                            
+                                                            Get the sockets and send the ports.
+
+                                                            if MSG_TRANS_OK_V3 is send 
+                                                            set the state to 
+                                                            S_WAITING_STORE_START.
+                                 MSG_TRANS_OK_V3 MSG_OK
+                                 <----------------------
+                                 MSG_BAD MSG_BAD_NO_RETRY
+
+If the file length was zero                                 Wait for MSG_TRANS_START_V3 or
+and MSG_OK is received                                      MSG_ABORT. Any other message will
+then                                                        break the control connection
+   execute next command
+else 
+   do checking.
+   Start the children.
+   In case of error send a 
+   MSG_ABORT.
+                                    MSG_TRANS_START_V3
+                                  --------------------->
+                                        MSG_ABORT
+
+Wait for MSG_BAD,BAD_NO_RETRY                               Fork all children and start them.
+,MSG_OK or MSG_INFO.
+Any other message lead to the break                         set the state to S_RECEIVING.
+of the control connection.
+                                                            In case of error send MSG_BAD or
+Each child connects to a port                               MSB_BAD_NO_RETRY.
+ 
+                                                            Any message except MSG_ABORT
+                                                            received during this phase
+                                                            interrupt the transfer and
+                                                            the control connection is closed.
+                                                            
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+
+
+The MSG_RETR_V2 message
+------------------------
+
+       Client Side                                                       Server Side
+
+Do checking.
+                                       MSG_RETR_V2
+                                  --------------------->
+
+                                                            Get the message and read it.
+                                                            In case of error break the
+                                       MSG_FILENAME         connection.
+                                  --------------------->
+
+Wait for MSG_TRANS_OK_V3,                                   Get the message and read it.
+MSG_BAD or MSG_BAD_NO_RETRY. Any                            In case of error break the
+other message will lead to break                            connection.
+the control connection.                                     Do some checks, if they fail return
+                                                            MSG_BAD or MSB_BAD_NO_RETRY
+
+                                                            If the filelen is zero then send
+                                                            MSG_TRANS_OK_V3 and set state to 
+                                                            S_WAITING_CREATE_ZERO.
+                                                            
+                                                            Check the negotiated paremeters
+                                                            and resend the structure with the
+                                                            accepted parameters. Any unkown
+                                                            parameter will be reset to zero.
+                                                           
+                                                            Get the sockets and send the ports.
+
+                                                            Send MSG_TRANS_OK_V2 and 
+                                                            set the state to 
+                                                            S_WAITING_RETR_START.
+                                     MSG_TRANS_OK_V3
+                                 <----------------------
+                                 MSG_BAD MSG_BAD_NO_RETRY
+
+If the file length is zero                                  Wait for MSG_TRANS_START_V3,
+then                                                        MSG_ABORT or MSG_CREATE_ZERO.
+   if creation is successfull 
+      send MSG_CREATE_ZERO                                  Any other message will
+   else                                                     break the control connection
+      send MSG_ABORT                                           
+else                                                         
+   do checking.
+   Start the children.
+   In case of error send a
+   MSG_ABORT.
+
+                                    MSG_TRANS_START_V3
+                                  --------------------->
+                                MSG_CREATE_ZERO MSG_ABORT
+
+Wait for MSG_BAD,BAD_NO_RETRY                               Fork all children and start them.
+,MSG_OK or MSG_INFO. 
+Any other message lead to the                               set the state to S_SENDING.
+break of the control connection.                            
+Each child connects to a port                               In case of error send MSG_BAD or
+                                                            MSB_BAD_NO_RETRY.
+                                                            
+                                                            Any message except MSG_ABORT
+                                                            received during this phase 
+                                                            interrupt the transfer and
+                                                            the control connection is closed.
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+
+
+
+The MSG_MKDIR message
+---------------------
+
+Do checking.
+                                       MSG_MKDIR
+                                  --------------------->
+
+Wait for MSG_BAD, MSG_BAD_NO_RETRY                          Get the message and read it.
+or MSG_OK. Any other message will                           In case of error break the
+lead to break the control connection.                       connection.
+                                                            Create the directory
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+
+
+
+The MSG_CHDIR message
+---------------------
+
+Do checking.
+                                       MSG_CHDIR
+                                  --------------------->
+
+Wait for MSG_BAD, MSG_BAD_NO_RETRY                          Get the message and read it.
+or MSG_OK. Any other message will                           In case of error break the
+lead to break the control connection                        connection.
+                                                            Change to directory
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+                                                            
+The MSG_LIST message
+---------------------
+
+Do checking.
+                                       MSG_LIST
+                                  --------------------->
+
+Wait for MSG_BAD, MSG_BAD_NO_RETRY                          Get the message and read it.
+or MSG_LIST_REPL. Any other message will                    In case of error break the
+lead to break the control connection                        connection.
+                                                            Get the file list and send it
+                                                            back
+                                      MSG_LIST_REPL
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+The MSG_CHUMASK message
+---------------------
+
+Do checking.
+                                       MSG_CHUMASK
+                                  --------------------->
+
+Wait for MSG_BAD, MSG_BAD_NO_RETRY                          Get the message and read it.
+or MSG_OK. Any other message will                           In case of error break the
+lead to break the control connection                        connection.
+                                                            Change umask
+                                        MSG_OK
+                                 <----------------------
+                                MSG_BAD MSG_BAD_NO_RETRY
+
+                                
+                     +----------------------------------------------------+
+                     | V2-V3 compatibility between client and server      |
+                     +----------------------------------------------------+
+                                
+  1) Client V2 (<3.0.0) and server V3 (>=3.0.0)
+     ------------------------------------------
+     * Work in non-passive mode
+
+  2) Client V3 (>=3.0.0) and server V2 (<3.0.0)
+     ------------------------------------------
+     * Work in non-passive mode
+
+  3) Client V3 (>=3.0.0) and server V3 (>=3.0.0)
+     -------------------------------------------
+     * Work in passive mode
+
+                     +----------------------------------------------------+
+                     | ZIP Option compatibility between client and server |
+                     +----------------------------------------------------+
+
+
+  1) Client and server compiled with ZIP option
+     ------------------------------------------
+     * get command with zip option: files compressed
+     * put command with zip option: files compressed
+
+  2) Server compiled with ZIP option but not client
+     ----------------------------------------------
+     * get command with zip option: client error: option not available
+     * put command with zip option: client error: option not available
+
+  3) Client compiled with ZIP option but not server
+     ----------------------------------------------
+     * get command with zip option: transfer OK but files not compressed
+     * put command with zip option: server warning: option turned off and files are
+                                    transferred non-compressed
+
+  4) Client and server compiled without ZIP option
+     ---------------------------------------------
+     * get command with zip option: client error: option not available
+     * put command with zip option: client error: option not available
+

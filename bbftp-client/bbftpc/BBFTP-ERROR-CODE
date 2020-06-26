@@ -1,0 +1,116 @@
+#
+# Errors related to options or command (00001-00030)
+#
+BBFTP-ERROR-00001 : Cannot malloc space for result file name
+BBFTP-ERROR-00002 : Local COS must be numeric
+BBFTP-ERROR-00003 : Number of streams must be numeric and > 0 
+BBFTP-ERROR-00004 : Number of tries must be numeric
+BBFTP-ERROR-00005 :	SSH identity file (%s) cannot be stated
+BBFTP-ERROR-00006 :	Error on command line (unsupported option %s)
+BBFTP-ERROR-00007 : Input file (%s) cannot be stated
+BBFTP-ERROR-00008 : Cannot malloc space for ssh remote cmd
+BBFTP-ERROR-00009 : Cannot malloc space for ssh cmd
+BBFTP-ERROR-00010 : Error openning error file (%s) : %s
+BBFTP-ERROR-00011 : Error dup on error file (%s) : %s
+BBFTP-ERROR-00012 : Error openning output file (%s) : %s
+BBFTP-ERROR-00013 : Error dup on output file (%s) : %s
+BBFTP-ERROR-00014 : No hostname on command line
+BBFTP-ERROR-00015 : Invalid hostname (%s)
+BBFTP-ERROR-00016 : Invalid IP address (%s)
+BBFTP-ERROR-00017 : Hostname no found (%s)
+BBFTP-ERROR-00018 : No username given
+BBFTP-ERROR-00019 : Password is mandatory
+BBFTP-ERROR-00020 : Error on command line (-i or -e option are mandatory)
+BBFTP-ERROR-00021 : Error opening input file (%s) : %s
+BBFTP-ERROR-00022 : Error opening result file (%s) : %s
+BBFTP-ERROR-00023 : Unable to malloc memory for command : %s
+BBFTP-ERROR-00024 : Error reading input file (%s) : %s
+BBFTP-ERROR-00025 : Unkown command : %s
+BBFTP-ERROR-00026 : Incorrect command : %s
+BBFTP-ERROR-00027 : Error while private authentication : %s
+
+#
+# Errors  (00031-00040)
+#
+BBFTP-ERROR-00031 : Error forking while setting in background
+BBFTP-ERROR-00032 : Error setting signal %s : %s
+BBFTP-ERROR-00033 : Maximum try on connection reached (%d) aborting
+BBFTP-ERROR-00033 : Killed by SIGINT
+BBFTP-ERROR-00034 : Killed by SIGTERM
+BBFTP-ERROR-00035 : Error allocating memory for %s : %s
+BBFTP-ERROR-00036 : Fork error : %s
+BBFTP-ERROR-00037 : No more child
+#
+# Errors for ssh (00041-00050)
+#
+BBFTP-ERROR-00041 : Pipe for ssh failed : %s
+BBFTP-ERROR-00042 : Too many arguments in ssh command : %s
+BBFTP-ERROR-00043 : No ssh command specified
+BBFTP-ERROR-00044 : Too many -o options (total number of arguments is more than 256)
+BBFTP-ERROR-00045 : Fork for ssh command failed
+BBFTP-ERROR-00046 : Error while execvp ssh command (%s) : %s
+BBFTP-ERROR-00047 : Cannot get socket for MSG_IPADDR message : %s
+BBFTP-ERROR-00048 : Cannot connect socket for MSG_IPADDR message : %s
+BBFTP-ERROR-00049 : Cannot bind socket for MSG_IPADDR message : %s
+BBFTP-ERROR-00050 : Cannot set SO_REUSEADDR on socket for MSG_IPADDR message : %s
+#
+# Errors for connection to server an login sequence (00051-00060)
+#
+BBFTP-ERROR-00051 : Cannot create control socket : %s
+BBFTP-ERROR-00052 : Cannot connect to control socket : %s
+BBFTP-ERROR-00053 : Error getsockname on control socket: %s
+BBFTP-ERROR-00054 : Error reading encryption message
+BBFTP-ERROR-00055 : No encryption message
+BBFTP-ERROR-00056 : Error reading encrypted message : %s
+BBFTP-ERROR-00057 : Unkown encryption method
+BBFTP-ERROR-00058 : Error sending username : %s
+BBFTP-ERROR-00059 : Error reading login message answer : %s
+#
+# Error on message (00061-00070)
+#
+BBFTP-ERROR-00061 : Error waiting %s message
+BBFTP-ERROR-00062 : Unknown message while waiting for %s message
+BBFTP-ERROR-00063 : Unexpected message length while waiting for %s message
+BBFTP-ERROR-00064 : Error sending %s message
+BBFTP-ERROR-00065 : Unknown message while waiting for %s message
+BBFTP-ERROR-00066 : Error select on control connection : %s 
+BBFTP-ERROR-00067 : Error reading data for %s message
+#
+# Errors locals (00071-00090)
+#
+BBFTP-ERROR-00071 : Error changing directory %s (%s)
+BBFTP-ERROR-00072 : Error stating file %s : %s
+BBFTP-ERROR-00073 : File %s is a directory
+BBFTP-ERROR-00074 : Filename %s ends with a /
+BBFTP-ERROR-00075 : Directory (%s) creation needed but TROPT_DIR not set
+BBFTP-ERROR-00076 : File %s is a not a directory
+BBFTP-ERROR-00077 : File %s creation error : %s
+BBFTP-ERROR-00078 : Error seeking file %s : %s 
+BBFTP-ERROR-00079 : Error writing file %s : %s 
+BBFTP-ERROR-00080 : Error closing file %s : %s 
+BBFTP-ERROR-00081 : Error renaming file %s to %s : %s
+BBFTP-ERROR-00082 : Error creating directory %s : %s
+BBFTP-ERROR-00083 : File %s exists but is not a directory
+BBFTP-ERROR-00084 : Error changing access time : %s
+BBFTP-ERROR-00085 : Error chmod on file %s : %s
+BBFTP-ERROR-00086 : Opendir %s failed : %s
+BBFTP-ERROR-00087 : Pattern %s ends with a /
+BBFTP-ERROR-00088 : Error on readdir %s : %s  
+BBFTP-ERROR-00089 : Error lstating file %s : %s
+BBFTP-ERROR-00090 : Error finding castor physical path %s : %s
+#
+# Socket
+#
+BBFTP-ERROR-00091 : Cannot create data socket: %s
+BBFTP-ERROR-00092 : Cannot set SO_REUSEADDR on data socket : %s
+BBFTP-ERROR-00093 : Cannot set TCP_NODELAY on data socket : %s
+BBFTP-ERROR-00094 : Cannot set SO_LINGER on data socket : %s
+BBFTP-ERROR-00095 : Cannot bind on data socket : %s
+BBFTP-ERROR-00096 : Cannot getsockname on data socket : %s
+BBFTP-ERROR-00097 : Cannot listen on data socket : %s
+#
+#
+# Errors send by server
+#
+BBFTP-ERROR-00100 : %s
+BBFTP-ERROR-00101 : Incompatible deamon and client (remote protocol version (%d,%d), local (%d,%d)
