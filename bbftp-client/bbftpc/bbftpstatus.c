@@ -172,12 +172,6 @@ int main (int argc, char **argv)
 /*
 ** Variable set by options
 */
-    char    *inputfile  = NULL ;
-    char    *resultfile = NULL ;
-    char    *outputfile = NULL ;
-    char    *errorfile  = NULL ;
-    char    *bbftpcmd   = NULL ;
-    int     background  = SETTOZERO ;
 /*
 ** For hostname
 */  
@@ -185,29 +179,11 @@ int main (int argc, char **argv)
     char    *calchostname ;
 /*
 ** For local user
-*/
-    struct  passwd  *mypasswd ;
-    char    *bbftprcfile = NULL ;
-    int     fd ;
-    char    *carret ;
-    char    *startcmd ;
-    int     nooption ;
-    
-    struct  stat    statbuf ;
+*/    
     int     retcode ;
-    int     i, j, k ;
-    int     stderrfd ;
-    int     stdoutfd ;
-    int     infd ;
-    char    calcmaxline[1] ;
-    int     maxlen ;
-    int     lengthread ;
-    char    *buffercmd ;
+    int     j ;
     int     alluse ;
-    char    *tmpsshremotecmd ;
-    char    logmessage[1024] ;
     char    minbuffer[MINMESSLEN] ;
-    struct  message *msg ;
 /*
 ** Get local umask 
 */
@@ -293,7 +269,7 @@ int main (int argc, char **argv)
        */
         hisctladdr.sin_addr.s_addr = 0 ;
         hisctladdr.sin_addr.s_addr = inet_addr(hostname) ;
-        if (hisctladdr.sin_addr.s_addr == -1 ) {
+        if (hisctladdr.sin_addr.s_addr == INADDR_NONE ) {
             fprintf(stderr,"Invalid IP address (%s)\n",hostname) ;
 	    exit(1);
         }
@@ -328,14 +304,8 @@ int main (int argc, char **argv)
     {
     char    *buffer ;
     
-    char    minbuffer[MINMESSLEN] ;
-    int     retcode ;
     int     msglen ;
-    int     code ;
-    fd_set  selectmask ; /* Select mask */
-    int     nfds ; /* Max number of file descriptor */
     struct  message *msg ;
-    struct  mess_integer *msg_integer ;
    
 #if defined(SUNOS) || defined(_HPUX_SOURCE) || defined(IRIX)
     int     addrlen ;
@@ -434,7 +404,6 @@ int main (int argc, char **argv)
             return -1 ;
         }
         msg = (struct message *) minbuffer ;
-        code = msg->code ;
 
         if (msg->code == MSG_OK ) {
             /*
