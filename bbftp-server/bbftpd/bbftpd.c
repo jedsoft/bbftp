@@ -105,6 +105,8 @@
 #endif
 
 #include <openssl/rsa.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
 
 #ifdef WITH_GZIP
 #include <zlib.h>
@@ -845,7 +847,9 @@ main (argc,argv,envp)
         /*
         ** Load the error message from the crypto lib
         */
+#if OPENSSL_API_COMPAT < 0x10100000L
         ERR_load_crypto_strings() ;
+#endif
         /*
         ** Initialize the buffrand buffer which is giong to be used to initialize the 
         ** random generator

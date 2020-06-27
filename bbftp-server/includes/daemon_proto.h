@@ -29,13 +29,13 @@
 /*
 ** Prototype for utilities
 */
-void checkfromwhere() ;
-int checkprotocol() ;
-void clean_child() ;
-void exit_clean() ;
+void checkfromwhere(void) ;
+int checkprotocol(void) ;
+void clean_child(void) ;
+void exit_clean(void) ;
 int bbftpd_checkendchild(int status) ;
 void strip_trailing_slashes (char *path) ;
-void free_all_var() ;
+void free_all_var(void) ;
 /*
 ** Prototypes for message routines
 */
@@ -50,8 +50,8 @@ void bbftpd_sigchld(int sig) ;
 void bbftpd_sighup( int sig) ;
 void bbftpd_sigterm(int sig) ;
 int bbftpd_checkendchild(int status) ;
-int bbftpd_setsignals() ;
-int bbftpd_blockallsignals() ;
+int bbftpd_setsignals(void) ;
+int bbftpd_blockallsignals(void) ;
 /*
 ** Prototype for sockets
 */

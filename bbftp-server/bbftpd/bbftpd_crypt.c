@@ -73,7 +73,10 @@ void sendcrypt()
     unsigned char    pubexponent[NBITSINKEY] ;
     int        lenkey ;
     int        lenexpo ;
-    
+#define JED_SSL_PATCH 1
+#ifdef JED_SSL_PATCH
+   const BIGNUM *rsa_n, *rsa_e, *rsa_d;
+#endif
     /*
     ** Ask for the private and public Key
     */
@@ -84,8 +87,16 @@ void sendcrypt()
     /*
     ** Now extract the public key in order to send it
     */
-    lenkey  = BN_bn2mpi(myrsa->n,pubkey) ;
-    lenexpo = BN_bn2mpi(myrsa->e,pubexponent) ;
+#ifdef JED_SSL_PATCH
+   RSA_get0_key (myrsa, &rsa_n, &rsa_e, &rsa_d);
+#else
+   rsa_n = myrsa->n;
+   rsa_e = myrsa->e;
+   (void) rda_d;
+#endif
+
+    lenkey  = BN_bn2mpi(rsa_n,pubkey) ;
+    lenexpo = BN_bn2mpi(rsa_e,pubexponent) ;
     mess = (struct message *) buf ;
     mess->code = MSG_CRYPT ;
 #ifndef WORDS_BIGENDIAN
