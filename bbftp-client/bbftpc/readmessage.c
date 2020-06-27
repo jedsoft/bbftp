@@ -55,11 +55,10 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <client.h>
 #include <client_proto.h>
-
-extern int  timestamp ;
-extern int  debug ;
 
 int readmessage(int sock,char *buffer,int msglen,int to,int fromchild) 
 {

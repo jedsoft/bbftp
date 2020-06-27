@@ -57,15 +57,6 @@
 #include <common.h>
 #include <structures.h>
 
-extern  int     timestamp;
-extern  int     incontrolsock ;
-extern  int     outcontrolsock ;
-extern	int	recvcontrolto ;
-extern	int	sendcontrolto ;
-extern  int     transferoption ;
-extern  int     verbose ;
-
-
 int bbftp_rm(char *filename,int  *errcode) 
 {
     

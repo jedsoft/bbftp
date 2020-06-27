@@ -376,8 +376,6 @@ static void addCommand(char *lnewcmd) {
 
 int main(int argc, char **argv)
 {
-    /* extern char *optarg; */
-    /* extern int optind, opterr, optopt; */
 /*
 ** Variable set by options
 */

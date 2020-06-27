@@ -49,19 +49,13 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <client.h>
 #include <client_proto.h>
 #include <common.h>
 #include <netinet/in.h>
 #include <structures.h>
-
-extern  int     verbose ;
-extern  int     timestamp ;
-extern  int     transferoption  ; 
-extern  int     incontrolsock ;
-extern  int     outcontrolsock ;
-extern	int	recvcontrolto ;
-extern	int	sendcontrolto ;
 
 int bbftp_list(char *line,char **filelist,int *filelistlen,int *errcode)
 {

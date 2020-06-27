@@ -55,22 +55,6 @@
 #include <gssapi.h>
 #include <gfw.h>
 
-extern  int     timestamp ;
-extern  int     incontrolsock ;
-extern  int     outcontrolsock ;
-extern	int	    recvcontrolto ;
-extern	int	    sendcontrolto ;
-extern  int     newcontrolport ;
-extern  int     verbose ;
-extern  int     warning ;
-extern  int     debug ;
-
-extern  struct  sockaddr_in hisctladdr ;
-extern  struct  sockaddr_in myctladdr ;
-
-extern char *username ;
-extern struct hostent  *hp ;
-extern char *service ;
 /*******************************************************************************
 ** bbftp_cert_connect :                                                     *
 **                                                                             *

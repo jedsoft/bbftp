@@ -33,11 +33,11 @@
 /*
 ** username contain a pointer to the string given with the -u flag
 */
-extern char *username ;
+/* extern char *username ; */
 /*
 ** privatestr contain a pointer to the string given with the -P flag
 */
-extern char *privatestr ;
+/* extern char *privatestr ; */
 
 /*******************************************************************************
 ** bbftp_private_getargs :                                                     *

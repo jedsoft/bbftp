@@ -54,21 +54,12 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
 
 #include <client.h>
 #include <client_proto.h>
 #include <common.h>
 #include <structures.h>
-
-extern  char    *remotedir ;
-extern  int     timestamp;
-extern  int     incontrolsock ;
-extern  int	recvcontrolto ;
-extern  int     outcontrolsock ;
-extern	int	sendcontrolto ;
-extern  int     transferoption ;
-extern  int     verbose ;
-
 
 int bbftp_cd(char *dirpath,int  *errcode) 
 {

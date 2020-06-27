@@ -47,6 +47,8 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <openssl/rsa.h>
 #include <openssl/rand.h>
 
@@ -55,18 +57,6 @@
 #include <client_proto.h>
 #include <common.h>
 #include <structures.h>
-
-extern  int     timestamp ;
-extern  int     incontrolsock ;
-extern  int     outcontrolsock ;
-extern  int	    recvcontrolto ;
-extern  int	    sendcontroto ;
-extern  int     newcontrolport ;
-extern  int     verbose ;
-extern  int     debug ;
-
-extern  struct  sockaddr_in hisctladdr ;
-extern  struct  sockaddr_in myctladdr ;
 
 /*******************************************************************************
 ** bbftp_private_connect :                                                     *

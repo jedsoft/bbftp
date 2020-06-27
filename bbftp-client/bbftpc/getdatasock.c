@@ -46,22 +46,12 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <client.h>
 #include <client_proto.h>
 #include <common.h>
 #include <structures.h>
-
-extern int     debug ;
-extern int     timestamp ;
-extern int     *myports ;
-extern int     *mysockets ;
-extern int     warning ;
-extern int     transferoption  ; 
-extern int     sendwinsize ;
-extern int     recvwinsize ;
-extern struct  sockaddr_in myctladdr ;
-extern int     pasvport_min ;
-extern int     pasvport_max ;
 
 int getdatasock(int nbsock, int *errcode) 
 {

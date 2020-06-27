@@ -57,44 +57,13 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
 
 #include <client.h>
 #include <client_proto.h>
 #include <common.h>
 #include <netinet/in.h>
 #include <structures.h>
-
-extern  int     debug ;
-extern  int     warning ;
-extern  int     verbose ;
-extern  int     timestamp ;
-extern  int     statoutput ;
-extern  int     *mychildren;
-extern  int     *mysockets;
-extern  int     *myports;
-extern  int     transferoption  ; 
-extern  int     filemode ;
-extern  char    lastaccess[9] ;
-extern  char    lastmodif[9] ;
-extern  int     sendwinsize ;
-extern  int     recvwinsize ;
-extern  int     buffersizeperstream ;
-extern  int     requestedstreamnumber ;
-extern  my64_t  filesize ;
-extern  char    *curfilename ;
-extern  char    *realfilename;
-/*extern  int     *myports ;*/
-/*extern  int     *mysockets ;*/
-extern  char    *readbuffer ;
-extern  char    *compbuffer ; 
-extern  int     incontrolsock ;
-extern  int     outcontrolsock ;
-extern	int	recvcontrolto ;
-extern	int	sendcontrolto ;
-extern  int     nbport ;
-extern  int     state ;
-extern  int     simulation_mode ;
-extern  int     protocol ;
 
 #ifndef HAVE_NTOHLL
 my64_t ntohll(my64_t v) ;

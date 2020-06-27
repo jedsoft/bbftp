@@ -38,17 +38,13 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <client.h>
 #include <client_proto.h>
 #include <common.h>
 #include <netinet/in.h>
 #include <structures.h>
-
-extern  int     timestamp ;
-extern  int     usessh ;
-extern  int     sshchildpid ;
-extern  int     state ;
-extern  char    *realfilename;
 
 void bbftp_sigchld(int sig)
 {

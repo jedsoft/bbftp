@@ -40,22 +40,13 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <client.h>
 #include <client_proto.h>
 #include <common.h>
 #include <netinet/in.h>
 #include <structures.h>
-
-extern  int     verbose ;
-extern  int     timestamp ;
-extern  int     transferoption  ; 
-extern  char    *curfilename ;
-extern  char    *realfilename;
-extern  int     resfd ;
-extern  int     state ;
-extern  int     globaltrymax;
-extern  int     myexitcode;
-extern  int     connectionisbroken ;
 
 int bbftp_mget(char *remotefile,char *localdir, int  *errcode)
 {
@@ -148,20 +139,20 @@ int bbftp_mget(char *remotefile,char *localdir, int  *errcode)
                 }
                 sprintf(curfilename,"%s/%s",localdir,slash) ;
                 if ( (transferoption & TROPT_TMP) == TROPT_TMP ) {
-			char hostname[10 + 1];
-			if (gethostname(hostname, sizeof(hostname)) < 0) {
-				hostname[0] = '\0';
+			char lhostname[10 + 1];
+			if (gethostname(lhostname, sizeof(lhostname)) < 0) {
+				lhostname[0] = '\0';
 			} else {
-				hostname[sizeof(hostname) - 1] = '\0';
+				lhostname[sizeof(lhostname) - 1] = '\0';
 			}
 #ifdef CASTOR
                     if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
                         sprintf(realfilename,"%s",curfilename) ;
                     } else {
-                        sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,hostname,getpid()) ;
+                        sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
                     }
 #else                         
-                    sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,hostname,getpid()) ;
+                    sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
 #endif
                 } else {
                     sprintf(realfilename,"%s",curfilename) ;

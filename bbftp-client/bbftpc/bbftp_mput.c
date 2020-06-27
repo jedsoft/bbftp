@@ -39,22 +39,15 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <client.h>
 #include <client_proto.h>
 #include <common.h>
 #include <netinet/in.h>
 #include <structures.h>
 
-extern  int     verbose ;
-extern  int     timestamp ;
-extern  char    *curfilename ;
-extern  char    *realfilename;
-extern  int     globaltrymax;
-extern  int     myexitcode;
-extern  int     connectionisbroken ;
-extern  int     resfd ;
-
-int bbftp_mput(char *localfile,char *remotedir, int  *errcode)
+int bbftp_mput(char *localfile, char *lremotedir, int  *errcode)
 {
     char    logmessage[1024] ;
     char    *filelist ;
@@ -63,9 +56,8 @@ int bbftp_mput(char *localfile,char *remotedir, int  *errcode)
     int     nbtry ;
     char    *remotefilename = NULL ;
     char    *tmpfile, *tmpchar, *slash ;
-    
-    
-    if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : mput %s %s\n",localfile,remotedir) ;
+
+    if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : mput %s %s\n",localfile,lremotedir) ;
 
     if ( (retcode = bbftp_retrlistdir(localfile,&filelist,&filelistlen,logmessage,errcode) ) < 0 ) {
         printmessage(stderr,CASE_ERROR,*errcode,timestamp,"%s\n",logmessage) ;
@@ -104,13 +96,13 @@ int bbftp_mput(char *localfile,char *remotedir, int  *errcode)
                 /*
                 ** malloc space for remote file name
                 */
-                if ( (remotefilename = (char *) malloc (strlen(remotedir)+strlen(slash)+2)) == NULL ) {
+                if ( (remotefilename = (char *) malloc (strlen(lremotedir)+strlen(slash)+2)) == NULL ) {
                     printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
                     *errcode = 35 ;
                     free(filelist) ;
                     return BB_RET_ERROR ;
                 }
-                sprintf(remotefilename,"%s/%s",remotedir,slash) ;
+                sprintf(remotefilename,"%s/%s",lremotedir,slash) ;
                 
                 /*
                 ** malloc space for curfilename and realfilename
@@ -185,24 +177,24 @@ int bbftp_mput(char *localfile,char *remotedir, int  *errcode)
             if ( retcode != BB_RET_OK && nbtry == globaltrymax+1) {
                 myexitcode = *errcode ;
                 if ( resfd < 0 ) {
-                    if (!verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"put %s %s/%s FAILED\n",tmpfile,remotedir,slash)        ;
+                    if (!verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"put %s %s/%s FAILED\n",tmpfile,lremotedir,slash)        ;
                 } else {
                     write(resfd,"put ",4) ;
                     write(resfd,tmpfile,strlen(tmpfile)) ;
                     write(resfd," ",1) ;
-                    write(resfd,remotedir,strlen(remotedir)) ;                
+                    write(resfd,lremotedir,strlen(lremotedir)) ;                
                     write(resfd,"/",1) ;
                     write(resfd,slash,strlen(slash)) ;                
                     write(resfd," FAILED\n",8) ;
                 }
             } else if ( retcode == BB_RET_OK) {        
                 if ( resfd < 0 ) {
-                    if (!verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"put %s %s/%s OK\n",tmpfile,remotedir,slash)        ;
+                    if (!verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"put %s %s/%s OK\n",tmpfile,lremotedir,slash)        ;
                 } else {
                     write(resfd,"put ",4) ;
                     write(resfd,tmpfile,strlen(tmpfile)) ;
                     write(resfd," ",1) ;
-                    write(resfd,remotedir,strlen(remotedir)) ;                
+                    write(resfd,lremotedir,strlen(lremotedir)) ;                
                     write(resfd,"/",1) ;
                     write(resfd,slash,strlen(slash)) ;                
                     write(resfd," OK\n",4) ;
@@ -210,12 +202,12 @@ int bbftp_mput(char *localfile,char *remotedir, int  *errcode)
             } else {
                 myexitcode = *errcode ;
                 if ( resfd < 0 ) {
-                    if (!verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"put %s %s/%s FAILED\n",tmpfile,remotedir,slash)        ;
+                    if (!verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"put %s %s/%s FAILED\n",tmpfile,lremotedir,slash)        ;
                 } else {
                     write(resfd,"put ",4) ;
                     write(resfd,tmpfile,strlen(tmpfile)) ;
                     write(resfd," ",1) ;
-                    write(resfd,remotedir,strlen(remotedir)) ;                
+                    write(resfd,lremotedir,strlen(lremotedir)) ;                
                     write(resfd,"/",1) ;
                     write(resfd,slash,strlen(slash)) ;                
                     write(resfd," FAILED\n",8) ;

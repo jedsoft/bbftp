@@ -52,30 +52,6 @@
 #include <netinet/in.h>
 #include <structures.h>
 
-extern  int     timestamp;
-extern  int     globaltrymax;
-extern  int     myexitcode;
-extern  int     connectionisbroken ;
-extern  int     verbose ;
-extern  int     transferoption ;
-extern  int     sendwinsize ;
-extern  int     recvwinsize ;
-extern  int     localumask ;
-#if defined(WITH_RFIO) || defined(WITH_RFIO64)
-extern  int     localcos ;
-#endif
-extern  int     remoteumask ;
-extern  int     remotecos ;
-extern	int		ackto;
-extern	int		recvcontrolto;
-extern	int		sendcontrolto;
-extern	int		datato;
-extern  char    *curfilename ;
-extern  char    *realfilename ;
-extern  int     nbport ;
-extern  int     state ;
-extern  int     buffersizeperstream ;
-
 int treatcommand(char *buffercmd)
 {
     char    *mybuffercmd ;
@@ -224,11 +200,11 @@ int treatcommand(char *buffercmd)
 /*******************************************************************************
 ** get                                                                         *
 *******************************************************************************/
-		char hostname[10 + 1];
-		if (gethostname(hostname, sizeof(hostname)) < 0) {
-			hostname[0] = '\0';
+		char lhostname[10 + 1];
+		if (gethostname(lhostname, sizeof(lhostname)) < 0) {
+			lhostname[0] = '\0';
 		} else {
-			hostname[sizeof(hostname) - 1] = '\0';
+			lhostname[sizeof(lhostname) - 1] = '\0';
 		}
                 if ( action == NULL ) {
                     /*
@@ -287,10 +263,10 @@ int treatcommand(char *buffercmd)
                         if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
                             sprintf(realfilename,"%s",curfilename) ;
                         } else {
-                            sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,hostname,getpid()) ;
+                            sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
                         }
 #else                         
-                        sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,hostname,getpid()) ;
+                        sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
 #endif
                     } else {
                         sprintf(realfilename,"%s",curfilename) ;
@@ -331,10 +307,10 @@ int treatcommand(char *buffercmd)
                             if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
                                 sprintf(realfilename,"%s",curfilename) ;
                             } else {
-                                sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,hostname,getpid()) ;
+                                sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
                             }
 #else                         
-                            sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,hostname,getpid()) ;
+                            sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
 #endif
                         } else {
                             sprintf(realfilename,"%s",curfilename) ;
@@ -381,10 +357,10 @@ int treatcommand(char *buffercmd)
                             if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
                                 sprintf(realfilename,"%s",curfilename) ;
                             } else {
-                                sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,hostname,getpid()) ;
+                                sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
                             }
 #else                         
-                            sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,hostname,getpid()) ;
+                            sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
 #endif
                         } else {
                             sprintf(realfilename,"%s",curfilename) ;

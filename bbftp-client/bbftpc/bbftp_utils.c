@@ -54,19 +54,6 @@
 
 #include "_bbftp.h"
 
-extern  int     incontrolsock ;
-extern  int     outcontrolsock ;
-extern  int     sshchildpid  ;
-extern  char    *curfilename ;
-extern  char    *realfilename ;
-extern  int     *myports ;
-extern  int     *mysockets ;
-extern  char    *readbuffer ;
-extern  char    *compbuffer ;
-extern  int     *mychildren ;
-extern  int     debug ;
-extern  int     requestedstreamnumber ;
-
 #if 0
 static my64_t convertlong(my64_t v) {
     struct bb {

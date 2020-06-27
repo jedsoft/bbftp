@@ -54,18 +54,12 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
 
 #include <client.h>
 #include <client_proto.h>
 #include <common.h>
 #include <structures.h>
-
-extern  int     timestamp;
-extern  int     incontrolsock ;
-extern  int     outcontrolsock ;
-extern	int	recvcontrolto ;
-extern	int	sendcontrolto ;
-extern  int     verbose ;
 
 int bbftp_setremoteumask(int mask,int  *errcode) 
 {

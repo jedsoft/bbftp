@@ -65,37 +65,6 @@
 
 #include "_bbftp.h"
 
-extern  int     debug ;
-extern  int     warning ;
-extern  int     verbose ;
-extern  int     timestamp ;
-extern  int     statoutput ;
-extern  int     *mychildren;
-extern  int     *mysockets;
-extern  int     *myports;
-extern  int     transferoption  ; 
-extern  int     filemode ;
-extern  char    lastaccess[9] ;
-extern  char    lastmodif[9] ;
-extern  int     sendwinsize ;
-extern  int     recvwinsize ;
-extern  int     buffersizeperstream ;
-extern  int     requestedstreamnumber ;
-extern  my64_t  filesize ;
-extern  char    *curfilename ;
-extern  char    *realfilename;
-/* extern  int     *myports ; DUPLICATE */
-/* extern  int     *mysockets DUPLICATE */
-extern  char    *readbuffer ;
-extern  char    *compbuffer ; 
-extern  int     incontrolsock ;
-extern  int     outcontrolsock ;
-extern	int	recvcontrolto ;
-extern	int	sendcontrolto ;
-extern  int     nbport ;
-extern  int     state ;
-extern  int     protocol ;
-
 #ifndef HAVE_NTOHLL
 my64_t ntohll(my64_t v) ;
 #endif

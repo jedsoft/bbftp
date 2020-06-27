@@ -39,18 +39,6 @@
 #include <netinet/in.h>
 #include <structures.h>
 
-extern  int     verbose ;
-extern  int     timestamp ;
-extern  int     transferoption  ; 
-extern  char    *curfilename ;
-extern  char    *realfilename;
-extern  int     resfd ;
-extern  int     state ;
-extern  int     globaltrymax;
-extern  int     myexitcode;
-extern  int     connectionisbroken ;
-extern  int     statoutput ;
-
 int bbftp_dir(char *remotefile, int  *errcode)
 {
     /* char    logmessage[1024] ; */

@@ -74,33 +74,6 @@
 # define O_BINARY 0
 #endif
 
-extern  int     debug ;
-extern  int     warning ;
-extern  int     verbose ;
-extern  int     timestamp ;
-extern  int     *mychildren;
-extern  int     transferoption  ; 
-extern  int     filemode ;
-extern  char    lastaccess[9] ;
-extern  char    lastmodif[9] ;
-extern  int     sendwinsize ;
-extern  int     recvwinsize ;
-extern  int     buffersizeperstream ;
-extern  int     requestedstreamnumber ;
-extern  my64_t  filesize ;
-extern  char    *curfilename ;
-extern  char    *realfilename;
-extern  int     *myports ;
-extern  int     *mysockets ;
-extern  char    *readbuffer ;
-extern  char    *compbuffer ; 
-extern  int     incontrolsock ;
-extern  int     outcontrolsock ;
-extern	int	    ackto ;
-extern	int  	datato ;
-extern  int     nbport ;
-extern  int     protocol ;
-
 /*******************************************************************************
 ** bbftp_retrlisdir :                                                          *
 **                                                                             *

@@ -40,19 +40,12 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <common.h>
 #include <client.h>
 #include <client_proto.h>
 #include <structures.h>
-
-extern int  sendwinsize ;        
-extern int  recvwinsize ;        
-extern struct sockaddr_in hisctladdr;        /* Remote adresse */
-extern struct sockaddr_in myctladdr;    /* Local adresse */
-extern int  warning ;
-extern int     timestamp ;
-extern int  debug ;
-extern int     	transferoption  ; 
 
 /*******************************************************************************
 ** bbftp_createdatasock :                                                      *

@@ -34,6 +34,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <getopt.h>
+
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
@@ -165,13 +167,8 @@ void bbftp_close_control()
     if ( incontrolsock != outcontrolsock) close(outcontrolsock) ;
 }
 
-int main(argc, argv, envp)
-    int argc;
-    char **argv;
-    char **envp;
+int main (int argc, char **argv)
 {
-    extern char *optarg;
-    extern int optind, opterr, optopt;
 /*
 ** Variable set by options
 */
@@ -270,20 +267,26 @@ int main(argc, argv, envp)
 /*
 ** Check if hostname is in numeric format 
 */
-    for (j=0 ; j < strlen(hostname) ; j++) {
-        if ( isalpha(hostname[j]) ) {
-            /*
-            ** One alpha caractere means no numeric form
-            */
-            hosttype = 1 ;
-            break ;
-        } else if ( isdigit(hostname[j]) ) {
-        } else if ( hostname[j] == '.' ) {
-        } else {
-            fprintf(stderr,"Invalid hostname (%s)\n",hostname) ;
-	    exit(1);
-        }
+   j = 0;
+   while (hostname[j] != 0)
+     {
+	unsigned char ch = (unsigned char)hostname[j++];
+
+        if (isalpha(ch))
+	  {
+	     /*
+	      ** One alpha caractere means no numeric form
+	      */
+	     hosttype = 1 ;
+	     break ;
+	  }
+	if (isdigit(hostname[j]) || (hostname[j] == '.'))
+	  continue;
+
+	fprintf(stderr,"Invalid hostname (%s)\n",hostname) ;
+	exit(1);
     }
+
     if ( hosttype == 0 ) {
        /*
        ** Numeric format 

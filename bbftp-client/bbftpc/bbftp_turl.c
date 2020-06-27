@@ -40,20 +40,13 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <client.h>
 #include <client_proto.h>
 #include <common.h>
 #include <netinet/in.h>
 #include <structures.h>
-
-extern  int     timestamp;
-extern  int     globaltrymax;
-extern  int     myexitcode;
-extern  int     verbose ;
-extern  char    *curfilename ;
-extern  char    *realfilename ;
-extern  int     nbport ;
-extern  int     state ;
 
 int decodeTURL(char *oTURL, struct decodedTURL **dTURL) {
     char    *turlbuffer  = NULL;

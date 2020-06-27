@@ -60,6 +60,8 @@
   /* add  multiple addresses  */
 #include <netdb.h>
 
+#include "_bbftp.h"
+
 #include <client.h>
 #include <client_proto.h>
 #include <common.h>
@@ -77,36 +79,6 @@
 #define SETTOONE     1
 
 #define JED_SSL_PATCH 1
-
-extern  int     timestamp ;
-extern  int     usessh ;
-extern	int		usecert ;
-extern  int     sshbatchmode ;
-extern  int     sshchildpid ;
-extern  char    *sshidentityfile ;
-extern  char    *sshremotecmd  ;
-extern  char    *sshcmd ;
-extern  char    *hostname ;
-extern  char    *username ;
-extern  char    *password ;
-extern  int     incontrolsock ;
-extern  int     outcontrolsock ;
-extern	int	    recvcontrolto ;
-extern	int	    sendcontrolto ;
-extern  int     globaltrymax ;
-extern  int     warning ;
-extern  int     debug ;
-extern  int     verbose ;
-extern  int     newcontrolport ;
-extern  int     transferoption ;
-extern  int     remoteumask ;
-extern  int     remotecos ;
-extern  char    *remotedir ;
-
-  /*  add multiple addresses  */
-extern  struct hostent      *hp;
-extern  struct  sockaddr_in hisctladdr ;
-extern  struct  sockaddr_in myctladdr ;
 
 /****************************************************************************
   Separate STR into arguments, respecting quote and escaped characters.
@@ -500,7 +472,7 @@ int connectviapassword(void)
     struct  message     *msg ;
     struct  mess_sec    *msg_sec ;
     struct  mess_rsa    *msg_rsa ;
-    char    *readbuffer ;
+    char    *lreadbuffer ;
     int     msglen ;
     int     crtype ;
     int     code ; 
@@ -566,26 +538,26 @@ int connectviapassword(void)
         return -1 ;
     }
     /*
-    ** Get the message length and alloc readbuffer
+    ** Get the message length and alloc lreadbuffer
     */
 #ifndef WORDS_BIGENDIAN
     msglen = ntohl(msg->msglen) ;
 #else
     msglen = msg->msglen ;
 #endif
-    if ( ( readbuffer = (char *) malloc (msglen + 1) ) == NULL ) {
+    if ( ( lreadbuffer = (char *) malloc (msglen + 1) ) == NULL ) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,54,timestamp,"Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
         return -1 ;
     }
-    if ( readmessage(tmpctrlsock,readbuffer,msglen,recvcontrolto,0) < 0 ) {
-        free(readbuffer) ;
+    if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
+        free(lreadbuffer) ;
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s\n","type") ;
         return -1 ;
     }
 
-    msg_sec = (struct mess_sec    *) readbuffer ;
+    msg_sec = (struct mess_sec    *) lreadbuffer ;
 
 #ifdef WITH_SSL
     if ( (msg_sec->crtype & CRYPT_RSA_PKCS1_OAEP_PADDING ) == CRYPT_RSA_PKCS1_OAEP_PADDING) {
@@ -621,10 +593,10 @@ int connectviapassword(void)
         lenkey = msg_sec->pubkeylen ;
         lenexpo = msg_sec->expolen ;
 #endif
-        pubkey  = (unsigned char *) readbuffer + CRYPTMESSLEN ;
+        pubkey  = (unsigned char *) lreadbuffer + CRYPTMESSLEN ;
         pubexponent = pubkey + lenkey ;
         if ( (hisrsa = RSA_new()) == NULL) {
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting RSA",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
@@ -636,7 +608,7 @@ int connectviapassword(void)
        if (NULL == (rsa_n = BN_new()))
 	 {
 	    RSA_free (hisrsa);
-	    free (readbuffer);
+	    free (lreadbuffer);
 	    close (tmpctrlsock);
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
@@ -645,7 +617,7 @@ int connectviapassword(void)
 	 {
 	    BN_free (rsa_n);
 	    RSA_free (hisrsa);
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
@@ -656,20 +628,20 @@ int connectviapassword(void)
 	     * To avoid a possible double free, do not free rsa_n/e.
 	     */
 	    RSA_free (hisrsa);
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","RSA_set0_key",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
 	 }
 #else
         if ( (hisrsa->n = BN_new()) == NULL) {
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
         }
         if ( (hisrsa->e = BN_new()) == NULL) {
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
@@ -683,13 +655,13 @@ int connectviapassword(void)
         ** Copy the key and exponent received
         */
         if ( BN_mpi2bn(pubkey,lenkey,rsa_n) == NULL ) {
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","copying pubkey",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
         }
         if ( BN_mpi2bn(pubexponent,lenexpo,rsa_e) == NULL ) {
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","copying pubexponent",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
@@ -697,19 +669,19 @@ int connectviapassword(void)
         lenrsa = RSA_size(hisrsa) ;
        
         if ((int)strlen(username) > lenrsa - 41 ) {
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_FATAL_ERROR,56,timestamp,"Error reading encrypted message : %s (%d/%d)\n","username too long",strlen(username),lenrsa-41) ;
         }
         if ((int)strlen(password) > lenrsa - 41 ) {
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_FATAL_ERROR,56,timestamp,"Error reading encrypted message : %s (%d/%d)\n","password too long",strlen(password),lenrsa-41) ;
             return -2 ;
         }
         msg_rsa = ( struct mess_rsa *) rsabuffer ;
         if ( (msg_rsa->numuser = RSA_public_encrypt(strlen(username),(unsigned char *)username,msg_rsa->cryptuser,hisrsa,RSA_PKCS1_OAEP_PADDING)) < 0 ) {
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","RSA_public_encrypt username",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
@@ -718,7 +690,7 @@ int connectviapassword(void)
         msg_rsa->numuser = ntohl(msg_rsa->numuser) ;
 #endif
         if ( (msg_rsa->numpass = RSA_public_encrypt(strlen(password),(unsigned char *)password,msg_rsa->cryptpass,hisrsa,RSA_PKCS1_OAEP_PADDING)) < 0 ) {
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","RSA_public_encrypt password",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
@@ -728,12 +700,12 @@ int connectviapassword(void)
 #endif
         crtype = CRYPT_RSA_PKCS1_OAEP_PADDING ;
     } else {
-        free(readbuffer) ;
+        free(lreadbuffer) ;
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,57,timestamp,"Unkown encryption method \n") ;
         return -1  ;
     }
-    free(readbuffer) ;
+    free(lreadbuffer) ;
     /*
     ** Send login information
     */
@@ -787,13 +759,13 @@ int connectviapassword(void)
 #else
         msglen = msg->msglen ;
 #endif
-        if ( ( readbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
+        if ( ( lreadbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
             printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : malloc failed (%s) BAD message\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,readbuffer,msglen,recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
             close(tmpctrlsock) ;
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             if ( code == MSG_BAD ) {
                 printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","BAD message") ;
                 return -1 ;
@@ -802,13 +774,13 @@ int connectviapassword(void)
             }
         } else {
             close(tmpctrlsock) ;
-            readbuffer[msglen] = '\0' ;
+            lreadbuffer[msglen] = '\0' ;
             if ( code == MSG_BAD ) {
-                printmessage(stderr,CASE_ERROR,100,timestamp,"%s\n",readbuffer) ;
-                free(readbuffer) ;
+                printmessage(stderr,CASE_ERROR,100,timestamp,"%s\n",lreadbuffer) ;
+                free(lreadbuffer) ;
                 return -1 ;
             } else {
-                 printmessage(stderr,CASE_FATAL_ERROR,100,timestamp,"%s\n",readbuffer) ;
+                 printmessage(stderr,CASE_FATAL_ERROR,100,timestamp,"%s\n",lreadbuffer) ;
             }
         }
     } else if ( code == MSG_OK ) {
@@ -817,19 +789,19 @@ int connectviapassword(void)
 #else
         msglen = msg->msglen ;
 #endif
-        if ( ( readbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
+        if ( ( lreadbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
             printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,readbuffer,msglen,recvcontrolto,0) < 0 ) {
-            free(readbuffer) ;
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","OK message") ;
             return -1 ;
         } else {
-            readbuffer[msglen] = '\0' ;
-            if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< %s\n",readbuffer) ;
-            free(readbuffer) ;
+            lreadbuffer[msglen] = '\0' ;
+            if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< %s\n",lreadbuffer) ;
+            free(lreadbuffer) ;
         }    
     } else {
         close(tmpctrlsock) ;
@@ -842,12 +814,12 @@ int connectviapassword(void)
     if ( (msg_sec->crtype & CRYPT_RSA_PKCS1_OAEP_PADDING ) == CRYPT_RSA_PKCS1_OAEP_PADDING) {
         crtype = NO_CRYPT ;
     } else {
-        free(readbuffer) ;
+        free(lreadbuffer) ;
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,57,timestamp,"Unkown encryption method \n") ;
         return -1  ;
     }
-    free(readbuffer) ;
+    free(lreadbuffer) ;
     /*
     ** Send message to tell the server we can't encode
     */
@@ -880,13 +852,13 @@ int connectviapassword(void)
 #else
         msglen = msg->msglen ;
 #endif
-        if ( ( readbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
+        if ( ( lreadbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
             printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : malloc failed (%s) BAD message\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,readbuffer,msglen,recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
             close(tmpctrlsock) ;
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             if ( code == MSG_BAD ) {
                 printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","BAD message") ;
                 return -1 ;
@@ -895,13 +867,13 @@ int connectviapassword(void)
             }
         } else {
             close(tmpctrlsock) ;
-            readbuffer[msglen] = '\0' ;
+            lreadbuffer[msglen] = '\0' ;
             if ( code == MSG_BAD ) {
-                printmessage(stderr,CASE_ERROR,100,timestamp,"%s\n",readbuffer) ;
-                free(readbuffer) ;
+                printmessage(stderr,CASE_ERROR,100,timestamp,"%s\n",lreadbuffer) ;
+                free(lreadbuffer) ;
                 return -1 ;
             } else {
-                 printmessage(stderr,CASE_FATAL_ERROR,100,timestamp,"%s\n",readbuffer) ;
+                 printmessage(stderr,CASE_FATAL_ERROR,100,timestamp,"%s\n",lreadbuffer) ;
             }
         }
     } else if ( code == MSG_OK ) {
@@ -910,19 +882,19 @@ int connectviapassword(void)
 #else
         msglen = msg->msglen ;
 #endif
-        if ( ( readbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
+        if ( ( lreadbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
             printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,readbuffer,msglen,recvcontrolto,0) < 0 ) {
-            free(readbuffer) ;
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","OK message") ;
             return -1 ;
         } else {
-            readbuffer[msglen] = '\0' ;
-            if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"%s\n", readbuffer) ;
-            free(readbuffer) ;
+            lreadbuffer[msglen] = '\0' ;
+            if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"%s\n", lreadbuffer) ;
+            free(lreadbuffer) ;
         }    
     } else {
         close(tmpctrlsock) ;
@@ -994,13 +966,13 @@ int connectviapassword(void)
 #else
         msglen = msg->msglen ;
 #endif
-        if ( ( readbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
+        if ( ( lreadbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
             printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : malloc failed (%s) BAD message\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,readbuffer,msglen,recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
             close(tmpctrlsock) ;
-            free(readbuffer) ;
+            free(lreadbuffer) ;
             if ( code == MSG_BAD ) {
                 printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","BAD message") ;
                 return -1 ;
@@ -1009,13 +981,13 @@ int connectviapassword(void)
             }
         } else {
             close(tmpctrlsock) ;
-            readbuffer[msglen] = '\0' ;
+            lreadbuffer[msglen] = '\0' ;
             if ( code == MSG_BAD ) {
-                printmessage(stderr,CASE_ERROR,100,timestamp,"%s\n",readbuffer) ;
-                free(readbuffer) ;
+                printmessage(stderr,CASE_ERROR,100,timestamp,"%s\n",lreadbuffer) ;
+                free(lreadbuffer) ;
                 return -1 ;
             } else {
-                 printmessage(stderr,CASE_FATAL_ERROR,100,timestamp,"%s\n",readbuffer) ;
+                 printmessage(stderr,CASE_FATAL_ERROR,100,timestamp,"%s\n",lreadbuffer) ;
             }
         }
     } else if ( code == MSG_OK ) {
@@ -1024,19 +996,19 @@ int connectviapassword(void)
 #else
         msglen = msg->msglen ;
 #endif
-        if ( ( readbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
+        if ( ( lreadbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
             printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,readbuffer,msglen,recvcontrolto,0) < 0 ) {
-            free(readbuffer) ;
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
+            free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","OK message") ;
             return -1 ;
         } else {
-            readbuffer[msglen] = '\0' ;
-            if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< %s\n",readbuffer) ;
-            free(readbuffer) ;
+            lreadbuffer[msglen] = '\0' ;
+            if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< %s\n",lreadbuffer) ;
+            free(lreadbuffer) ;
         }    
     } else {
         close(tmpctrlsock) ;
