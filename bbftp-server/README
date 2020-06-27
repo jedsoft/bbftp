@@ -1,0 +1,56 @@
+BBFTP
+-----
+    * What BBFTP is
+
+        o BBFTP is a software designed to quickly transfer files accross a
+          wide area network. It has been written for the Babar experiment in
+          order to transfer big files (more than 2 GigaBytes) between SLAC
+          (Californie) and the In2p3 Computing Center(Lyon,France).
+
+        o BBFTP is divided in two parts : a daemon and several clients. The
+          clients are talking with the daemon on a control connection, and
+          are transfering data throught several parallel tcp streams. All
+          those streams use big windows as defined in rfc1323.
+
+        o BBFTP also give the ability to compress (and uncompress) data on
+          the fly. Usage has shown that with a speed link of 34 Mbps,
+          compression, even with a powerfull computer is not efficient.
+
+        o In order to secure the transmission of the username and the
+          password BBFTP uses the cryptolib of the OpenSSL project.
+
+   * What BBFTP is not
+
+        o A client implementing the FTP protocol.
+
+        o A very efficient tool to transfer small files accross a local area
+          network.
+
+   * You can get more information on the BBFTP Home Page 
+        (http://doc.in2p3.fr/bbftp/)
+   
+Directories and files
+---------------------
+
+CHANGES
+		History of changes
+README
+		This file
+TODO
+		Things to implement
+bbftpc
+		The client bbftp.
+		Tested for OSF1 4.0, OSF1 5.1, SunOS 5.7, SunOS 5.8, Linux 2.2, Linux 2.4, 
+		AIX 4.3, AIX 5.1.
+		The Linux version is available under intel processor (it has only
+		been tested on i686) and Linux power pc.
+bbftpd
+		The daemon. 
+		Tested for OSF1 4.0, OSF1 5.1, SunOS 5.7, SunOS 5.8, Linux 2.2, Linux 2.4, 
+		AIX 4.3, AIX 5.1.
+		The Linux version is available under intel processor (it has only
+		been tested on i686) and Linux power pc.
+includes
+		Headers
+doc
+		Documentation

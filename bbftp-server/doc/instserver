@@ -1,0 +1,161 @@
+    Configuring the server
+
+   In the bbftpd directory, run:
+   % ./configure
+
+   The configure script accepts the following standard options:
+
+   +----------------------------------------------------------------+
+   |--prefix=DIR   |Defines the directory to install BBFTP server   |
+   +----------------------------------------------------------------+
+
+   The configure script accepts the following additional options:
+
+   +----------------------------------------------------------------+
+   |                                    |Enable compression         |
+   |--with-gzip                         |(automatic search + dynamic|
+   |                                    |link) (DEFAULT)            |
+   |------------------------------------+---------------------------|
+   |                                    |Enable compression where   |
+   |--with-gzip=DIR                     |libs are in DIR/lib and    |
+   |                                    |includes in DIR/include    |
+   |                                    |(static link)              |
+   |------------------------------------+---------------------------|
+   |--without-gzip                      |Disable compression        |
+   |------------------------------------+---------------------------|
+   |                                    |Enable encryption          |
+   |--with-ssl                          |(automatic search + dynamic|
+   |                                    |link) (DEFAULT)            |
+   |------------------------------------+---------------------------|
+   |                                    |Enable encryption where    |
+   |--with-ssl=DIR                      |libs are in DIR/lib and    |
+   |                                    |includes in DIR/include    |
+   |                                    |(static link)              |
+   |------------------------------------+---------------------------|
+   |                                    |Enable RFIO interface      |
+   |--with-rfio                         |(automatic search in       |
+   |                                    |"/usr/local", static link) |
+   |                                    |(DEFAULT)                  |
+   |------------------------------------+---------------------------|
+   |                                    |Enable RFIO interface where|
+   |--with-rfio=DIR                     |libs are in DIR/lib and    |
+   |                                    |includes in DIR/include    |
+   |                                    |(static link)              |
+   |------------------------------------+---------------------------|
+   |--without-rfio                      |Disable RFIO interface     |
+   |------------------------------------+---------------------------|
+   |--with-afs                          |Use AFS for standard       |
+   |                                    |authentication             |
+   |------------------------------------+---------------------------|
+   |                                    |Use AFS for standard       |
+   |--with-afs=DIR                      |authentication where libs  |
+   |                                    |are in DIR/lib and includes|
+   |                                    |in DIR/include             |
+   |------------------------------------+---------------------------|
+   |--without-afs                       |Do not use AFS for standard|
+   |                                    |authentication (DEFAULT)   |
+   |------------------------------------+---------------------------|
+   |--with-pam                          |Use PAM                    |
+   |------------------------------------+---------------------------|
+   |--without-pam                       |Do not use PAM (DEFAULT)   |
+   |------------------------------------+---------------------------|
+   |                                    |The server will choose data|
+   |--with-ephemeral-ports-range=RANGE  |ports in range RANGE,      |
+   |                                    |defined as MINPORT:MAXPORT |
+   |------------------------------------+---------------------------|
+   |                                    |The server will choose data|
+   |--without-ephemeral-ports-range     |ports in the               |
+   |                                    |system-dependent default   |
+   |                                    |range (DEFAULT)            |
+   |------------------------------------+---------------------------|
+   |--enable-authentication=private     |Use the private            |
+   |                                    |authentication module      |
+   |------------------------------------+---------------------------|
+   |--enable-authentication=certificates|Use the certificate        |
+   |                                    |authentication module      |
+   +----------------------------------------------------------------+
+
+   The following options should be used in certificate mode only:
+
+   +--------------------------------------------------------------------+
+   |                          |Defines where to find the Globus GSI     |
+   |--with-gsi=DIR            |software (DEFAULT=$GLOBUS_LOCATION or    |
+   |                          |"/opt/globus", static link)              |
+   |--------------------------+-----------------------------------------|
+   |                          |Defines where to find the host           |
+   |--with-x509-user-cert=FILE|certificate                              |
+   |                          |(DEFAULT=/etc/grid-security/hostcert.pem)|
+   |--------------------------+-----------------------------------------|
+   |                          |Defines where to find the host private   |
+   |--with-x509-user-key=FILE |key                                      |
+   |                          |(DEFAULT=/etc/grid-security/hostkey.pem) |
+   |--------------------------+-----------------------------------------|
+   |--with-x509-cert-dir=DIR  |Defines where to find the CA certificates|
+   |                          |(DEFAULT=/etc/grid-security/certificates)|
+   |--------------------------+-----------------------------------------|
+   |--with-gridmap=FILE       |Defines where to find the gridmap file   |
+   |                          |(DEFAULT=/etc/grid-security/grid-mapfile)|
+   +--------------------------------------------------------------------+
+
+    Building the server
+
+   In the bbftpd directory, run:
+   % make
+
+    Installing the server
+
+   In the bbftpd directory, run:
+   % make install
+
+    Configuration
+
+   It is possible to make the daemon start with options defined in a
+   configuration file. This file is /etc/bbftpd.conf. The syntax is the same
+   of the configuration file for client users (.bbftprc). Available options
+   are described in the BBFTPD man page
+
+    Post installation
+
+   If you have chosen to run the server through inetd
+
+     * Add the line
+       bbftp    CONTROLPORT/tcp
+       in your /etc/services file where CONTROLPORT is the number you have
+       set in the includes/config.h (usually 5021)
+     * Add the line
+       bbftp stream tcp nowait root ${bindir}/bbftpd bbftpd
+       in the /etc/inetd.conf
+
+   If your system authentication is PAM
+
+     * If you have a /etc/pam.conf file
+
+          * Verify the lines begining by other auth and other account allow
+            login. If it is not the case add special lines for bbftp. The
+            lines to be added will look like:
+            bbftp auth required /lib/security/pam_pwdb.so shadow nullok
+            bbftp account required /lib/security/pam_pwdb.so
+
+     * If you have a /etc/pam.d directory
+
+          * Verify the file other and allow login. If it is not the case
+            create a new file called bbftp which will contain two lines
+            looking like:
+            auth required /lib/security/pam_pwdb.so shadow nullok
+            account required /lib/security/pam_pwdb.so
+
+   The name of the PAM library may change.
+
+   If you have chosen to run the server as a daemon
+
+     * Modify the script ${prefix}/etc/bbftpd to add the options you need and
+       to change the values of the GSI variables if you did not use the
+       --with-x509 options during the configuration process.
+     * To start the daemon run:
+       ${prefix}/etc/bbftpd start
+     * To stop the daemon, run:
+       ${prefix}/etc/bbftpd stop
+     * To restart the daemon (stop and start), run:
+       ${prefix}/etc/bbftpd restart
+     * To see the daemon's status, run:
+       ${prefix}/etc/bbftpd status

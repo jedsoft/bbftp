@@ -1,0 +1,61 @@
+#!/bin/sh
+#
+# Startup script for BBFTPD, the BBFTP daemon
+#
+# description: 
+# processname: bbftpd
+# pidfile: /var/run/bbftpd.pid
+
+
+PROG=bbftpd
+PID=/var/run/$PROG.pid
+
+case "$1" in 
+  start)
+	echo -n "Starting $PROG: "
+	if test "x@with_x509_user_cert@" != "x"; then
+	   export X509_USER_CERT=@with_x509_user_cert@
+	   export X509_USER_KEY=@with_x509_user_key@
+	   export X509_CERT_DIR=@with_x509_cert_dir@
+	   export GRIDMAP=@with_gridmap@
+	fi
+        if [ -x @prefix@/bin/$PROG ];then
+           @prefix@/bin/$PROG -b && echo "$PROG started."
+        else
+           echo "$PROG not found."
+        fi
+	;;
+
+  stop)
+	echo -n "Shutting down $PROG: "
+        if [ -f $PID ];then
+           kill `cat $PID` && echo "$PROG stopped."
+           rm -f $PID
+        else
+           echo "$PROG already stopped."
+        fi
+        ;;
+
+  reload|restart)
+        $0 stop
+        sleep 1
+        $0 start
+        ;;
+
+  status)
+        if [ -f ${PID} ];then
+           echo "${PROG} is running (process `cat ${PID}`)."
+        else
+           echo "$PROG is not running."
+        fi
+        ;;
+
+  *)
+        echo "Usage: $0 {start|stop|restart|reload|status}"
+        exit 1
+	;;
+esac
+
+# The End.
+exit 0
+

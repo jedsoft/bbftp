@@ -1,0 +1,41 @@
+REQUIREMENTS FOR INSTALLING GFW
+===============================
+
+To install The GFW lib, you need the Globus 2 GSI (Grid Security Infrastructure) to be installed
+on your machine.
+
+CONFIGURING GFW
+==============
+
+To configure GFW for your system, simply type:
+% ./configure
+
+libgfw.a will be installed in DIR/lib and gfw.h will be installed in DIR/include. 
+The default value for DIR is /usr/local
+If this location does not match your need, you can specify another location by using 
+the --prefix option:
+% ./configure --prefix=/whatever/you/want
+
+Globus 2 is expected to be installed in $GLOBUS_LOCATION or in /usr/local/globus if $GLOBUS_LOCATION
+is not defined. You can specify another location it by using the --with-gsi option:
+% ./configure --with-gsi=/where/globus/is
+
+ALL THESE OPTIONS CAN BE USED SIMULTANEOUSLY
+
+
+
+BUILDING GFW
+============
+
+To build GFW, type:
+% make
+
+
+
+INSTALLING GFW
+==============
+
+To install GFW, type:
+% make install
+
+

@@ -1,0 +1,56 @@
+    Zlib
+
+   This software allows BBFTP to compress/uncompress data on-the-fly.
+   It can be downloaded at [1]http://www.gzip.org/zlib. The recommended
+   version is 1.1.4 which fixes a potential security problem.
+   This library is optional for both client and server.
+   The default behavior of the BBFTP build process is to search Zlib
+   automatically.
+
+    OpenSSL
+
+   This software allows BBFTP to encrypt user connection details (user name +
+   password) when using the standard authentication method.
+   It can be downloaded at [2]http://www.openssl.org.
+   This library is optional for BBFTP client. It is mandatory for BBFTP
+   server except in certificates mode (The Globus Toolkit includes it).
+   The default behavior of the BBFTP build process is to search OpenSSL
+   automatically.
+
+    Globus Toolkit 2
+
+   This software allows BBFTP to use certificates as authentication mode. The
+   recommended version is Globus Toolkit 2.4.3. It is divided into several
+   components. The one needed by BBFTP is GSI (Grid Security Infrastructure)
+   Bundle. It can be downloaded at
+   [3]http://www-fp.globus.org/gt2.4/download.html or directly
+   [4]http://www-unix.globus.org/ftppub/gt2/2.4/2.4-latest/bundles/src/globus-gsi-2.4.3-src_bundle.tar.gz.
+   Security updates must be installed as well (download at:
+   [5]http://www-unix.globus.org/toolkit/advisories.html?version=2.4
+   Theses libraries are mandatory when using certificates.
+   If BBFTP is built in certificate mode, the default behavior of the build
+   process is to search GSI automatically, else GSI is not included in the
+   build process.
+
+    AFS
+
+   BBFTP is interfaced with AFS so that password entered in standard
+   authentication mode is handled by AFS.
+   By default, AFS is not included in the build process.
+
+    RFIO
+
+   This software allows BBFTP to access files directly from the hierarchical
+   storage systems HPSS or Castor.
+   RFIO64 is also supported.
+   The default behavior of the BBFTP build process is to search RFIO
+   automatically.
+
+References
+
+   Visible links
+   1. http://www.gzip.org/zlib
+   2. http://www.openssl.org/
+   3. http://www-fp.globus.org/gt2.4/download.html
+   4. http://www-unix.globus.org/ftppub/gt2/2.4/2.4-latest/bundles/src/globus-gsi-2.4.3-src_bundle.tar.gz
+   5. http://www-unix.globus.org/toolkit/advisories.html?version=2.4

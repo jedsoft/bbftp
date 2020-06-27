@@ -1,0 +1,14 @@
+    Collecting transfer data
+
+   Transfer information are logged in the system log with the facility daemon
+   and level notice if and only if the server is launched with a trace level
+   greater than notice:
+   % bbftpd -b -lNOTICE
+   The output format is:
+   action user filename bytes_transfered seconds kbytes/s Mbits/s
+   action is GET or PUT.
+
+    Building statistics
+
+   Nothing is provided with BBFTP to build statistics with the data
+   collected. You should use a third party tool run on a periodical basis.

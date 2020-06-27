@@ -1,0 +1,738 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(bbftpd.c)
+dnl former bbftpd.h.in was merged with bbftp.h.in
+dnl result include file is bbftpd.h because a lot of source files are using it
+AC_CONFIG_HEADER(bbftpd.h:../includes/bbftp.h.in)
+
+CFLAGS="$CFLAGS -g"
+AC_PROG_CC(cc)
+AC_PROG_INSTALL
+AC_CANONICAL_HOST
+
+dnl LIBS=""
+
+AC_CHECK_HEADERS(crypt.h dirent.h errno.h fcntl.h fnmatch.h glob.h\
+                 limits.h netdb.h netinet/in.h netinet/tcp.h pwd.h\
+                 shadow.h signal.h stdio.h\
+                 stdlib.h sys/socket.h sys/stat.h\
+                 sys/vfs.h sys/statvfs.h sys/time.h time.h\
+                 sys/types.h sys/wait.h syslog.h unistd.h\
+                 userpw.h utime.h byteswap.h)
+AC_HEADER_TIME
+
+dnl ===========================================================================
+dnl Check for the socket routine
+dnl ===========================================================================
+
+AC_CHECK_LIB(c,socket,result=yes,result=no)
+if test $result = no ; then
+	AC_CHECK_LIB(xnet,socket,result=yes,result=no)
+	if test $result = yes ; then
+		LIBS="$LIBS -lxnet"
+	else
+		AC_CHECK_LIB(socket,socket,result=yes,result=no)
+		if test $result = yes ; then
+			LIBS="$LIBS -lsocket"
+		else
+			AC_MSG_ERROR(socket funtion not found)
+		fi
+	fi
+fi
+
+dnl ===========================================================================
+dnl Check all other routines 
+dnl ===========================================================================
+AC_CHECK_FUNC(chdir,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(chdir funtion not found)
+fi
+AC_CHECK_FUNC(fcntl,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(fcntl funtion not found)
+fi
+AC_CHECK_FUNC(fnmatch,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(fnmatch funtion not found)
+fi
+AC_CHECK_FUNC(fork,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(fork funtion not found)
+fi
+AC_CHECK_FUNC(free,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(free funtion not found)
+fi
+AC_CHECK_FUNC(freopen,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(freopen funtion not found)
+fi
+AC_CHECK_FUNC(getcwd,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(getcwd funtion not found)
+fi
+AC_CHECK_FUNC(getopt,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(getopt funtion not found)
+fi
+AC_CHECK_FUNC(getpwnam,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(getpwnam funtion not found)
+fi
+AC_CHECK_FUNC(gettimeofday,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(gettimeofday funtion not found)
+fi
+AC_CHECK_FUNC(glob,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(glob funtion not found)
+fi
+AC_CHECK_FUNC(globfree,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(globfree funtion not found)
+fi
+AC_CHECK_FUNC(kill,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(kill funtion not found)
+fi
+AC_CHECK_FUNC(mkdir,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(mkdir funtion not found)
+fi
+AC_CHECK_FUNC(openlog,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(openlog funtion not found)
+fi
+AC_CHECK_FUNC(opendir,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(opendir funtion not found)
+fi
+AC_CHECK_FUNC(random,result=yes,result=no)
+if test $result = no ; then
+	AC_CHECK_FUNC([rand],[AC_DEFINE(random, rand)],[AC_MSG_ERROR(random, rand funtions not found)])
+fi
+AC_CHECK_FUNC(readdir,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(readdir funtion not found)
+fi
+AC_CHECK_FUNC(read,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(read funtion not found)
+fi
+AC_CHECK_FUNC(select,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(select funtion not found)
+fi
+AC_CHECK_FUNC(setgid,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(setgid funtion not found)
+fi
+AC_CHECK_FUNC(setsid,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(setsid funtion not found)
+fi
+AC_CHECK_FUNC(setuid,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(setuid funtion not found)
+fi
+AC_CHECK_FUNC(sigaction,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(sigaction funtion not found)
+fi
+AC_CHECK_FUNC(sigemptyset,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(sigemptyset funtion not found)
+fi
+AC_CHECK_FUNC(sleep,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(sleep funtion not found)
+fi
+AC_CHECK_FUNC(sprintf,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(sprintf funtion not found)
+fi
+AC_CHECK_FUNC(srandom,result=yes,result=no)
+if test $result = no ; then
+	AC_CHECK_FUNC([srand],[AC_DEFINE(srandom, srand)],[AC_MSG_ERROR(srandom, srand funtions not found)])
+fi
+AC_CHECK_FUNC(strcmp,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(strcmp funtion not found)
+fi
+AC_CHECK_FUNC(strcpy,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(strcpy funtion not found)
+fi
+AC_CHECK_FUNC(strerror,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(strerror funtion not found)
+fi
+AC_CHECK_FUNC(strlen,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(strlen funtion not found)
+fi
+AC_CHECK_FUNC(sysconf,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(sysconf funtion not found)
+fi
+AC_CHECK_FUNC(syslog,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(syslog funtion not found)
+fi
+AC_CHECK_FUNC(unlink,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(unlink funtion not found)
+fi
+AC_CHECK_FUNC(waitpid,result=yes,result=no)
+if test $result = no ; then
+	AC_MSG_ERROR(waitpid funtion not found)
+fi
+
+
+dnl ===========================================================================
+dnl See if we have shadow passwords...
+dnl ============================================================================
+if test $ac_cv_header_shadow_h = yes; then
+	AC_CHECK_LIB(c, getspnam, result=yes, result=no)
+	if test $result = no ; then
+		AC_CHECK_LIB(shadow, getspnam, result=yes, result=no)
+		if test $result = yes ; then
+			LIBS="$LIBS -lshadow"
+			if test -f /etc/shadow; then
+				AC_DEFINE(SHADOW_PASSWORD)
+			fi
+		fi
+	else 
+		if test -f /etc/shadow; then
+			AC_DEFINE(SHADOW_PASSWORD)
+		fi
+	fi
+fi
+
+dnl ===========================================================================
+dnl See if we have /etc/security/passwd (mainly AIX) ...
+dnl ============================================================================
+if test $ac_cv_header_userpw_h = yes; then
+	AC_CHECK_LIB(c, getuserpw, result=yes, result=no)
+	if test $result = no ; then
+		AC_CHECK_LIB(s, getuserpw, result=yes, result=no)
+		if test $result = yes ; then
+			if test -d /etc/security; then
+				LIBS="$LIBS -ls"
+				AC_DEFINE(HAVE_SECURITY_PASS)
+			fi
+		fi
+	else
+		if test -d /etc/security; then
+			AC_DEFINE(HAVE_SECURITY_PASS)
+		fi
+
+	fi
+fi
+
+dnl ===========================================================================
+dnl Now check for the various type
+dnl ===========================================================================
+
+AC_CHECK_SIZEOF(long long)
+if test $ac_cv_sizeof_long_long = 8; then
+	AC_DEFINE(my64_t,long long)
+else
+	AC_MSG_ERROR(long long type is not 64 bits long... Aborting)
+fi
+
+AC_CHECK_FUNCS([ntohll])
+
+AC_CHECK_SIZEOF(off_t)
+if test $ac_cv_sizeof_off_t = 8; then
+    AC_DEFINE(STANDART_FILE_CALL)
+else
+    AC_CHECK_SIZEOF(off64_t)
+    if test $ac_cv_sizeof_off64_t = 0; then
+        OLDCFLAGS="$CFLAGS"
+        CFLAGS="$CFLAGS -D_LARGEFILE64_SOURCE"
+        unset ac_cv_sizeof_off64_t
+        unset ac_cv_type_off64_t
+        AC_CHECK_SIZEOF(off64_t)
+        if test $ac_cv_sizeof_off64_t = 0; then
+            CFLAGS="$OLDCFLAGS"
+	    AC_DEFINE(STANDART_FILE_CALL)
+        else
+            AC_MSG_CHECKING(for structure stat64)
+            AC_TRY_COMPILE([#include <sys/stat.h>],
+            [	struct	stat64	statbuf ;],[result=yes],[result=no])
+            if test $result = yes ; then
+	            AC_MSG_RESULT(found)
+                AC_CHECK_FUNC(open64,result=yes,result=no)
+                if test $result = no ; then
+	                AC_MSG_ERROR(open64 funtion not found)
+                fi
+                AC_CHECK_FUNC(stat64,result=yes,result=no)
+                if test $result = no ; then
+	                AC_MSG_ERROR(stat64 funtion not found)
+                fi
+                AC_CHECK_FUNC(lseek64,result=yes,result=no)
+                if test $result = no ; then
+	                AC_MSG_ERROR(lseek64 funtion not found)
+                fi
+                AC_CHECK_FUNC(readdir64,result=yes,result=no)
+                if test $result = no ; then
+	                AC_DEFINE(STANDART_READDIR_CALL)
+                fi
+            else
+	        AC_MSG_RESULT(not found)
+                CFLAGS="$OLDCFLAGS"                
+	        AC_DEFINE(STANDART_FILE_CALL)
+            fi
+        fi
+    else
+        AC_MSG_CHECKING(for structure stat64)
+        AC_TRY_COMPILE([#include <sys/stat.h>],
+        [	struct	stat64	statbuf ;],[result=yes],[result=no])
+        if test $result = yes ; then
+            AC_MSG_RESULT(found)
+            AC_CHECK_FUNC(open64,result=yes,result=no)
+            if test $result = no ; then
+	            AC_MSG_ERROR(open64 funtion not found)
+            fi
+            AC_CHECK_FUNC(stat64,result=yes,result=no)
+            if test $result = no ; then
+	            AC_MSG_ERROR(stat64 funtion not found)
+            fi
+            AC_CHECK_FUNC(lseek64,result=yes,result=no)
+            if test $result = no ; then
+	            AC_MSG_ERROR(lseek64 funtion not found)
+            fi
+            AC_CHECK_FUNC(readdir64,result=yes,result=no)
+            if test $result = no ; then
+	            AC_DEFINE(STANDART_READDIR_CALL)
+            fi
+        else
+	    AC_MSG_RESULT(not found)
+            OLDCFLAGS="$CFLAGS"
+            CFLAGS="$CFLAGS -D_LARGEFILE64_SOURCE"
+            AC_MSG_CHECKING(for structure stat64)
+            AC_TRY_COMPILE([#include <sys/stat.h>],
+            [	struct	stat64	statbuf ;],[result=yes],[result=no])
+            if test $result = yes ; then
+	            AC_MSG_RESULT(found)
+                AC_CHECK_FUNC(open64,result=yes,result=no)
+                if test $result = no ; then
+	                AC_MSG_ERROR(open64 funtion not found)
+                fi
+                AC_CHECK_FUNC(stat64,result=yes,result=no)
+                if test $result = no ; then
+	                AC_MSG_ERROR(stat64 funtion not found)
+                fi
+                AC_CHECK_FUNC(lseek64,result=yes,result=no)
+                if test $result = no ; then
+	                AC_MSG_ERROR(lseek64 funtion not found)
+                fi
+                AC_CHECK_FUNC(readdir64,result=yes,result=no)
+                if test $result = no ; then
+	                AC_DEFINE(STANDART_READDIR_CALL)
+                fi
+            else
+                AC_MSG_RESULT(not found)
+                CFLAGS="$OLDCFLAGS"                
+	        AC_DEFINE(STANDART_FILE_CALL)
+            fi
+        fi   
+    fi
+fi
+
+dnl ===========================================================================
+dnl Now how to print a long long
+dnl ===========================================================================
+
+AC_MSG_CHECKING(how to printf a long long)
+AC_TRY_RUN([#include <stdio.h>
+int main() {
+	char t[10] ;
+	sprintf(t,"%lld",(long long) 1) ;
+	if(!strcmp(t,"1")) return 0;
+	return 1;
+	}],[ result="lld"
+AC_DEFINE_UNQUOTED(LONG_LONG_FORMAT, "$result")
+AC_MSG_RESULT(using %lld)],
+[ result="no" ], [ result="no" ])
+if test $result = "no" ; then
+	AC_TRY_RUN([#include <stdio.h>
+	int main() {
+	char t[10] ;
+	sprintf(t,"%ld",(long long) 1) ;
+	if(!strcmp(t,"1")) return 0;
+    return 1;
+	}],[ result="ld"], [ result="d" ], [ result="d" ])
+	AC_DEFINE_UNQUOTED(LONG_LONG_FORMAT, "$result")
+	AC_MSG_RESULT(using %$result)
+fi
+
+
+AC_CHECK_MEMBERS([struct stat.st_blksize])
+AC_STRUCT_ST_BLOCKS
+AC_CHECK_MEMBERS([struct stat.st_rdev])
+
+dnl ===========================================================================
+dnl Does the socklen_t type exists?
+dnl ===========================================================================
+AC_CHECK_TYPES([socklen_t])
+
+dnl ===========================================================================
+dnl Now check how to do the 'df' operation
+dnl ===========================================================================
+
+AC_CHECK_FUNCS([statvfs64 statvfs statfs],[break])
+if test "$ac_cv_func_statvfs64" = "yes" || test "$ac_cv_func_statvfs" = "yes" ; then
+    # AC_MSG_CHECKING(for structure statvfs64)
+    AC_TRY_COMPILE([#include <sys/statvfs.h>],
+                   [struct statvfs64 statvfsbuf ;],
+                   [AC_DEFINE([HAVE_STRUCT_STATVFS64])],
+                   [AC_DEFINE([HAVE_STRUCT_STATVFS])])
+else 
+  if test "$ac_cv_func_statfs" = "yes" ; then
+    AC_TRY_COMPILE([#include <sys/vfs.h>],
+                   [struct statfs statfsbuf ;],
+                   [AC_DEFINE([HAVE_STRUCT_STATFS])])
+  fi
+fi
+
+dnl ===========================================================================
+dnl Now check big endian or not
+dnl ===========================================================================
+
+AC_C_BIGENDIAN
+
+case $host in
+    *hpux10.20*)
+        CFLAGS="-Aa +e -D_HPUX_SOURCE $CFLAGS"
+        ;;
+    *solaris2.*)
+        CFLAGS="-Aa -DSUNOS $CFLAGS"
+        ;;
+    *irix*)
+ 		CFLAGS="-DIRIX $CFLAGS"
+        ;;
+    *osf4*)
+	    CFLAGS="-DOSF1 $CFLAGS"
+        ;;
+    *linux*)
+		;;
+    *aix4.3.2* | *aix4.3.3*)
+		;;
+    *darwin*)
+      CFLAGS="$CFLAGS -DDARWIN"
+      ;;
+esac
+
+CPPFLAGS="-I../includes -I./ $CPPFLAGS"
+
+dnl ===========================================================================
+dnl Now check for AFS and PAM
+dnl ===========================================================================
+
+AC_ARG_WITH([afs],[  
+  --with-afs              Enable AFS interface: automatic search
+  --with-afs=DIR          Enable AFS interface: search AFS libs in DIR/lib
+  --without-afs           Disable AFS (DEFAULT)],
+[result=yes],[result=no])
+if test $result = yes && test "$with_afs" != "no" ; then
+    if test "$with_afs" = "yes" ; then
+        with_afs="/usr/afsws"
+    fi
+    dnl Check function ka_UserReadPassword
+    LDFLAGS="$LDFLAGS -L$with_afs/lib -L$with_afs/lib/afs"
+    LIBS="$LIBS -lkauth -lprot -lubik -lauth -lcom_err -lrxkad -lcmd -lsys -lrx -llwp -ldes -laudit"
+    case $host in
+        *hpux10.20*)
+            LDFLAGS="$LDFLAGS -L$with_afs/export/lib"
+            LIBS="$LIBS -lBSD $with_afs/lib/afs/util.a"
+            ;;
+        *solaris2.*)
+            LIBS="-z muldefs $LIBS -lresolv -lnsl $with_afs/lib/afs/util.a"
+            ;;
+        *irix*)
+            ;;
+        *osf4*)
+            LDFLAGS="$LDFLAGS -L$with_afs/export/lib"
+            LIBS="$LIBS $with_afs/lib/afs/util.a"
+            ;;
+        *osf5*)
+            LDFLAGS="$LDFLAGS -L$with_afs/export/lib"
+            LIBS="$LIBS $with_afs/lib/afs/util.a"
+            ;;
+        *linux*)
+            LIBS="-z muldefs $LIBS -lnsl -lresolv $with_afs/lib/afs/util.a"
+		    ;;
+        *aix*)
+            LIBS="$LIBS -lnsl -lpthreads -lafsauthent"
+            ;;
+    esac
+    AC_CHECK_FUNC([ka_UserAuthenticate],[AC_DEFINE(AFS)],[result=no])
+    if test $result = no ; then
+        AC_MSG_ERROR(AFS libs not found)
+    fi
+fi
+AC_ARG_WITH([pam],[  
+  --with-pam              Enable PAM 
+  --without-pam           Disable PAM (DEFAULT)],
+[result=yes],[result=no])
+if test $result = yes && test "$with_pam" != "no" ; then
+    AC_CHECK_HEADERS(security/pam_appl.h)
+    if test $ac_cv_header_security_pam_appl_h = yes; then
+        AC_DEFINE(USE_PAM)
+        LIBS="$LIBS -lpam"
+        AC_SEARCH_LIBS([dlopen], [dl])
+    else
+        AC_MSG_ERROR(Could not find)
+    fi
+else
+    dnl crypt should be provided with AFS
+    dnl if not AFS and not PAM, must include libcrypt
+    AC_CHECK_FUNC([crypt],[result=yes],[result=no])
+    if test $result = no ; then
+        LIBS="$LIBS -lcrypt"
+        unset ac_cv_func_crypt
+        AC_CHECK_FUNC([crypt],,[AC_MSG_ERROR(Cannot find function crypt)])
+    fi
+fi
+dnl ===========================================================================
+dnl Now check for the authentication module used
+dnl ===========================================================================
+AC_ARG_WITH([gsi],[  
+  --with-gsi              Enable GSI authentication module: automatic search in $GLOBUS_LOCATION or "/opt/globus"
+  --with-gsi=DIR          Enable GSI authentication module: search GSI libs in DIR/lib and GSI includes in DIR/include/FLAVOR if defined with with-globus-flavor, gcc32dbg else
+  --without-gsi           Disable GSI authentication module (DEFAULT)])
+AC_ARG_WITH([globus-flavor],[
+  --with-globus-flavor=FLAVOR   search GSI libs in include/FLAVOR, gcc32dbg if not defined])
+
+dnl 
+if test "$enable_authentication" = "certificates" ; then
+
+    with_gfw="../gfw"
+    (cd $with_gfw; ./configure -q)
+    CPPFLAGS="$CPPFLAGS -I$with_gfw"
+    GFWLIB="$with_gfw/libgfw.a"
+dnl    CERTOBJS="$CERTOBJS $with_gfw/gfw-misc.o $with_gfw/gfw_init.o $with_gfw/gfw_accept.o $with_gfw/gfw_acquire.o"
+
+    if test "$with_gsi" = "" ; then
+        if test "$GLOBUS_LOCATION" = "" ; then
+            with_gsi="/opt/globus"
+        else
+            with_gsi="$GLOBUS_LOCATION"
+        fi
+    fi
+
+    if test "$with_globus_flavor" != "" ; then
+      GSI_FLAVOR="$with_globus_flavor"
+    else
+      GSI_FLAVOR="gcc32dbg"
+    fi
+
+    AC_MSG_CHECKING(Globus toolkit version)
+    OLDLDFLAGS=$LDFLAGS
+    LDFLAGS="$LDFLAGS -L$with_gsi/lib"
+    ls $with_gsi/lib/libglobus_ssl_utils* > /dev/null 2>&1
+    if test $? -eq 0 ; then
+        AC_MSG_RESULT(2.0)
+        AC_CHECK_LIB([globus_gssapi_gsi_$GSI_FLAVOR],[gss_accept_sec_context],[result=yes],[result=no],[-lglobus_ssl_utils_$GSI_FLAVOR -lssl_$GSI_FLAVOR -lcrypto_$GSI_FLAVOR])
+        if test $result = no ; then
+    	    GSI_FLAVOR="vendorcc32dbg"
+            AC_CHECK_LIB([globus_gssapi_gsi_$GSI_FLAVOR],[gss_accept_sec_context],[result=yes],[AC_MSG_ERROR(Cannot find GSI)],[-lglobus_ssl_utils_$GSI_FLAVOR -lssl_$GSI_FLAVOR -lcrypto_$GSI_FLAVOR])
+        fi
+        LIBS="$LIBS $with_gsi/lib/libglobus_gssapi_gsi_$GSI_FLAVOR.a $with_gsi/lib/libglobus_ssl_utils_$GSI_FLAVOR.a $with_gsi/lib/libssl_$GSI_FLAVOR.a $with_gsi/lib/libcrypto_$GSI_FLAVOR.a"
+    else
+        AC_MSG_RESULT(>=2.2)
+        AC_CHECK_LIB([globus_gssapi_gsi_$GSI_FLAVOR],[gss_init_sec_context],[result=yes],[result=no],[-lglobus_gsi_proxy_core_$GSI_FLAVOR -lglobus_gsi_credential_$GSI_FLAVOR -lglobus_gsi_callback_$GSI_FLAVOR -lglobus_oldgaa_$GSI_FLAVOR -lglobus_gsi_sysconfig_$GSI_FLAVOR -lglobus_gsi_cert_utils_$GSI_FLAVOR -lglobus_openssl_$GSI_FLAVOR -lglobus_openssl_error_$GSI_FLAVOR -lglobus_proxy_ssl_$GSI_FLAVOR -lglobus_common_$GSI_FLAVOR -lssl_$GSI_FLAVOR -lcrypto_$GSI_FLAVOR -lglobus_gss_assist_$GSI_FLAVOR])
+        if test $result = no ; then
+    	    GSI_FLAVOR="vendorcc32dbg"
+            AC_CHECK_LIB([globus_gssapi_gsi_$GSI_FLAVOR],[gss_init_sec_context],[result=yes],[result=no],[-lglobus_gsi_proxy_core_$GSI_FLAVOR -lglobus_gsi_credential_$GSI_FLAVOR -lglobus_gsi_callback_$GSI_FLAVOR -lglobus_oldgaa_$GSI_FLAVOR -lglobus_gsi_sysconfig_$GSI_FLAVOR -lglobus_gsi_cert_utils_$GSI_FLAVOR -lglobus_openssl_$GSI_FLAVOR -lglobus_openssl_error_$GSI_FLAVOR -lglobus_proxy_ssl_$GSI_FLAVOR -lglobus_common_$GSI_FLAVOR -lssl_$GSI_FLAVOR -lcrypto_$GSI_FLAVOR -lglobus_gss_assist_$GSI_FLAVOR])
+        fi
+        LIBS="$LIBS $with_gsi/lib/libglobus_gssapi_gsi_$GSI_FLAVOR.a $with_gsi/lib/libglobus_gsi_proxy_core_$GSI_FLAVOR.a $with_gsi/lib/libglobus_gsi_credential_$GSI_FLAVOR.a $with_gsi/lib/libglobus_gsi_callback_$GSI_FLAVOR.a $with_gsi/lib/libglobus_oldgaa_$GSI_FLAVOR.a $with_gsi/lib/libglobus_gsi_sysconfig_$GSI_FLAVOR.a $with_gsi/lib/libglobus_gsi_cert_utils_$GSI_FLAVOR.a $with_gsi/lib/libglobus_openssl_$GSI_FLAVOR.a $with_gsi/lib/libglobus_openssl_error_$GSI_FLAVOR.a $with_gsi/lib/libglobus_proxy_ssl_$GSI_FLAVOR.a $with_gsi/lib/libglobus_common_$GSI_FLAVOR.a $with_gsi/lib/libssl_$GSI_FLAVOR.a $with_gsi/lib/libcrypto_$GSI_FLAVOR.a $with_gsi/lib/libglobus_gss_assist_$GSI_FLAVOR.a"
+    fi
+
+    if test "$GSI_FLAVOR" = "gcc32dbg" ; then
+      case $host in
+        *solaris2.*)
+            GCCLIB=`gcc --print-libgcc-file-name`
+            LIBS="$LIBS $GCCLIB"
+            ;;
+      esac
+    fi
+    AC_CHECK_LIB([globus_gss_assist_$GSI_FLAVOR],[globus_gss_assist_gridmap],[LIBS="$LIBS $with_gsi/lib/libglobus_gss_assist_$GSI_FLAVOR.a"],[AC_MSG_ERROR(Cannot find globus gss-assist)])
+
+    LDFLAGS=$OLDLDFLAGS
+    CPPFLAGS="$CPPFLAGS -I$with_gsi/include/$GSI_FLAVOR"
+
+    dnl define WITH_SSL as this external library is provided with Globus
+    AC_DEFINE(WITH_SSL)
+    AC_DEFINE(CERTIFICATE_AUTH)
+    CERTOBJS="$CERTOBJS bbftpd_cert.o"
+    AC_ARG_WITH([x509-user-cert],[  
+        --with-x509-user-cert             Location of the certificate (DEFAULT=/etc/grid-security/hostcert.pem)],
+        [result=yes],[result=no])
+    if test $result = no || test "$with_x509_user_cert" = "no" || test "$with_x509_user_cert" = "yes" ; then
+        with_x509_user_cert="/etc/grid-security/hostcert.pem"
+    fi
+    AC_ARG_WITH([x509-user-key],[  
+        --with-x509-user-key             Location of the private key (DEFAULT=/etc/grid-security/hostkey.pem)],
+        [result=yes],[result=no])
+    if test $result = no || test "$with_x509_user_key" = "no" || test "$with_x509_user_key" = "yes" ; then
+        with_x509_user_key="/etc/grid-security/hostkey.pem"
+    fi
+    AC_ARG_WITH([x509-cert-dir],[  
+        --with-x509-cert-dir             Location of the certificates (DEFAULT=/etc/grid-security/certificates)],
+        [result=yes],[result=no])
+    if test $result = no || test "$with_x509_cert_dir" = "no" || test "$with_x509_cert_dir" = "yes" ; then
+        with_x509_cert_dir="/etc/grid-security/certificates"
+    fi
+    AC_ARG_WITH([gridmap],[  
+        --with-gridmap             Location of the gridmap file (DEFAULT=/etc/grid-security/grid-mapfile)],
+        [result=yes],[result=no])
+    if test $result = no || test "$with_gridmap" = "no" || test "$with_gridmap" = "yes" ; then
+        with_gridmap="/etc/grid-security/grid-mapfile"
+    fi
+else
+    if test "$enable_authentication" = "private" ; then
+        PRIVOBJS="$PRIVOBJS bbftpd_private.o bbftpd_private_user.o"
+        AC_DEFINE(PRIVATE_AUTH)
+    fi
+fi
+
+dnl ===========================================================================
+dnl Now check for HPSS
+dnl ===========================================================================
+
+#AC_ARG_WITH([hpss],[  
+#  --with-hpss             Enable HPSS Interface: automatic search (DEFAULT) in /usr/local
+#  --with-hpss=DIR         Enable HPSS interface: search libhpss in DIR/lib
+#  --without-hpss          Disable HPSS interface],
+#[result=yes],[result=no])
+#if test $result = no ; then
+#    with_hpss="no"
+#fi
+#if test "$with_hpss" != "no" ; then
+#    if test "$with_hpss" = "yes" ; then
+#        $with_hpss="/usr/local"
+#    fi
+#    AC_CHECK_FILE([$with_hpss/lib/libhpss.a],[LIBS="$LIBS $with_hpss/lib/libhpss.a"],[AC_MSG_ERROR(libhpss.a not found in $with_hpss/lib)])
+#fi
+
+
+dnl ===========================================================================
+dnl Now check for RFIO
+dnl ===========================================================================
+
+AC_ARG_WITH([rfio],[  
+  --with-rfio             Enable RFIO interface: automatic search (DEFAULT) in /usr/local
+  --with-rfio=DIR         Enable RFIO interface: search libshift in DIR/lib and .h in DIR/include
+  --without-rfio          Disable RFIO interface],
+[result=yes],[result=no])
+if test $result = no ; then
+    with_rfio="yes"
+fi
+if test "$with_rfio" != "no" ; then
+    if test "$with_rfio" = "yes" ; then
+       CCIN2P3_CHECK_RFIO([RFIOOBJS="bbftpd_retr_rfio.o bbftpd_store_rfio.o sendafilerfio.o"],[AC_MSG_WARN(RFIO not installed)])
+    else
+       CCIN2P3_CHECK_RFIO([RFIOOBJS="bbftpd_retr_rfio.o bbftpd_store_rfio.o sendafilerfio.o"],[AC_MSG_WARN(RFIO not installed)],[$with_rfio])
+    fi
+fi
+
+dnl ===========================================================================
+dnl Now check for the additional librairies
+dnl ===========================================================================
+dnl Openssl is not necessary as it is provided with Globus
+AC_ARG_ENABLE([authentication],[  
+  --enable-authentication=certificates      Enable the certificates authentication module
+  --enable-authentication=private           Use a private authentication module ONLY
+  --disable-authentication                  Use ssh and password modules ONLY (DEFAULT)])
+if test "$enable_authentication" != "certificates" ; then
+    AC_ARG_WITH([ssl],[  
+  --with-ssl              Enable encoding: automatic search (DEFAULT)
+  --with-ssl=DIR          Enable encoding: search OpenSSL lib in DIR/lib and .h in DIR/include/openssl],
+[result=yes],[result=no])
+    if test $result = no ; then
+        with_ssl="yes"
+    fi
+    if test "$with_ssl" != "no" ; then
+        if test "$with_ssl" = "yes" ; then
+            AC_CHECK_LIB([crypto],[RSA_private_decrypt],[result=yes],[AC_MSG_ERROR(libcrypto not found)])
+            LIBS="$LIBS -lcrypto"
+        else
+            AC_CHECK_FILE([$with_ssl/lib/libcrypto.a],[result=yes],[AC_MSG_ERROR(libcrypto.a not found in $with_ssl/lib)])
+            LIBS="$LIBS $with_ssl/lib/libcrypto.a"
+            CPPFLAGS="$CPPFLAGS -I$with_ssl/include"
+        fi
+        if test $result = yes ; then
+            AC_CHECK_HEADERS([openssl/rsa.h],[AC_DEFINE(WITH_SSL)],[AC_MSG_ERROR(openssl/rsa.h not found in $INCLUDE)])
+        fi
+        # Some crypto require -ldl...
+        AC_SEARCH_LIBS([dlopen], [dl])
+    else
+        AC_MSG_ERROR(BBFTPD must be compiled with SSL)
+    fi
+fi
+
+dnl ===========================================================================
+dnl Include GZIP as compression library if needed
+dnl ===========================================================================
+dnl 
+AC_ARG_WITH([gzip],[  
+  --with-gzip             Enable compression: automatic search (DEFAULT)
+  --with-gzip=DIR         Enable compression: search Zlib libs in DIR/lib and Zlib inc in DIR/include
+  --without-gzip          Disable compression],
+[result=yes],[result=no])
+if test $result = no ; then
+    with_gzip="yes"
+fi
+if test "$with_gzip" != "no" ; then
+    if test "$with_gzip" = "yes" ; then
+        AC_CHECK_LIB([z],[compress],[result=yes],[AC_MSG_WARN(zlib not found: compression not enabled)])
+        if test $result = yes ; then
+            LIBS="$LIBS -lz"
+        fi
+    else
+        AC_CHECK_FILE([$with_gzip/lib/libz.a],[result=yes],[AC_MSG_ERROR(libz.a not found)])
+        LIBS="$LIBS $with_gzip/lib/libz.a"
+        CPPFLAGS="$CPPFLAGS -I$with_gzip/include"
+    fi
+    if test $result = yes ; then
+        AC_CHECK_HEADERS([zlib.h zconf.h],[AC_DEFINE(WITH_GZIP)],[AC_MSG_ERROR(include files not found in $CPPFLAGS)])
+    fi
+fi
+
+dnl =============================================================================
+dnl Other options
+dnl =============================================================================
+
+AC_ARG_WITH([ephemeral-ports-range],[
+  --with-ephemeral-ports-range=MIN:MAX     Defines a range for ephemeral ports (MIN-MAX) in passive mode
+  --without-ephemeral-ports-range          Use the default range for ephemeral ports in passive mode (DEFAULT)],
+[result=yes],[result=no])
+if test $result = yes ; then
+    if test "$with_ephemeral_ports_range" != "no" ; then
+		AC_MSG_CHECKING([Port range])
+    	if test "$with_ephemeral_ports_range" = "yes" ; then
+		    AC_MSG_ERROR([You must provide a range when using --with-ephemeral-ports-range option])
+        else
+	        AC_TRY_RUN([
+	            int main() {
+					int min_port, max_port;
+	                char *range="$with_ephemeral_ports_range" ;
+	                sscanf(range,"%d:%d",&min_port, &max_port) ;
+	                return (min_port > max_port) ;
+	        }],[ AC_MSG_RESULT([OK])], [ AC_MSG_ERROR([$with_ephemeral_ports_range is not a valid port range])])
+	        AC_DEFINE_UNQUOTED(PORT_RANGE, "$with_ephemeral_ports_range")
+ 		fi
+    fi
+fi
+
+AC_SUBST(CERTOBJS)
+AC_SUBST(GFWLIB)
+AC_SUBST(PRIVOBJS)
+AC_SUBST(RFIOOBJS)
+AC_SUBST(with_x509_user_cert)
+AC_SUBST(with_x509_user_key)
+AC_SUBST(with_x509_cert_dir)
+AC_SUBST(with_gridmap)
+AC_OUTPUT(Makefile startup)

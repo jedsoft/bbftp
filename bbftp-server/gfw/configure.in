@@ -1,0 +1,124 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(gfw_init.c)
+
+AC_CONFIG_HEADER(gfw-config.h)
+
+if test "$prefix" != "" ; then
+    prefix="$prefix"
+else
+    prefix=/usr/local
+fi
+
+archive_ext=".a"
+
+AC_PROG_CC
+AC_PROG_LN_S
+AC_C_BIGENDIAN
+
+LIBS=""
+AC_ARG_ENABLE(debug,Enable debug mode,enable_debug=yes,enable_debug=no)
+if test $enable_debug = yes ; then
+    CFLAGS="$CFLAGS -DDEBUG"
+fi
+
+CPPFLAGS="-I./ "
+
+AC_CHECK_HEADERS( errno.h stdio.h syslog.h unistd.h stdlib.h inttypes.h)
+
+dnl ===========================================================================
+dnl Check all other routines 
+dnl ===========================================================================
+
+AC_CHECK_FUNC(fflush,result=yes,result=no)
+if test $result = no ; then
+    AC_MSG_ERROR(fflush funtion not found)
+fi
+AC_CHECK_FUNC(printf,result=yes,result=no)
+if test $result = no ; then
+    AC_MSG_ERROR(fprintf funtion not found)
+fi
+AC_CHECK_FUNC(free,result=yes,result=no)
+if test $result = no ; then
+    AC_MSG_ERROR(free funtion not found)
+fi
+AC_CHECK_FUNC(htonl,result=yes,result=no)
+if test $result = no ; then
+    AC_SEARCH_LIBS(htonl,socket xnet,result=yes,result=no)
+    if test $result = no ; then
+        AC_MSG_WARN(htonl funtion not found)
+    fi
+fi
+AC_CHECK_FUNC(ntohl,result=yes,result=no)
+if test $result = no ; then
+    AC_SEARCH_LIBS(ntohl,socket xnet,result=yes,result=no)
+    if test $result = no ; then
+  	    AC_MSG_WARN(ntohl funtion not found)
+    fi
+fi
+AC_CHECK_FUNC(openlog,result=yes,result=no)
+if test $result = no ; then
+    AC_MSG_ERROR(openlog funtion not found)
+fi
+AC_CHECK_FUNC(perror,result=yes,result=no)
+if test $result = no ; then
+    AC_MSG_ERROR(perror funtion not found)
+fi
+AC_CHECK_FUNC(read,result=yes,result=no)
+if test $result = no ; then
+    AC_MSG_ERROR(read funtion not found)
+fi
+AC_CHECK_FUNC(strcpy,result=yes,result=no)
+if test $result = no ; then
+    AC_MSG_ERROR(strcpy funtion not found)
+fi
+AC_CHECK_FUNC(strlen,result=yes,result=no)
+if test $result = no ; then
+    AC_MSG_ERROR(strlen funtion not found)
+fi
+AC_CHECK_FUNC(syslog,result=yes,result=no)
+if test $result = no ; then
+    AC_MSG_ERROR(syslog funtion not found)
+fi
+AC_CHECK_FUNC(write,result=yes,result=no)
+if test $result = no ; then
+    AC_MSG_ERROR(write funtion not found)
+fi
+
+dnl ===========================================================================
+dnl Now check for the GSS-API Header
+dnl ===========================================================================
+
+if test "$with_gsi" != "" ; then
+	GLOBUS_LOCATION=$with_gsi
+fi
+if test "$with_globus_flavor" != "" ; then
+	GSI_FLAVOR=$with_globus_flavor
+else
+	GSI_FLAVOR="gcc32dbg"
+fi
+if test "$GLOBUS_LOCATION" = "" ; then
+    AC_MSG_WARN(Globus location not set => trying with /usr/local/globus)
+    GLOBUS_LOCATION=/usr/local/globus
+fi
+
+OLDCPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$OLDCPPFLAGS -I$GLOBUS_LOCATION/include/$GSI_FLAVOR"
+unset ac_cv_header_gssapi_h
+AC_CHECK_HEADER(gssapi.h,result=yes,result=no)
+if test $result = no ; then
+    CPPFLAGS="$OLDCPPFLAGS -I$GLOBUS_LOCATION/include/vendorcc32dbg"
+    unset ac_cv_header_gssapi_h
+    AC_CHECK_HEADER(gssapi.h,result=yes,result=no)
+    if test $result = no ; then
+        AC_MSG_ERROR(Cannot find gssapi.h in $GLOBUS_LOCATION/include/$GSI_FLAVORcc32dbg)
+    fi
+fi
+
+dnl ===============================================================================
+dnl Search for version
+dnl ===============================================================================
+version=`cat VERSION`
+
+AC_SUBST(version)
+AC_SUBST(archive_ext)
+AC_OUTPUT(Makefile)

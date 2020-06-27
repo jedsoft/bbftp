@@ -1,0 +1,65 @@
+    External software required (on both client and server hosts)
+
+     * GSI (Grid Security Infrastructure) from the Globus 2 Toolkit (2.0 or
+       2.2)
+
+   Refer to the [1]Working with external software section.
+
+    System requirements
+
+     * The certificate mode has been tested for Linux intel and Solaris only
+
+    Certificates
+
+   2 certificates needed:
+
+     * A host certificate or a user certificate on the BBFTP server host.
+     * A user certificate on the BBFTP client host.
+
+    Build process
+
+   For both client and server, use the --enable-authentication=certificates
+   option for the configure script.
+   See the installation sections for [2]the client and for [3]the server.
+
+    Running the BBFTPD daemon
+
+   Before starting the daemon, some environment variables can be set to
+   override default values for certificates paths, mapfile location... If you
+   use the --with-x509... options of the configure script, these variables
+   will be automatically set.
+   Refer to [4]the Globus documentation for more details.
+
+   Run the daemon "bbftpd -b"
+
+   If you use a host certificate, you must be root to start the daemon. The
+   CN field of the certificate must be the full name of the host (i.e.
+   host.domain). If it is something else (for example a service name), it
+   must be specified by the client with the -g option.
+   If you want to start your own daemon, you must use another certificate (a
+   host certificate you can read or your own certificate). In this case, only
+   you can use the bbftp client against this server, and you will have to use
+   the -g option (see BBFTP Client man page).
+
+    Running the client
+
+   Before running the client, you must create a temporary proxy using the
+   grid-proxy-init command.
+
+   Run the client "bbftp -e<command_list>|-i<control_file> <remote_host>"
+   Please, note that the -u option is not used in the certificate
+   authentication mode. If you use it, BBFTP will use the standard
+   authentication mode.
+
+    More information
+
+   Additionnal information can be found on the [5]GLOBUS web site
+
+References
+
+   Visible links
+   1. file:///afs/in2p3.fr/home/b/bbftp/release/bbftp/doc/text/cert_requ.html#externsoft
+   2. file:///afs/in2p3.fr/home/b/bbftp/release/bbftp/doc/text/cert_requ.html#instclient
+   3. file:///afs/in2p3.fr/home/b/bbftp/release/bbftp/doc/text/cert_requ.html#instserver
+   4. http://www-fp.globus.org/security/v2.0/env_variables.html
+   5. http://www.globus.org/

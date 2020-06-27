@@ -1,0 +1,92 @@
+#
+# Makefile for bbftpd deamon 
+#
+
+STDOBJS = 	bbftpd.o\
+		bbftpd_cd.o\
+		bbftpd_check.o\
+		bbftpd_crypt.o\
+		bbftpd_daemon.o\
+		bbftpd_list.o\
+		bbftpd_login.o\
+		bbftpd_message.o\
+		bbftpd_mkdir.o\
+		bbftpd_rm.o\
+		bbftpd_stat.o\
+		bbftpd_statfs.o\
+		bbftpd_readcontrol.o\
+        bbftpd_retr.o\
+		bbftpd_signals.o\
+		bbftpd_socket.o\
+        bbftpd_store.o\
+		bbftpd_utils.o\
+		changetodir.o\
+		createadir.o\
+		createreceivesock.o\
+		readcontrol.o\
+		sendafile.o\
+		sendlist.o\
+		signals_routines.o\
+		storeafile.o
+
+OBJS = $(STDOBJS) @RFIOOBJS@ @CERTOBJS@ @PRIVOBJS@
+
+HEAD =  ./bbftpd.h \
+		../includes/bbftpd_private.h \
+		../includes/bbftpd_private_user.h \
+		../includes/common.h \
+		../includes/config.h \
+		../includes/daemon.h \
+		../includes/daemon_proto.h \
+		../includes/status.h \
+		../includes/structures.h\
+		../includes/version.h 
+
+PROG = bbftpd
+
+# CPPFLAGS is ignored on ccdvrs01
+CFLAGS = @CFLAGS@ @CPPFLAGS@
+#CFLAGS = @CFLAGS@
+#CPPFLAGS = @CPPFLAGS@
+#
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+GFWLIB = @GFWLIB@
+
+CC = @CC@
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+mandir = @mandir@
+
+all: ${PROG}
+
+${OBJS} : ${HEAD}
+
+../gfw/libgfw.a:
+	(cd ../gfw; make clean; make)
+
+${PROG} : ${OBJS} ${GFWLIB}
+	${CC} -o $@ ${OBJS} ${LDFLAGS} ${GFWLIB} ${LIBS}
+
+clean:
+	rm -f *.o
+	rm -rf obj.@host@
+	rm -f config.cache
+	rm -f config.log
+	(cd ../gfw; make clean)
+    
+install:${PROG}
+	mkdir -p ${prefix}
+	mkdir -p ${bindir}
+	@INSTALL@ ${PROG} ${bindir}/${PROG}
+	mkdir -p ${prefix}/etc
+	@INSTALL@ startup ${prefix}/etc/${PROG}
+
+install-doc:
+	mkdir -p ${mandir}
+	mkdir -p ${mandir}/man1
+	@INSTALL@ ../doc/${PROG}.1 ${mandir}/man1/${PROG}.1
+
+runtest: ${PROG}
+	./${PROG} -v
