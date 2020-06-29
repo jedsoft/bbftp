@@ -213,6 +213,10 @@
 /* Define if you have the `stageclr_Path' function. */
 #undef HAVE_STAGECLR_PATH
 
+#undef _FILE_OFFSET_BITS
+#undef _LARGE_FILES
+#undef _LARGEFILE_SOURCE
+
 #undef HAVE_STATFS
 #undef HAVE_STATVFS
 #undef HAVE_STATVFS64
