@@ -85,21 +85,7 @@
 # include <string.h>
 #endif
 
-extern int flagsighup ;
-extern int msgsock ;
-extern char currentfilename[MAXLENFILE];
-extern int childendinerror ;
-extern int pid_child[MAXPORT] ;
-extern int state ;
-extern	int	recvcontrolto ;
-extern	int	datato ;
-extern	int	ackto ;
-
-#ifndef WORDS_BIGENDIAN
-#ifndef HAVE_NTOHLL
-my64_t    ntohll(my64_t v) ;
-#endif
-#endif
+#include "_bbftpd.h"
 
 int sendafile(int code) {
 
@@ -108,7 +94,7 @@ int sendafile(int code) {
     char    send_buffer[MAXMESSLEN] ;
     int        savederrno ;
 
-    char    readbuffer[READBUFLEN] ;
+    char    lreadbuffer[READBUFLEN] ;
     char    buffercomp[READBUFLEN] ;
     struct    mess_compress *msg_compress ;
 #ifdef WITH_GZIP
@@ -148,7 +134,7 @@ int sendafile(int code) {
     int        fd ;
     int        i ;
     int        sendsock ;
-    char    logmessage[256] ;
+    char    logmessage[1024] ;
     int        compressiontype ;
     
     struct message *msg ;
@@ -452,7 +438,11 @@ int sendafile(int code) {
             */
             nbread = 0 ;
             while ( nbread < nbtosend ) {
-                if ( (numberread = read ( fd, readbuffer, (sizeof(readbuffer) <= nbtosend - nbread) ? sizeof(readbuffer) : nbtosend-nbread) ) > 0 ) {
+	       size_t dnum;
+
+	       dnum = nbtosend - nbread;
+	       if (dnum > sizeof(lreadbuffer)) dnum = sizeof (lreadbuffer);
+                if ( (numberread = read ( fd, lreadbuffer, dnum)) > 0) {
                     nbread = nbread+numberread ;
 #ifdef WITH_GZIP
                     if ( compressiontype == COMPRESSION ) {
@@ -463,7 +453,7 @@ int sendafile(int code) {
                         bufcomplen = READBUFLEN ;
                         buflen = numberread ;
                         msg_compress = ( struct mess_compress *) send_buffer;
-                        retcode = compress((Bytef *)buffercomp,&bufcomplen,(Bytef *)readbuffer,buflen) ;
+                        retcode = compress((Bytef *)buffercomp,&bufcomplen,(Bytef *)lreadbuffer,buflen) ;
                         if ( retcode != 0 ) {
                             /*
                             ** Compress error, in this cas we are sending the
@@ -486,7 +476,7 @@ int sendafile(int code) {
                             msg_compress->datalen = lentosend ;
 #endif
                             realnbtosend =  bufcomplen ;
-                            memcpy(readbuffer,buffercomp,READBUFLEN) ;
+                            memcpy(lreadbuffer,buffercomp,READBUFLEN) ;
                         }
                         /*
                         ** Send the header
@@ -530,7 +520,7 @@ int sendafile(int code) {
                             close(sendsock) ;
                             exit(i) ;
                         } else {
-                            retcode = send(sendsock,&readbuffer[nbsent],lentosend,0) ;
+                            retcode = send(sendsock,&lreadbuffer[nbsent],lentosend,0) ;
                             if ( retcode < 0 ) {
                                 i = errno ;
                                 syslog(BBFTPD_ERR,"Error while sending %s",strerror(i)) ;

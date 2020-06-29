@@ -44,6 +44,7 @@
 #include <syslog.h>
 #include <utime.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #if HAVE_STRING_H
 # include <string.h>
@@ -56,6 +57,8 @@
 #include <status.h>
 #include <structures.h>
 #include <version.h>
+
+#include "_bbftpd.h"
 
 extern int  state ;
 extern int  incontrolsock ;
@@ -389,7 +392,7 @@ int bbftpd_readcontrol(int msgcode,int msglen)
                     curfilenamelen = msglen ;
                     syslog(BBFTPD_DEBUG,"Request to store file %s",curfilename) ;
                     if ( (retcode = bbftpd_storecheckoptions(logmessage)) < 0 ) {
-                        syslog(BBFTPD_ERR,logmessage) ;
+                        syslog(BBFTPD_ERR, "%s", logmessage) ;
                         reply(MSG_BAD_NO_RETRY,logmessage) ;
                         free_all_var() ;
                         state = S_LOGGED ;
@@ -418,13 +421,13 @@ int bbftpd_readcontrol(int msgcode,int msglen)
                     ** Create the file
                     */
                     if ( (retcode = bbftpd_storecreatefile(realfilename,logmessage)) < 0 ) {
-                        syslog(BBFTPD_ERR,logmessage) ;
+                        syslog(BBFTPD_ERR,"%s", logmessage) ;
                         reply(MSG_BAD_NO_RETRY,logmessage) ;
                         free_all_var() ;
                         state = S_LOGGED ;
                         return 0 ;
                     } else if ( retcode > 0 ) {
-                        syslog(BBFTPD_ERR,logmessage) ;
+                        syslog(BBFTPD_ERR,"%s",logmessage) ;
                         reply(MSG_BAD,logmessage) ;
                         free_all_var() ;
                         state = S_LOGGED ;
@@ -432,10 +435,11 @@ int bbftpd_readcontrol(int msgcode,int msglen)
                     } else {
                         if ( filesize == 0 ) {
                             if ((transferoption & TROPT_ACC ) == TROPT_ACC ) {
-                                sscanf(lastaccess,"%08x",&ftime.actime) ;
-                                sscanf(lastmodif,"%08x",&ftime.modtime) ;
+			       unsigned long ul;
+                                sscanf(lastaccess,"%08lx",&ul); ftime.actime = ul;
+                                sscanf(lastmodif,"%08lx",&ul); ftime.modtime = ul;;
                                 if ( bbftpd_storeutime(realfilename,&ftime,logmessage) < 0 ) {
-                                    syslog(BBFTPD_ERR,logmessage) ;
+                                    syslog(BBFTPD_ERR, "%s", logmessage) ;
                                     bbftpd_storeunlink(realfilename) ;
                                     reply(MSG_BAD,logmessage) ;
                                     free_all_var() ;
@@ -445,7 +449,7 @@ int bbftpd_readcontrol(int msgcode,int msglen)
                            }
                            if ( (transferoption & TROPT_MODE ) == TROPT_MODE ) {
                                 if ( bbftpd_storechmod(realfilename,filemode,logmessage) < 0 ) {
-                                    syslog(BBFTPD_ERR,logmessage) ;
+                                    syslog(BBFTPD_ERR, "%s", logmessage) ;
                                     bbftpd_storeunlink(realfilename) ;
                                     reply(MSG_BAD,logmessage) ;
                                     free_all_var() ;
@@ -455,7 +459,7 @@ int bbftpd_readcontrol(int msgcode,int msglen)
                             }
                             if ( (transferoption & TROPT_TMP ) == TROPT_TMP ) {
                                 if ( bbftpd_storerename(realfilename,curfilename,logmessage) < 0 ) {
-                                    syslog(BBFTPD_ERR,logmessage) ;
+                                    syslog(BBFTPD_ERR, "%s", logmessage) ;
                                     bbftpd_storeunlink(realfilename) ;
                                     reply(MSG_BAD,logmessage) ;
                                     free_all_var() ;
@@ -660,13 +664,13 @@ int bbftpd_readcontrol(int msgcode,int msglen)
                     ** Create the file
                     */
                     if ( (retcode = bbftpd_retrcheckfile(curfilename,logmessage)) < 0 ) {
-                        syslog(BBFTPD_ERR,logmessage) ;
+                        syslog(BBFTPD_ERR, "%s", logmessage) ;
                         reply(MSG_BAD_NO_RETRY,logmessage) ;
                         free_all_var() ;
                         state = S_LOGGED ;
                         return 0 ;
                     } else if ( retcode > 0 ) {
-                        syslog(BBFTPD_ERR,logmessage) ;
+                        syslog(BBFTPD_ERR, "%s", logmessage) ;
                         reply(MSG_BAD,logmessage) ;
                         free_all_var() ;
                         state = S_LOGGED ;
@@ -790,7 +794,7 @@ int bbftpd_readcontrol(int msgcode,int msglen)
 	                    char statmessage[1024];
                             state = S_WAITING_CREATE_ZERO ;
                             sprintf(statmessage,"GET %s %s 0 0 0.0 0.0", currentusername, curfilename);
-                            syslog(BBFTPD_NOTICE,statmessage);
+                            syslog(BBFTPD_NOTICE,"%s",statmessage);
                             free_all_var() ;
                         } else {
                             /* PASSIVE MODE: send ports */
@@ -858,7 +862,7 @@ int bbftpd_readcontrol(int msgcode,int msglen)
                 case MSG_TRANS_SIMUL_V3 :{
                     int simulation = ((msgcode == MSG_TRANS_SIMUL) || (msgcode == MSG_TRANS_SIMUL_V3)?1:0);
                     syslog(BBFTPD_DEBUG,"Receiving MSG_TRANS_START_V2") ;
-                    if ( msglen != requestedstreamnumber*sizeof(int)) {
+                    if ( (unsigned long)msglen != requestedstreamnumber * sizeof(int)) {
                         bbftpd_storeunlink(realfilename) ;
                         free_all_var() ;
                         reply(MSG_BAD,"Inconsistency between MSG_TRANS_START_V2 and message length") ;
@@ -965,7 +969,7 @@ int bbftpd_readcontrol(int msgcode,int msglen)
                 case MSG_TRANS_SIMUL_V3 :{
                     int simulation = ((msgcode == MSG_TRANS_SIMUL) || (msgcode == MSG_TRANS_SIMUL_V3)?1:0);
                     syslog(BBFTPD_DEBUG,"Receiving MSG_TRANS_START_V2") ;
-                    if ( msglen != requestedstreamnumber*sizeof(int)) {
+                    if ( (unsigned long) msglen != requestedstreamnumber*sizeof(int)) {
                         free_all_var() ;
                         reply(MSG_BAD,"Inconsistency between MSG_TRANS_START_V2 and message length") ;
                         syslog(BBFTPD_ERR,"Inconsistency between MSG_TRANS_START_V2 and message length") ;

@@ -32,22 +32,13 @@
 *****************************************************************************/
 #include <bbftpd.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #if HAVE_STRING_H
 # include <string.h>
 #endif
 
-extern char *curfilename ;
-extern char *realfilename ;
-extern int  curfilenamelen ;
-extern int  *myports ;
-extern int  *mychildren ;
-extern int  *mysockets ;
-extern int  *readbuffer;
-extern int  *compbuffer;
-extern int  nbpidchild ;
-
-
+#include "_bbftpd.h"
 
 /*
 ** Taken from Free Software Foundation
@@ -73,7 +64,7 @@ void strip_trailing_slashes (char *path)
 **                                                                             *
 *******************************************************************************/
 
-void free_all_var() 
+void free_all_var(void)
 {
     if ( curfilename != NULL ) {
         free(curfilename) ;

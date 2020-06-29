@@ -52,16 +52,7 @@
 #include <daemon_proto.h>
 #include <structures.h>
 
-extern int  sendwinsize ;        
-extern int  recvwinsize ;        
-extern struct sockaddr_in his_addr;        /* Remote adresse */
-extern struct sockaddr_in ctrl_addr;    /* Local adresse */
-extern int  fixeddataport ;
-extern int     *myports ;
-extern int     *mysockets ;
-extern int  transferoption ;
-extern int  pasvport_min ;
-extern int  pasvport_max ;
+#include "_bbftpd.h"
 
 /*******************************************************************************
 ** bbftpd_createreceivesocket :                                                       *
@@ -224,7 +215,7 @@ int bbftpd_getdatasock(int nbsock)
     int tos_value, tos_len;
     int qbss_value = 0x20;
     tos_len = sizeof(tos_value);
-
+   (void) tos_len;
 
     mysockfree = mysockets ;
     myportfree = myports ;
@@ -269,7 +260,7 @@ int bbftpd_getdatasock(int nbsock)
         if ( setsockopt(*mysockfree,SOL_SOCKET, SO_SNDBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)) < 0 ) {
             addrlen = sizeof(tcpwinsize) ;
             if ( getsockopt(*mysockfree,SOL_SOCKET,SO_SNDBUF,(char *)&tcpwinsize,&addrlen) < 0 ) {
-                syslog(BBFTPD_WARNING, "Unable to get send buffer size : %s\n",tcpwinsize,strerror(errno));
+                syslog(BBFTPD_WARNING, "Unable to get send buffer size %d: %s\n",tcpwinsize,strerror(errno));
             } else {
                 syslog(BBFTPD_WARNING, "Send buffer cannot be set to %d Bytes, Value is %d Bytes\n",1024*recvwinsize,tcpwinsize);
             }
@@ -278,7 +269,7 @@ int bbftpd_getdatasock(int nbsock)
         if ( setsockopt(*mysockfree,SOL_SOCKET, SO_RCVBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)) < 0 ) {
             addrlen = sizeof(tcpwinsize) ;
             if ( getsockopt(*mysockfree,SOL_SOCKET,SO_RCVBUF,(char *)&tcpwinsize,&addrlen) < 0 ) {
-                syslog(BBFTPD_WARNING, "Unable to get receive buffer size : %s\n",tcpwinsize,strerror(errno));
+                syslog(BBFTPD_WARNING, "Unable to get receive buffer size %d: %s\n",tcpwinsize,strerror(errno));
             } else {
                 syslog(BBFTPD_WARNING, "Receive buffer cannot be set to %d Bytes, Value is %d Bytes\n",1024*recvwinsize,tcpwinsize);
             }

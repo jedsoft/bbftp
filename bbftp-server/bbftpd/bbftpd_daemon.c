@@ -71,6 +71,9 @@
 #include <version.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+
+#include "_bbftpd.h"
+
 /*
 ** Common variables for BBFTP protocole version 1 and 2
 */
@@ -86,11 +89,11 @@ extern int msgsock ;
 extern int incontrolsock ;
 extern int outcontrolsock ;
 
-void do_daemon(int argc,char **argv,char **envp)
+void do_daemon (int argc, char **argv)
 {
 
     int        prpg ;
-    int        i ;
+    int i;
     int     retcode ;
     int     controlsock ;
     struct sockaddr_in server;
@@ -101,7 +104,10 @@ void do_daemon(int argc,char **argv,char **envp)
     char    buffrand[NBITSINKEY] ;
     struct timeval tp ;
     unsigned int seed ;
-    
+
+   (void) argc;
+   (void) argv;
+
     controlsock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
     if ( controlsock < 0 ) {
         syslog(BBFTPD_ERR, "Cannot create socket to listen on: %s",strerror(errno));
@@ -181,7 +187,7 @@ void do_daemon(int argc,char **argv,char **envp)
     gettimeofday(&tp,NULL) ;
     seed = tp.tv_usec ;
     srandom(seed) ;
-    for (i=0; i < sizeof(buffrand) ; i++) {
+    for (i=0; i < (int) sizeof(buffrand) ; i++) {
         buffrand[i] = random() ;
     }
     /*
@@ -203,18 +209,19 @@ void do_daemon(int argc,char **argv,char **envp)
              sleep(1);
             continue;
         }
-        if (pid == 0) {
+       if (pid == 0)
+	 {
             /* I am that forked off child */
-            closelog();
+	    closelog();
             /* Make sure that stdin/stdout are the new socket */
             /* Only parent needs controlsock */
             if (controlsock != 0 && controlsock != 1)
-                close(controlsock);
-                openlog(daemonchar, LOG_PID | LOG_NDELAY, BBFTPD_FACILITY);
-                incontrolsock = msgsock ;
-                outcontrolsock = msgsock ;
-                   return;
-                }
+	      close(controlsock);
+	    openlog(daemonchar, LOG_PID | LOG_NDELAY, BBFTPD_FACILITY);
+	    incontrolsock = msgsock ;
+	    outcontrolsock = msgsock ;
+	    return;
+	}
 
             /* I am the parent */
         close(msgsock);

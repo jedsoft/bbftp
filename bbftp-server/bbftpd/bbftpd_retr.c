@@ -70,30 +70,7 @@
 #include <zlib.h>
 #endif
 
-extern int  transferoption ;
-extern my64_t  filesize ;
-extern int  requestedstreamnumber ;
-extern int  buffersizeperstream ;
-extern int  maxstreams ;
-extern int  filemode ;
-extern int  *myports ;
-extern char *readbuffer ;
-extern char *compbuffer ;
-extern int  *mychildren ;
-extern int  *mysockets ;
-extern int  nbpidchild ;
-extern int  unlinkfile ;
-extern int  incontrolsock ;
-extern int  outcontrolsock ;
-extern	int	datato ;
-extern	int	ackto ;
-extern int  state ;
-extern int  childendinerror ;
-extern int  flagsighup ;
-extern char lastaccess[9] ;
-extern char lastmodif[9] ;
-extern struct  timeval  tstart ;
-extern int  protocolversion ;
+#include "_bbftpd.h"
 
 /*******************************************************************************
 ** bbftpd_retrlisdir :                                                         *
@@ -209,7 +186,7 @@ int bbftpd_retrlistdir(char *pattern,char **filelist,int *filelistlen,char *logm
         }
         strcpy(dirpath,"/") ;
         pointer++ ;
-    } else if ( lastslash == strlen(pointer) - 1 ) {
+    } else if ( lastslash == (int)strlen(pointer) - 1 ) {
         /*
         ** The filename end with a slash ..... error
         */
@@ -507,8 +484,8 @@ int bbftpd_retrcheckfile(char *filename,char *logmessage)
             return -1 ;
         }
     }
-    sprintf(lastaccess,"%08x",statbuf.st_atime) ;
-    sprintf(lastmodif,"%08x",statbuf.st_mtime) ;
+    sprintf(lastaccess,"%08lx",(unsigned long)statbuf.st_atime) ;
+    sprintf(lastmodif,"%08lx",(unsigned long)statbuf.st_mtime) ;
     lastaccess[8] = '\0' ;
     lastmodif[8]  = '\0' ;
     if (S_ISREG(statbuf.st_mode)) {

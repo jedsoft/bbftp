@@ -70,8 +70,7 @@
 #include <daemon_proto.h>
 #include <structures.h>
 
-extern int outcontrolsock ;
-extern	int	sendcontrolto ;
+#include "_bbftpd.h"
 
 int readmessage(int sock,char *buffer,int msglen,int to) 
 {

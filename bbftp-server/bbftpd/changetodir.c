@@ -37,7 +37,8 @@
                                       
  *****************************************************************************/
 
-#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -45,31 +46,31 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include <bbftpd.h>
 #include <common.h>
 #include <daemon.h>
 #include <structures.h>
 
-extern int msgsock ;
-extern	int	recvcontrolto ;
+#include "_bbftpd.h"
 
 int changetodir (int code, int msglen) {
 
     char    receive_buffer[MAXMESSLEN] ;
     int        savederrno ;
-    char    logmessage[256] ;
+    char    logmessage[1024] ;
     char    *currentdir ;
 
 #ifndef WORDS_BIGENDIAN
     msglen = ntohl(msglen) ;
 #endif
-    if ( msglen > MAXMESSLEN ) {
+    if ( msglen > (int)MAXMESSLEN ) {
         /*
         ** In order to avoid buffer overflow we reject message to
         ** big
         */
-        syslog(BBFTPD_ERR,"Message to big in changetodir (%d,%d)",msglen,MAXMESSLEN) ;
+        syslog(BBFTPD_ERR,"Message to big in changetodir (%d,%lu)",msglen,MAXMESSLEN) ;
         reply(MSG_BAD_NO_RETRY,"Directory too long") ;
         return -1 ;
     }

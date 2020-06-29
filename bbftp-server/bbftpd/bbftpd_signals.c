@@ -53,6 +53,8 @@
 #  include <time.h>
 # endif
 #endif
+#include <sys/types.h>
+#include <unistd.h>
 #include <utime.h>
 #if HAVE_STRING_H
 # include <string.h>
@@ -126,6 +128,7 @@ void bbftpd_sigchld(int sig)
     ** If all processes have been detected dead before childendinerror 
     ** to 0, totpid also so we send a reply MSS_OK
     */
+   (void) sig;
     totpid = 0 ;
     pidfree = mychildren ;
     for ( i=0 ; i< nbpidchild ; i++) {
@@ -187,16 +190,17 @@ void bbftpd_sigchld(int sig)
         if ((unlinkfile == 1 || unlinkfile == 2 || unlinkfile == 4)) {
             goon = 0 ;
             if ( bbftpd_storeclosecastfile(realfilename,logmessage) < 0 ) {
-                syslog(BBFTPD_ERR,logmessage) ;
+                syslog(BBFTPD_ERR,"%s",logmessage) ;
                 bbftpd_storeunlink(realfilename) ;
                 reply(MSG_BAD,logmessage) ;
                 goon = 1 ;
             }
             if ((goon == 0 ) &&  ((transferoption & TROPT_ACC ) == TROPT_ACC) ) {
-                sscanf(lastaccess,"%08x",&ftime.actime) ;
-                sscanf(lastmodif,"%08x",&ftime.modtime) ;
+	       unsigned long ul;
+                sscanf(lastaccess,"%08lx", &ul); ftime.actime = ul;
+                sscanf(lastmodif,"%08lx", &ul); ftime.modtime = ul;
                 if ( bbftpd_storeutime(realfilename,&ftime,logmessage) < 0 ) {
-                    syslog(BBFTPD_ERR,logmessage) ;
+                    syslog(BBFTPD_ERR, "%s", logmessage) ;
                     bbftpd_storeunlink(realfilename) ;
                     reply(MSG_BAD,logmessage) ;
                     goon = 1 ;
@@ -204,7 +208,7 @@ void bbftpd_sigchld(int sig)
            }
            if ( (goon == 0 ) && ((transferoption & TROPT_MODE ) == TROPT_MODE) ) {
                 if ( bbftpd_storechmod(realfilename,filemode,logmessage) < 0 ) {
-                    syslog(BBFTPD_ERR,logmessage) ;
+                    syslog(BBFTPD_ERR, "%s", logmessage) ;
                     bbftpd_storeunlink(realfilename) ;
                     reply(MSG_BAD,logmessage) ;
                     goon = 1 ;
@@ -212,7 +216,7 @@ void bbftpd_sigchld(int sig)
             }
             if ( (goon == 0 ) && ((transferoption & TROPT_TMP ) == TROPT_TMP ) ) {
                 if ( bbftpd_storerename(realfilename,curfilename,logmessage) < 0 ) {
-                    syslog(BBFTPD_ERR,logmessage) ;
+                    syslog(BBFTPD_ERR, "%s", logmessage) ;
                     bbftpd_storeunlink(realfilename) ;
                     reply(MSG_BAD,logmessage) ;
                     goon = 1 ;
@@ -222,7 +226,7 @@ void bbftpd_sigchld(int sig)
             if ( goon == 0 ) reply(MSG_OK,"OK") ;
             if (unlinkfile == 4) {
                 bbftpd_storeunlink(curfilename) ;
-            } else if  (&tstart) {
+            } else /* if (&tstart) What??? This is always true! */ {
 	        /* Stats PUT user file bytes_transfered seconds kbytes/s Mbits/s*/
        	        float s, bs;
        	        struct  timeval tend ,tdiff;
@@ -234,13 +238,13 @@ void bbftpd_sigchld(int sig)
  #define nz(x)   ((x) == 0 ? 1 : (x))
                 bs = filesize / nz(s);
                 sprintf(logmessage,"PUT %s %s %" LONG_LONG_FORMAT" %.3g %.3g %.3g", currentusername, curfilename, filesize, s, bs / 1024.0,(8.0*bs) / (1024.0 * 1024.0));
-                syslog(BBFTPD_NOTICE,logmessage);
+                syslog(BBFTPD_NOTICE, "%s", logmessage);
             }
             free_all_var() ;
         } else {
             state = S_LOGGED ;
             reply(MSG_OK,"OK") ;
-            if  (&tstart) {
+            /* ???? if  (&tstart) ???? */ {
 	        /* Stats GET user file bytes_transfered seconds kbytes/s Mbits/s*/
        	        float s, bs;
        	        struct  timeval tend ,tdiff;
@@ -251,7 +255,7 @@ void bbftpd_sigchld(int sig)
        	        s = tdiff.tv_sec + (tdiff.tv_usec / 1000000.);
                 bs = filesize / nz(s);
                 sprintf(logmessage,"GET %s %s %" LONG_LONG_FORMAT" %.3g %.3g %.3g", currentusername, curfilename, filesize, s, bs / 1024.0,(8.0*bs) / (1024.0 * 1024.0));
-                syslog(BBFTPD_NOTICE,logmessage);
+                syslog(BBFTPD_NOTICE, "%s", logmessage);
             }
             free_all_var() ;
         }
@@ -270,11 +274,13 @@ void bbftpd_sigchld(int sig)
 
 void bbftpd_sighup( int sig) 
 {
+   (void) sig;
     flagsighup = 1 ;
 }
 
 void bbftpd_sigterm(int sig) 
 {
+   (void) sig;
     if ( fatherpid == getpid() ) {
         /*
         ** We are in father

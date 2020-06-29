@@ -69,6 +69,7 @@
 #include <pwd.h>
 #include <signal.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <syslog.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
@@ -88,6 +89,7 @@
 #if HAVE_STRING_H
 # include <string.h>
 #endif
+#include <getopt.h>
 
 #include <common.h>
 #include <config.h>
@@ -111,6 +113,8 @@
 #ifdef WITH_GZIP
 #include <zlib.h>
 #endif
+
+#include "_bbftpd.h"
 
 #ifdef CERTIFICATE_AUTH
 #define OPTIONS    "bcd:fl:m:pR:suvw:"
@@ -163,11 +167,6 @@ int        newcontrolport ;
 **      Define the local username
 */
 char currentusername[MAXLEN] ;
-/*
-** myrsa :
-**      Define the local location where is store the key pair
-*/
-RSA        *myrsa ;
 /*
 ** his_addr :
 **      Remote address (the client)
@@ -311,12 +310,12 @@ int     *mysockets = NULL ;
 ** readbuffer :
 **      Pointer to the readbuffer
 */
-int     *readbuffer = NULL ;
+char    *readbuffer = NULL ;
 /*
 ** compbuffer :
 **      Pointer to the compression buffer
 */
-int     *compbuffer = NULL ;
+char     *compbuffer = NULL ;
 /*
 ** myumask :
 **      Umask for the bbftpd process, the default will be 022 which
@@ -383,13 +382,18 @@ gss_cred_id_t   server_creds;
 */
 struct  timeval  tstart;
 
-main (argc,argv,envp)
-    int     argc ;
-    char    **argv ;
-    char    **envp ;
+static void append_to_logmessage (char *buf, size_t buflen, char *dbuf)
 {
-    extern char *optarg;
-    extern int optind, opterr, optopt;
+   size_t dn = strlen (buf);
+   buf += dn;
+   buflen -= dn;
+   strncat (buf, dbuf, buflen);
+   buf[buflen-1] = 0;
+}
+
+
+int main (int argc, char **argv)
+{
 /*
 #if defined(SUNOS) || defined(_HPUX_SOURCE) || defined(IRIX)
     int        addrlen ;
@@ -410,7 +414,6 @@ main (argc,argv,envp)
     struct  message *msg ;
     char    buffer[MINMESSLEN] ;
     char    logmessage[1024] ;
-    char    rfio_trace[20] ;
     struct  passwd  *mypasswd ;
     char    *bbftpdrcfile = NULL ;
     int     fd ;
@@ -504,7 +507,7 @@ main (argc,argv,envp)
     while ((j = getopt(argc, argv, OPTIONS)) != -1) {
         switch (j) {
             case 'l' :{
-                for ( i=0 ; i< strlen(optarg) ; i++ ) {
+                for ( i=0 ; i < (int)strlen(optarg) ; i++ ) {
                     optarg[i] = toupper(optarg[i]) ;
                 }
                 i = 0 ;
@@ -639,7 +642,6 @@ main (argc,argv,envp)
             strcpy(bbftpdrcfile,mypasswd->pw_dir) ;
             strcat(bbftpdrcfile,"/.bbftpdrc") ;
             if ( stat(bbftpdrcfile,&statbuf) < 0  ) {
-                bbftpdrcfile == NULL;
                 if ( (bbftpdrcfile = (char *) malloc (strlen(BBFTPD_CONF)+1) ) != NULL ) {
 	          strcpy(bbftpdrcfile,BBFTPD_CONF);
 	        }
@@ -795,14 +797,15 @@ main (argc,argv,envp)
         /*
         ** Run as a daemon 
         */
-        do_daemon(argc, argv, envp);
+        do_daemon(argc, argv);
         /*
         ** Check for debug
         */
         if ( debug != 0 ) {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
-            sprintf(rfio_trace,"RFIO_TRACE=%d",debug) ;
-            retcode = putenv(rfio_trace) ;
+	   static char rfio_trace[20] ;
+	   sprintf(rfio_trace,"RFIO_TRACE=%d",debug) ;
+	   retcode = putenv (rfio_trace) ;   /* FIXME: retcode set here changes previous value  */
 #endif
             if ( retcode == 0 ) {
                 /*
@@ -860,7 +863,7 @@ main (argc,argv,envp)
         gettimeofday(&tp,NULL) ;
         seed = tp.tv_usec ;
         srandom(seed) ;
-        for (i=0; i < sizeof(buffrand) ; i++) {
+        for (i=0; i < (int) sizeof(buffrand) ; i++) {
             buffrand[i] = random() ;
         }
         /*
@@ -916,59 +919,79 @@ login:
             }
             msg = (struct message *) buffer ;
             if ( msg->code == MSG_SERVER_STATUS ) {
-                sprintf(logmessage, "bbftpd version %s\n",VERSION) ;
-                sprintf(logmessage,"%sCompiled with  :   default port %d\n",logmessage,CONTROLPORT) ;
+	       char dmsgbuf[128];
+
+	       *logmessage = 0;
+	       sprintf(dmsgbuf, "bbftpd version %s\n",VERSION);
+	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+	       sprintf(dmsgbuf, "Compiled with  :   default port %d\n", CONTROLPORT) ;
+	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
 #ifdef WITH_GZIP
-                sprintf(logmessage,"%s                   compression with Zlib-%s\n", logmessage,zlibVersion()) ;
+	       sprintf(dmsgbuf, "  compression with Zlib-%s\n", zlibVersion()) ;
+	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
 #endif
-                sprintf(logmessage,"%s                   encryption with %s \n",logmessage,SSLeay_version(SSLEAY_VERSION)) ;
+	       sprintf(dmsgbuf, "  encryption with %s \n", SSLeay_version(SSLEAY_VERSION)) ;
+	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
 #ifdef WITH_RFIO
 # ifdef CASTOR
-                sprintf(logmessage,"%s                   CASTOR support (RFIO)\n",logmessage) ;
+	       sprintf(dmsgbuf, "  CASTOR support (RFIO)\n") ;
 # else
-                sprintf(logmessage,"%s                   HPSS support (RFIO)\n",logmessage) ;
+	       sprintf(dmsgbuf, "  HPSS support (RFIO)\n") ;
 # endif
+	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
 #endif
 #ifdef WITH_RFIO64
 # ifdef CASTOR
-                sprintf(logmessage,"%s                   CASTOR support (RFIO64)\n",logmessage) ;
+	       sprintf(dmsgbuf, "  CASTOR support (RFIO64)\n") ;
 # else
-                sprintf(logmessage,"%s                   HPSS support (RFIO64)\n",logmessage) ;
+	       sprintf(dmsgbuf, "  HPSS support (RFIO64)\n") ;
 # endif
+	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
 #endif
 #ifdef AFS
-                sprintf(logmessage,"%s                   AFS authentication \n",logmessage) ;
+	       sprintf(dmsgbuf, "  AFS authentication \n") ;
+	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
 #endif
 #ifdef CERTIFICATE_AUTH
-                sprintf(logmessage,"%s                   GSI authentication \n",logmessage) ;
+	       sprintf(dmsgbuf, "  GSI authentication \n") ;
+	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
 #endif
 #ifdef PRIVATE_AUTH
-                sprintf(logmessage,"%s                   private authentication \n",logmessage) ;
+	       sprintf(dmsgbuf, "  private authentication \n") ;
+	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
 #endif
-                sprintf(logmessage,"%sRunning options:\n",logmessage) ;
-                sprintf(logmessage,"%s                   Maximum number of streams = %d \n",logmessage,maxstreams) ;
-                if (pasvport_min) {
-                    sprintf(logmessage,"%s                   data ports range = [%d-%d] \n", logmessage,pasvport_min, pasvport_max) ;
-                }
+	       sprintf(dmsgbuf, "Running options:\n") ;
+	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+	       sprintf(dmsgbuf, "  Maximum number of streams = %d\n",maxstreams) ;
+	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+	       if (pasvport_min)
+		 {
+		    sprintf(dmsgbuf, "  data ports range = [%d-%d]\n", pasvport_min, pasvport_max) ;
+		    append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+		 }
+
 #ifdef CERTIFICATE_AUTH
-                if (accept_pass_only) {
-                    sprintf(logmessage, "%s                   The server only accepts USER/PASS\n",logmessage);
-                }
-                if (accept_certs_only) {
-                    sprintf(logmessage, "%s                   The server only accepts certificates\n",logmessage);
-                }
+	       if (accept_pass_only)
+		 {
+                    sprintf(dmsgbuf, "  The server only accepts USER/PASS\n",);
+		    append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+		 }
+                if (accept_certs_only)
+		 {
+                    sprintf(dmsgbuf, "  The server only accepts certificates\n",logmessage);
+		    append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+		 }
 #endif
 #ifndef PRIVATE_AUTH
-                if (force_encoding) {
-                    sprintf(logmessage, "%s                   The server requires encrypted login\n",logmessage);
-                } else {
-                    sprintf(logmessage, "%s                   The server allows non-encrypted login\n",logmessage);
-                }
+	       if (force_encoding)
+		 sprintf(dmsgbuf, "  The server requires encrypted login\n");
+	       else
+		 sprintf(dmsgbuf, "  The server allows non-encrypted login\n");
+	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
 #endif
 
-               
-                    reply(MSG_OK,logmessage);
-                    exit(0);
+	       reply(MSG_OK,logmessage);
+	       exit(0);
             }
 #ifdef CERTIFICATE_AUTH
             if ( msg->code == MSG_CERT_LOG ) {
@@ -1309,7 +1332,7 @@ loopv1:
     }
 }
 
-void clean_child() 
+void clean_child (void)
 {
     int    *pidfree ;
     int    i ;
@@ -1365,6 +1388,7 @@ void exit_clean()
     }
 }
 
+#if 0
 my64_t convertlong(my64_t v) {
     struct bb {
         int    fb ;
@@ -1381,6 +1405,7 @@ my64_t convertlong(my64_t v) {
     bbpt->sb = ntohl(tmp) ;    
     return tmp64 ;
 }
+#endif
 
 #ifndef HAVE_NTOHLL
 my64_t ntohll(my64_t v) {

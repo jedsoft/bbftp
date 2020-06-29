@@ -86,22 +86,7 @@
 #include <zlib.h>
 #endif
 
-extern int flagsighup ;
-extern int msgsock ;
-extern char currentfilename[MAXLENFILE];
-extern int childendinerror ;
-extern int pid_child[MAXPORT] ;
-extern int state ;
-extern int unlinkfile ;
-extern	int	recvcontrolto ;
-extern	int	sendcontrolto ;
-extern	int	datato ;
-
-#ifndef WORDS_BIGENDIAN
-#ifndef HAVE_NTOHLL
-my64_t    ntohll(my64_t v) ;
-#endif
-#endif
+#include "_bbftpd.h"
 
 int storeafile(int code) {
 
@@ -117,7 +102,7 @@ int storeafile(int code) {
     char    data_buffer[READBUFLEN] ;
     char    comp_buffer[READBUFLEN] ;
     
-    char    logmessage[256] ;
+    char    logmessage[1024] ;
         
     int     fd ;
 

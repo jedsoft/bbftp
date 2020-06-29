@@ -66,14 +66,9 @@ RETURN VALUE :
 #include <common.h>
 #include <daemon.h>
 
-extern struct sockaddr_in his_addr;        /* Remote adresse */
-extern struct sockaddr_in ctrl_addr;    /* Local adresse */
-extern int  fixeddataport ;
+#include "_bbftpd.h"
 
-int createreceivesock(port,socknum,logmessage)
-    int        port ;
-    int        socknum ;
-    char    *logmessage ;
+int createreceivesock(int port, int socknum, char *logmessage)
 {
     int    sock ;
     struct sockaddr_in data_source ;

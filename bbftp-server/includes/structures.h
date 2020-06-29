@@ -147,8 +147,8 @@ struct message {
 } ;
 
 struct mess_rsa {
-	unsigned char	cryptuser[NBYTESRSA] ;	
-	unsigned char	cryptpass[NBYTESRSA] ;	
+	char	cryptuser[NBYTESRSA] ;
+	char	cryptpass[NBYTESRSA] ;
 	int		numuser ;
 	int		numpass ;
 } ;

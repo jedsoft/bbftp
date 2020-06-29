@@ -90,9 +90,10 @@ extern  char    currentusername[MAXLEN] ;
 *******************************************************************************/
 
 
-void checkfromwhere() 
+void checkfromwhere (void) 
 {
-    int        sock,ns,addrlen,retcode,nfds ;
+   socklen_t addrlen;
+    int        sock, ns, retcode,nfds ;
     struct  sockaddr_in server ;
     char    buffer[MINMESSLEN] ;
      struct    message *msg ;

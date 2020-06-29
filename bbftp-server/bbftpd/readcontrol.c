@@ -62,11 +62,7 @@
 #include <structures.h>
 #include <version.h>
 
-extern int state ;
-extern int msgsock ;
-extern int unlinkfile ;
-extern int pid_child[MAXPORT] ;
-extern	int	recvcontrolto ;
+#include "_bbftpd.h"
 
 int readcontrol(int msgcode,int msglen) {
 

@@ -59,8 +59,7 @@
 # include <string.h>
 #endif
 
-extern int msgsock ;
-extern	int	recvcontrolto ;
+#include "_bbftpd.h"
 
 int sendlist (int code, int msglen) {
 
@@ -69,19 +68,19 @@ int sendlist (int code, int msglen) {
     char    logmessage[256] ;
     glob_t pg ;
     struct message *msg ;
-    int        i ; 
+    unsigned int        i ;
     int        retcode ;
     char    *tmpfile ;
 
 #ifndef WORDS_BIGENDIAN
     msglen = ntohl(msglen) ;
 #endif
-    if ( msglen > MAXMESSLEN ) {
+    if ( msglen > (int) MAXMESSLEN ) {
         /*
         ** In order to avoid buffer overflow we reject message to
         ** big
         */
-        syslog(BBFTPD_ERR,"Message to big in sendlist (%d,%d)",msglen,MAXMESSLEN) ;
+        syslog(BBFTPD_ERR,"Message to big in sendlist (%d,%lu)",msglen,MAXMESSLEN) ;
         reply(MSG_BAD_NO_RETRY,"String too long") ;
         return -1 ;
     }

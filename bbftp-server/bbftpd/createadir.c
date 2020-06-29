@@ -39,6 +39,8 @@
               v 2.1.0  2001/05/30   - Correct syslog level
                                       
  *****************************************************************************/
+#include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -53,25 +55,23 @@
 #include <daemon.h>
 #include <structures.h>
 
-
-extern int msgsock ;
-extern	int	recvcontrolto ;
+#include "_bbftpd.h"
 
 int createadir(int code, int msglen) {
 
     char    receive_buffer[MAXMESSLEN] ;
     int        savederrno ;
-    char    logmessage[256] ;
+    char    logmessage[1024] ;
 
 #ifndef WORDS_BIGENDIAN
     msglen = ntohl(msglen) ;
 #endif
-    if ( msglen > MAXMESSLEN ) {
+    if ( msglen > (int) MAXMESSLEN ) {
         /*
         ** In order to avoid buffer overflow we reject message to
         ** big
         */
-        syslog(BBFTPD_ERR,"Message to big in createdir (%d,%d)",msglen,MAXMESSLEN) ;
+        syslog(BBFTPD_ERR,"Message to big in createdir (%d,%lu)",msglen,MAXMESSLEN) ;
         reply(MSG_BAD_NO_RETRY,"Directory too long") ;
         return -1 ;
     }

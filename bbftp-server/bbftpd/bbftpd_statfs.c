@@ -57,8 +57,14 @@
 #include <daemon_proto.h>
 #include <structures.h>
 
-extern int transferoption ;
-extern	int	recvcontrolto ;
+#include "_bbftpd.h"
+
+#if defined(HAVE_STATVFS64) && !defined(HAVE_STRUCT_STATVFS64)
+/* Handle inconsistency.  All systems that I know use statvfs64 struct for statvfs64 system call */
+# undef HAVE_STATVFS64
+# undef HAVE_STATVF
+# define HAVE_STATVFS 1
+#endif
 
 int bbftpd_statfs(int sock,int msglen) 
 {
@@ -67,8 +73,6 @@ int bbftpd_statfs(int sock,int msglen)
     char    *logmessage ;
     struct  mess_dir *msg_file ;
     char    *dirname ;
-    int     recursif ;
-    int     retcode ;
 
 # ifdef HAVE_STRUCT_STATVFS64
     struct statvfs64 statfsbuf;

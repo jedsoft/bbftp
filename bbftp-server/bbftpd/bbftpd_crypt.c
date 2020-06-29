@@ -41,11 +41,11 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <syslog.h>
-#if TIME_WITH_SYS_TIME
+#ifdef TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
 #else
-# if HAVE_SYS_TIME_H
+# ifdef HAVE_SYS_TIME_H
 #  include <sys/time.h>
 # else
 #  include <time.h>
@@ -60,11 +60,15 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 
-extern int  outcontrolsock ;
-extern	int	sendcontrolto ;
-extern RSA  *myrsa ;
+#include "_bbftpd.h"
 
-void sendcrypt() 
+/*
+** myrsa :
+**      Define the local location where is store the key pair
+*/
+RSA        *myrsa ;
+
+void sendcrypt(void)
 {
     struct message    *mess ;
     struct mess_sec    *msg_sec ;
@@ -124,11 +128,11 @@ void sendcrypt()
     /*
     ** Send Key and exponent
     */
-    if (writemessage(outcontrolsock,pubkey,lenkey,sendcontrolto) < 0 ) {
+    if (writemessage(outcontrolsock,(char *)pubkey,lenkey,sendcontrolto) < 0 ) {
         syslog(BBFTPD_ERR,"Error on sendcrypt pubkey") ;
         exit(1) ;
     }
-    if (writemessage(outcontrolsock,pubexponent,lenexpo,sendcontrolto) < 0 ) {
+    if (writemessage(outcontrolsock,(char *)pubexponent,lenexpo,sendcontrolto) < 0 ) {
         syslog(BBFTPD_ERR,"Error on sendcrypt pubexponent") ;
         exit(1) ;
     }
@@ -146,9 +150,9 @@ int decodersapass(char *buffer, char *username, char *password)
     msg_rsa->numuser = ntohl(msg_rsa->numuser) ;
     msg_rsa->numpass = ntohl(msg_rsa->numpass) ;
 #endif
-    lenuser = RSA_private_decrypt(msg_rsa->numuser,msg_rsa->cryptuser,(unsigned char *)username,myrsa,RSA_PKCS1_OAEP_PADDING) ;
+    lenuser = RSA_private_decrypt(msg_rsa->numuser,(unsigned char *)msg_rsa->cryptuser,(unsigned char *)username,myrsa,RSA_PKCS1_OAEP_PADDING) ;
     username[lenuser] = '\0' ;
-    lenpass = RSA_private_decrypt(msg_rsa->numpass,msg_rsa->cryptpass,(unsigned char *)password,myrsa,RSA_PKCS1_OAEP_PADDING) ;
+    lenpass = RSA_private_decrypt(msg_rsa->numpass,(unsigned char *)msg_rsa->cryptpass,(unsigned char *)password,myrsa,RSA_PKCS1_OAEP_PADDING) ;
     password[lenpass] = '\0' ;
     
     return 0 ;

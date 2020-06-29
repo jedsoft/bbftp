@@ -75,28 +75,7 @@
 #include <zlib.h>
 #endif
 
-extern int  transferoption ;
-extern my64_t  filesize ;
-extern int  requestedstreamnumber ;
-extern int  buffersizeperstream ;
-extern int  maxstreams ;
-extern int  *myports ;
-extern int  *mysockets ;
-extern char *readbuffer ;
-extern char *compbuffer ;
-extern int  *mychildren ;
-extern int  nbpidchild ;
-extern int  unlinkfile ;
-extern int  incontrolsock ;
-extern int  outcontrolsock ;
-extern	int	datato ;
-extern	int	sendcontrolto ;
-extern int  state ;
-extern int  childendinerror ;
-extern int  flagsighup ;
-extern struct  timeval  tstart ;
-extern int  protocolversion ;
-extern  char            currentusername[MAXLEN] ;
+#include "_bbftpd.h"
 
 /*******************************************************************************
 ** bbftpdstoreclosecastfile :                                                  *
@@ -122,6 +101,8 @@ int bbftpd_storeclosecastfile(char *filename,char *logmessage)
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
         return bbftpd_storeclosecastfile_rfio(filename,logmessage) ;
 #else
+       (void) filename;
+       (void) logmessage;
         return 0 ;
 #endif
     }
@@ -532,10 +513,10 @@ int bbftpd_storecreatefile(char *filename, char *logmessage)
     int     savederrno ;
     int     retcode ;
 #ifdef STANDART_FILE_CALL
-     off_t        toseek ;
+     /* off_t        toseek ; */
     struct stat statbuf ;
 #else
-    off64_t        toseek ;
+    /* off64_t        toseek ; */
     struct stat64 statbuf ;
 #endif
    
@@ -576,7 +557,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage)
         ** A slash in first position so we suppose the "/" directory 
         ** exist ... nothing to do
         */
-    } else if ( lastslash == strlen(filepath) - 1 ) {
+    } else if ( lastslash == (int) strlen(filepath) - 1 ) {
         /*
         ** The filename end with a slash ..... error
         */
@@ -745,7 +726,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage)
 	char statmessage[1024];
         close(fd) ;
         sprintf(statmessage,"PUT %s %s 0 0 0.0 0.0", currentusername, filepath);
-        syslog(BBFTPD_NOTICE,statmessage);
+        syslog(BBFTPD_NOTICE,"%s",statmessage);
         FREE(filepath) ;
         return 0 ;
     }

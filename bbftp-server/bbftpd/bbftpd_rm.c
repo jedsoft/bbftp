@@ -42,8 +42,7 @@
 #include <netinet/in.h>
 #include <structures.h>
 
-extern int transferoption ;
-extern	int	recvcontrolto ;
+#include "_bbftpd.h"
 
 int bbftpd_rm(int sock,int msglen) 
 {
@@ -51,7 +50,7 @@ int bbftpd_rm(int sock,int msglen)
     char    *logmessage ;
     struct  mess_dir *msg_file ;
     char    *filename ;
-    int     recursif ;
+    /* int     recursif ; */
     int     retcode ;
 
     if ( (buffer = (char *) malloc (msglen+1) ) == NULL ) {

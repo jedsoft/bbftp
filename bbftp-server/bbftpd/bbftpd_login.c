@@ -82,12 +82,12 @@
 #include <userpw.h>
 #endif
 
-extern int incontrolsock ;
-extern	int	recvcontrolto ;
-extern char currentusername[MAXLEN] ;
+#include <sys/types.h>
+#include <grp.h>
+
+#include "_bbftpd.h"
 
 #ifdef USE_PAM
-extern char daemonchar[50] ;
 
 static char *PAM_password;
 /* PAM conversation function
@@ -139,7 +139,7 @@ static struct pam_conv PAM_conversation =
 };
 #endif
 
-int loginsequence() {
+int loginsequence(void) {
     
     int        retcode ;
     char    receive_buffer[MAXMESSLEN] ;

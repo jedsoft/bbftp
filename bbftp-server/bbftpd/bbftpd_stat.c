@@ -60,16 +60,14 @@
 #include <daemon_proto.h>
 #include <structures.h>
 
-extern int transferoption ;
-extern	int	recvcontrolto ;
+#include "_bbftpd.h"
 
-int bbftpd_stat(int sock,int msglen) 
+int bbftpd_stat(int sock,int msglen)
 {
     char    *buffer ;
     char    *logmessage ;
     struct  mess_dir *msg_file ;
     char    *filename ;
-    int     recursif ;
     int     retcode ;
 
 #ifdef STANDART_FILE_CALL
@@ -148,7 +146,7 @@ int bbftpd_stat(int sock,int msglen)
 	ct[strlen(ct)-1]='\0';
 
 #ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
-# define RF_ST_BLKSIZE_FORMAT "d"
+# define RF_ST_BLKSIZE_FORMAT LONG_LONG_FORMAT
 #else
 # define RF_ST_BLKSIZE_FORMAT "s"
 #endif
@@ -164,7 +162,7 @@ int bbftpd_stat(int sock,int msglen)
 			rfstatbuf.st_mode,
 			(long long)rfstatbuf.st_size, 
 #ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
-			rfstatbuf.st_blksize, 
+			(long long)rfstatbuf.st_blksize,
 #else
 			"N/A",
 #endif
@@ -187,7 +185,7 @@ int bbftpd_stat(int sock,int msglen)
 	ct[strlen(ct)-1]='\0';
 
 #ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
-# define ST_BLKSIZE_FORMAT "d"
+# define ST_BLKSIZE_FORMAT LONG_LONG_FORMAT
 #else
 # define ST_BLKSIZE_FORMAT "s"
 #endif
@@ -203,7 +201,7 @@ int bbftpd_stat(int sock,int msglen)
 			statbuf.st_mode, 
 			(long long)statbuf.st_size, 
 #ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
-			statbuf.st_blksize, 
+			(long long) statbuf.st_blksize, 
 #else
 			"N/A",
 #endif

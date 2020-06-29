@@ -33,6 +33,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/wait.h>
@@ -53,34 +54,10 @@
 **#include <shift.h>
 **#endif
 */
-/*
-** For V1 Protocol
-*/
-extern int  pid_child[MAXPORT] ;
-extern char currentfilename[MAXLENFILE];
-/*
-** For V1 and V2 Protocol
-*/
-extern int  flagsighup;
-extern int  childendinerror ;
-extern int  state ;
-extern int  killdone ;
-extern int  unlinkfile ;
-extern pid_t    fatherpid ;
-/*
-** For V2 protocol
-*/
-extern char *realfilename ;
-extern char *curfilename ;
-extern int  transferoption ;
-extern int  *mychildren ;
-extern int  nbpidchild ;
-extern char lastaccess[9] ;
-extern char lastmodif[9] ;
-extern int  filemode ;
 
-int checkendchild(status)
-    int status ;
+#include "_bbftpd.h"
+
+int checkendchild(int status)
 {
     
     if (WEXITSTATUS(status) == 0 ) {
@@ -98,8 +75,7 @@ int checkendchild(status)
     }             
 }
 
-void in_sigchld_v1(sig) 
-int        sig ;
+void in_sigchld_v1( int sig)
 {
     int    pid ;
     int    status ;
@@ -107,7 +83,8 @@ int        sig ;
     int i ;
     char logmessage[256] ;
     int    retcode ;
-    
+
+   (void) sig;
     /*
     ** We are going to check if the process generating this
     ** signal was not already detected as dead. This was causing 
@@ -179,16 +156,16 @@ int        sig ;
     }
 }
 
-void in_sighup_v1(sig) 
-int        sig ;
+void in_sighup_v1(int sig)
 {
+   (void) sig;
     flagsighup = 1 ;
 }
 
 
-void in_sigterm_v1(sig) 
-int        sig ;
+void in_sigterm_v1(int sig)
 {
+   (void) sig;
     if ( fatherpid == getpid() ) {
         /*
         ** We are in father
