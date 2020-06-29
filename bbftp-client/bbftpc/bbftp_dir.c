@@ -43,29 +43,32 @@ int bbftp_dir(char *remotefile, int  *errcode)
 {
     /* char    logmessage[1024] ; */
     int     retcode ;
-    char    *filelist ;
+    char    *filelist = NULL, *tmpremotefile = NULL;
     int     filelistlen ;
-    char    *tmpfile, *tmpchar, *tmpremotefile ;
-    
+    char    *tmpfile = NULL, *tmpchar;
+
     if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : dir %s \n",remotefile) ;
-    filelist = NULL ;
+
     filelistlen = 0 ;
     if ( (tmpremotefile = (char *) malloc (strlen(remotefile)+3)) == NULL ) {
 	return -1;
     }
     strcpy(tmpremotefile, remotefile);
     strcat(tmpremotefile, "/*");
-    if ( (retcode = bbftp_list(tmpremotefile,&filelist,&filelistlen,errcode) ) != BB_RET_OK) {
+   if ( (retcode = bbftp_list(tmpremotefile,&filelist,&filelistlen,errcode) ) != BB_RET_OK)
+     {
         if (verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< FAILED\n") ;
-        return retcode ;
-    }
+	goto free_and_return;
+     }
     if ( statoutput ) {
         printmessage(stdout,CASE_NORMAL,0,0,"dir %s\n", remotefile) ;
     }
-    if ( filelistlen == 0 ) {
+   if ( filelistlen == 0 )
+     {
         if (verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
-        return BB_RET_OK ;
-    }
+	retcode = BB_RET_OK;
+	goto free_and_return;
+     }
     tmpfile = filelist ;
     tmpchar = NULL ;
     while (filelistlen > 0 ) {
@@ -78,7 +81,7 @@ int bbftp_dir(char *remotefile, int  *errcode)
         **                          'd' if it is a directory
         **                          'f' if it is a regular file
         */
-	
+
         tmpchar = tmpfile + strlen(tmpfile) + 1 ;
         filelistlen = filelistlen - strlen(tmpfile) - 1 - strlen(tmpchar) - 1;
         if ( statoutput ) {
@@ -86,8 +89,14 @@ int bbftp_dir(char *remotefile, int  *errcode)
         }
         tmpfile = tmpchar + strlen(tmpchar) + 1 ;
     }
-    if (verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
-    free(filelist) ;
-    return BB_RET_OK ;
-    
+   if (verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+
+   retcode = BB_RET_OK ;
+   /* drop */
+
+free_and_return:
+
+   if (tmpremotefile != NULL) free (tmpremotefile);
+   if (filelist != NULL) free (filelist);
+   return retcode;
 }
