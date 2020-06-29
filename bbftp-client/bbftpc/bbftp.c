@@ -815,6 +815,7 @@ int main(int argc, char **argv)
             strcpy(bbftprcfile,mypasswd->pw_dir) ;
             strcat(bbftprcfile,"/.bbftprc") ;
             if ( stat(bbftprcfile,&statbuf) < 0  ) {
+	       free (bbftprcfile);
                 bbftprcfile = NULL;
                 if ( (bbftprcfile = (char *) malloc (strlen(BBFTP_CONF)+1) ) != NULL ) {
 	          strcpy(bbftprcfile,BBFTP_CONF);
@@ -843,6 +844,8 @@ int main(int argc, char **argv)
                 bbftprc[j] = '\0' ;
             }
         }
+       free (bbftprcfile);
+       bbftprcfile = NULL;
     }
 /*
 ** Analyse the bbftprc command in order to supress forbiden command

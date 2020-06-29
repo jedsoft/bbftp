@@ -558,10 +558,11 @@ int bbftp_storecreatefile(char *filename,char *logmessage, int *errcode)
         ** Check the existence of the directory 
         */
 #ifdef STANDART_FILE_CALL
-        if ( stat(filepath,&statbuf) < 0 ) {
+        if ( stat(filepath,&statbuf) < 0 )
 #else
-        if ( stat64(filepath,&statbuf) < 0 ) {
+        if ( stat64(filepath,&statbuf) < 0 )
 #endif
+	   {
             /*
             ** It may be normal to get an error if the directory
             ** does not exist but some error code must lead
@@ -739,6 +740,7 @@ int bbftp_storecreatefile(char *filename,char *logmessage, int *errcode)
            return 1 ;
        }
     }
+   free(filepath);
     return 0 ;
 }
 /*******************************************************************************
