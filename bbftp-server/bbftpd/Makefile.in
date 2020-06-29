@@ -74,8 +74,8 @@ clean:
 	rm -rf obj.@host@
 	rm -f config.cache
 	rm -f config.log
-	(cd ../gfw; make clean)
-    
+	- cd ../gfw && make clean
+
 install:${PROG}
 	mkdir -p ${prefix}
 	mkdir -p ${bindir}

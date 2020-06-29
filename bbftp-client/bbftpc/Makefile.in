@@ -89,8 +89,8 @@ clean:
 	rm -f ${OBJS} ${PROG} ${STATUS_PROG}
 	rm -rf obj.@host@
 	rm -f config.cache
-	(cd ../gfw; make clean)
-    
+	- cd ../gfw && make clean
+
 install:${PROG} ${STATUS_PROG}
 	mkdir -p ${prefix}
 	mkdir -p ${bindir}
