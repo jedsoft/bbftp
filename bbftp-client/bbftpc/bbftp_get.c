@@ -93,6 +93,8 @@ int bbftp_get(char *remotefilename,int  *errcode)
     int     status ;
     pid_t   pid ;
 
+   memset (sendbuffer, 0, sizeof(sendbuffer));
+
     if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : get %s %s\n",remotefilename,curfilename) ;
     /*
     ** Check if file is correct 
