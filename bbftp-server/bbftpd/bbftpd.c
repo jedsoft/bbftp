@@ -415,7 +415,7 @@ int main (int argc, char **argv)
     char    buffer[MINMESSLEN] ;
     char    logmessage[1024] ;
     struct  passwd  *mypasswd ;
-    char    *bbftpdrcfile = NULL ;
+    char    *bbftpdrcfile = NULL, *bbftpdrcfile_static = NULL;
     int     fd ;
     char    *carret ;
     char    *startcmd ;
@@ -573,7 +573,7 @@ int main (int argc, char **argv)
                 break ;
             }
             case 'R' :{
-                bbftpdrcfile = optarg ;
+                bbftpdrcfile_static = optarg ;
                 break ;
             }
             case 's' :{
@@ -615,6 +615,8 @@ int main (int argc, char **argv)
 /*
 ** Check for the local user in order to find the .bbftpdrc file
 */
+   bbftpdrcfile = bbftpdrcfile_static;
+
     if ( bbftpdrcfile == NULL ) {
         /*
         ** look for the local user in order to find the .bbftpdrc file
@@ -641,11 +643,13 @@ int main (int argc, char **argv)
         } else {
             strcpy(bbftpdrcfile,mypasswd->pw_dir) ;
             strcat(bbftpdrcfile,"/.bbftpdrc") ;
-            if ( stat(bbftpdrcfile,&statbuf) < 0  ) {
+            if ( stat(bbftpdrcfile,&statbuf) < 0  )
+	     {
+		free (bbftpdrcfile);
                 if ( (bbftpdrcfile = (char *) malloc (strlen(BBFTPD_CONF)+1) ) != NULL ) {
-	          strcpy(bbftpdrcfile,BBFTPD_CONF);
+		   strcpy(bbftpdrcfile,BBFTPD_CONF);
 	        }
-	    }
+	     }
         }
     }
     if ( bbftpdrcfile != NULL ) {
@@ -671,6 +675,7 @@ int main (int argc, char **argv)
                 bbftpdrc[j] = '\0' ;
             }
         }
+       if (bbftpdrcfile != bbftpdrcfile_static) free (bbftpdrcfile);
     }
 /*
 ** Analyse the bbftpdrc command in order to supress forbiden command

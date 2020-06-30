@@ -394,7 +394,7 @@ int main(int argc, char **argv)
 ** For local user
 */
     struct  passwd  *mypasswd ;
-    char    *bbftprcfile = NULL ;
+    char    *bbftprcfile = NULL, *bbftprcfile_static = NULL;
     int     fd ;
     char    *carret ;
     char    *startcmd ;
@@ -683,7 +683,7 @@ int main(int argc, char **argv)
                 break ;
             }
             case 'R' :{
-                bbftprcfile = optarg ;
+                bbftprcfile_static = optarg ;
                 break ;
             }
             case 's' :{
@@ -795,6 +795,8 @@ int main(int argc, char **argv)
 /*
 ** Check for the local user in order to find the .bbftprc file
 */
+       bbftprcfile = bbftprcfile_static;
+
     if ( bbftprcfile == NULL ) {
         /*
         ** look for the local user in order to find the .bbftprc file
@@ -844,7 +846,7 @@ int main(int argc, char **argv)
                 bbftprc[j] = '\0' ;
             }
         }
-       free (bbftprcfile);
+       if (bbftprcfile != bbftprcfile_static) free (bbftprcfile);
        bbftprcfile = NULL;
     }
 /*
