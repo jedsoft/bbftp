@@ -77,10 +77,8 @@ void sendcrypt(void)
     unsigned char    pubexponent[NBITSINKEY] ;
     int        lenkey ;
     int        lenexpo ;
-#define JED_SSL_PATCH (OPENSSL_VERSION_NUMBER >= 0x10101000L)
-#if JED_SSL_PATCH
    const BIGNUM *rsa_n, *rsa_e, *rsa_d;
-#endif
+
     /*
     ** Ask for the private and public Key
     */
@@ -91,7 +89,7 @@ void sendcrypt(void)
     /*
     ** Now extract the public key in order to send it
     */
-#if JED_SSL_PATCH
+#if (OPENSSL_VERSION_NUMBER >= 0x10101000L)
    RSA_get0_key (myrsa, &rsa_n, &rsa_e, &rsa_d);
 #else
    rsa_n = myrsa->n;
@@ -143,7 +141,7 @@ int decodersapass(char *buffer, char *username, char *password)
     struct mess_rsa *msg_rsa ;
     int    lenuser ;
     int lenpass ;
-    
+
     msg_rsa = (struct mess_rsa *) buffer ;
 
 #ifndef WORDS_BIGENDIAN
