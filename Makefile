@@ -4,8 +4,8 @@ all:
 	cd bbftp-client/bbftpc && $(MAKE)
 	cd bbftp-server/bbftpd && $(MAKE)
 config:
-	cd bbftpd-client/bbftpc && ./configure $(CONFIGOPTS)
-	cd bbftpd-server/bbftpd && ./configure $(CONFIGOPTS)
+	cd bbftp-client/bbftpc && ./configure $(CONFIGOPTS)
+	cd bbftp-server/bbftpd && ./configure $(CONFIGOPTS)
 install:
 	cd bbftp-client/bbftpc && $(MAKE) install
 	cd bbftp-server/bbftpd && $(MAKE) install
