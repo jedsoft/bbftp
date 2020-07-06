@@ -855,7 +855,7 @@ int main (int argc, char **argv)
         /*
         ** Load the error message from the crypto lib
         */
-#if OPENSSL_API_COMPAT < 0x10100000L
+#if !defined(OPENSSL_API_COMPAT) || (OPENSSL_API_COMPAT < 0x10100000L)
         ERR_load_crypto_strings() ;
 #endif
         /*

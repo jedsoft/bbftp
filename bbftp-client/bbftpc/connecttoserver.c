@@ -78,8 +78,6 @@
 #define SETTOZERO    0
 #define SETTOONE     1
 
-#define JED_SSL_PATCH 1
-
 /****************************************************************************
   Separate STR into arguments, respecting quote and escaped characters.
   Returns the number of arguments (or < 0 if limits are passed), which are
@@ -604,7 +602,7 @@ int connectviapassword(void)
         /*
         ** Getting BIGNUM structures to store the key and exponent
         */
-#ifdef JED_SSL_PATCH
+#if (OPENSSL_VERSION_NUMBER >= 0x10101000L)
        if (NULL == (rsa_n = BN_new()))
 	 {
 	    RSA_free (hisrsa);
@@ -649,8 +647,8 @@ int connectviapassword(void)
 
        rsa_n = hisrsa->n;	       /* Added by JED */
        rsa_e = hisrsa->e;	       /* Added by JED */
-#endif				       /* JED_SSL_PATCH */
-       
+#endif				       /* OPENSSL_VERSION_NUMBER */
+
         /*
         ** Copy the key and exponent received
         */

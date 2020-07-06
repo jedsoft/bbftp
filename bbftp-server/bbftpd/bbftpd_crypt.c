@@ -77,8 +77,8 @@ void sendcrypt(void)
     unsigned char    pubexponent[NBITSINKEY] ;
     int        lenkey ;
     int        lenexpo ;
-#define JED_SSL_PATCH 1
-#ifdef JED_SSL_PATCH
+#define JED_SSL_PATCH (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+#if JED_SSL_PATCH
    const BIGNUM *rsa_n, *rsa_e, *rsa_d;
 #endif
     /*
@@ -91,7 +91,7 @@ void sendcrypt(void)
     /*
     ** Now extract the public key in order to send it
     */
-#ifdef JED_SSL_PATCH
+#if JED_SSL_PATCH
    RSA_get0_key (myrsa, &rsa_n, &rsa_e, &rsa_d);
 #else
    rsa_n = myrsa->n;
