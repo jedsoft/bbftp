@@ -94,7 +94,7 @@ void sendcrypt(void)
 #else
    rsa_n = myrsa->n;
    rsa_e = myrsa->e;
-   (void) rda_d;
+   (void) rsa_d;
 #endif
 
     lenkey  = BN_bn2mpi(rsa_n,pubkey) ;
