@@ -700,10 +700,11 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
             ** And open the file 
             */
 #ifdef STANDART_FILE_CALL
-            if ( (fd = open(filename,O_RDONLY|O_BINARY)) < 0 ) {
+            if ( (fd = open(filename,O_RDONLY|O_BINARY)) < 0 )
 #else
-            if ( (fd = open64(filename,O_RDONLY|O_BINARY)) < 0 ) {
+            if ( (fd = open64(filename,O_RDONLY|O_BINARY)) < 0 )
 #endif
+			   {
                 /*
                 ** An error on openning the local file is considered
                 ** as fatal. Maybe this need to be improved depending
@@ -713,10 +714,11 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
                 _exit(i) ;
             }
 #ifdef STANDART_FILE_CALL
-            if ( lseek(fd,startpoint,SEEK_SET) < 0 ) {
+            if ( lseek(fd,startpoint,SEEK_SET) < 0 )
 #else
-            if ( lseek64(fd,startpoint,SEEK_SET) < 0 ) {
+            if ( lseek64(fd,startpoint,SEEK_SET) < 0 )
 #endif
+			   {
                 i = errno ;
                 close(fd) ;
                 _exit(i)  ;
@@ -785,7 +787,7 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
               while ( nbread < nbtosend ) {
                 if ( (numberread = read ( fd, readbuffer, ( (buffersizeperstream*1024) <= nbtosend - nbread) ?  (buffersizeperstream*1024) : nbtosend-nbread) ) > 0 ) {
                     nbread = nbread+numberread ;
-#ifdef WITH_GZIP                    
+#ifdef WITH_GZIP
                     if ( (transferoption & TROPT_GZIP ) == TROPT_GZIP ) {
                         /*
                         ** In case of compression we are going to use
