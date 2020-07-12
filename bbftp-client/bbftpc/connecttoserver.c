@@ -183,7 +183,7 @@ int connectviassh()
     int pin[2], pout[2], reserved[2];
     int retcode ;
     
-    char    buffer[MINMESSLEN] ;
+    char    buffer[MINMESSLEN+1] ;
     struct  message *msg ;
     int     tmpctrlsock ;
 #ifdef SUNOS
