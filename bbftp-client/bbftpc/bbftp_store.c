@@ -798,7 +798,9 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
     int     fd ;
     struct mess_compress *msg_compress ;
     struct message *msg ;
+#ifdef WITH_GZIP
     int     compressionon ;
+#endif
     int     sendsock ;
     int     *portnumber ;
     /*
