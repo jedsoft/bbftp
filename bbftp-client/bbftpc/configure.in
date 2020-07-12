@@ -3,7 +3,7 @@ dnl AC_INIT([BBFTP Client],[3.0.0],[bbftp@in2p3.fr])
 AC_INIT(bbftp.c)
 AC_CONFIG_HEADER(bbftp.h:../includes/bbftp.h.in)
 
-CFLAGS="$CFLAGS -g"
+dnl CFLAGS="$CFLAGS -g"
 AC_PROG_CC(cc)
 AC_PROG_INSTALL
 AC_CANONICAL_HOST

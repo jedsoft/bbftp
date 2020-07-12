@@ -5,7 +5,7 @@ dnl former bbftpd.h.in was merged with bbftp.h.in
 dnl result include file is bbftpd.h because a lot of source files are using it
 AC_CONFIG_HEADER(bbftpd.h:../includes/bbftp.h.in)
 
-CFLAGS="$CFLAGS -g"
+#CFLAGS="$CFLAGS -g"
 AC_PROG_CC(cc)
 AC_PROG_INSTALL
 AC_CANONICAL_HOST
