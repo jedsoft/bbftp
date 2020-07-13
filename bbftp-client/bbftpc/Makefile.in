@@ -86,7 +86,7 @@ ${STATUS_PROG} :${STATUS_OBJS}
 	${CC} -o $@ ${STATUS_OBJS} ${LDFLAGS} ${LIBS} 
 
 clean:
-	rm -f ${OBJS} ${PROG} ${STATUS_PROG}
+	rm -f ${OBJS} ${STATUS_OBJS} ${PROG} ${STATUS_PROG}
 	rm -rf obj.@host@
 	rm -f config.cache
 	- cd ../gfw && make clean
