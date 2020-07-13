@@ -57,7 +57,7 @@ int decodeTURL(char *oTURL, struct decodedTURL **dTURL) {
     
     if ( oTURL == NULL ) return -1;
     if ( (turlbuffer = (char *) malloc (strlen(oTURL)+1) ) == NULL ) {
-        printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","turlbuffer",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","turlbuffer",strerror(errno)) ;
     }
     strcpy (turlbuffer, oTURL);
     while (*turlbuffer == ' ') turlbuffer++ ;
@@ -70,7 +70,7 @@ int decodeTURL(char *oTURL, struct decodedTURL **dTURL) {
         if ( *turlbuffer == '\0' ) return -1;
         if (index(turlbuffer, '/') == NULL) return -1;
         if ( (host = (char *) malloc (strlen(turlbuffer)+1) ) == NULL ) {
-            printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","host",strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","host",strerror(errno)) ;
         }
         strcpy( host, turlbuffer);
         /* length of server name: strcspn(host, '/') */
@@ -103,7 +103,7 @@ int decodeTURL(char *oTURL, struct decodedTURL **dTURL) {
             turlbuffer = turlbuffer+7;
     }
     if ( ((*dTURL) = (struct decodedTURL *) malloc (sizeof(struct decodedTURL)) ) == NULL ) {
-        printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","dTURL",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","dTURL",strerror(errno)) ;
 	return -1;
     }
     if (host != NULL) {
@@ -136,7 +136,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
     /**remoterfio = *localrfio = 0;*/
 
     if ( (dupbuffercmd = (char *) malloc (strlen(buffercmd)+1) ) == NULL ) {
-        printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","dupbuffercmd",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","dupbuffercmd",strerror(errno)) ;
     }
     strcpy (dupbuffercmd, buffercmd);
     /*
@@ -173,7 +173,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
      */
     /*
     if ( (*translatedcmd = (char *) malloc (strlen(buffercmd)+1) ) == NULL ) {
-        printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","translatedcmd",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","translatedcmd",strerror(errno)) ;
         return -1 ;
     }
     strcpy (*translatedcmd, buffercmd);
@@ -191,8 +191,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	char *tempbuf;
 	mybuffercmd += 2;
 	if (decodeTURL(mybuffercmd, &dRemoteTurl) == -1) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         } 
@@ -204,7 +204,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	    sscanf(dRemoteTurl->port, "%d", port);
 	}
         if ( (tempbuf = (char *) malloc (strlen(dRemoteTurl->filename)+1+3) ) == NULL ) {
-            printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","*tempbuf",strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","*tempbuf",strerror(errno)) ;
             return -1 ;
         }
 	strcpy(tempbuf, "cd ");
@@ -218,8 +218,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	char *tempbuf;
 	mybuffercmd += 3;
 	if (decodeTURL(mybuffercmd, &dRemoteTurl) == -1) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         } 
@@ -230,7 +230,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	    sscanf(dRemoteTurl->port, "%d", port);
 	}
         if ( (tempbuf = (char *) malloc (strlen(dRemoteTurl->filename)+1+4) ) == NULL ) {
-            printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","*tempbuf",strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","*tempbuf",strerror(errno)) ;
             return -1 ;
         }
 	strcpy(tempbuf, "dir ");
@@ -244,15 +244,15 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	char *tempbuf;
 	mybuffercmd += 3;
         if ( action == NULL ) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         }
         while (*action == ' ') action++ ;
         if ( *action == '\0' ) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         }
@@ -263,8 +263,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
             ** Only one name
             */
 	    if (decodeTURL(action, &dRemoteTurl) == -1) {
-                printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                myexitcode = 26 ;
+                printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                Bbftp_Myexitcode = 26 ;
                 free(dupbuffercmd) ;
                 return -1 ;
             } 
@@ -274,7 +274,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	      sscanf(dRemoteTurl->port, "%d", port);
 	    }
             if ( (tempbuf = (char *) malloc (strlen(dRemoteTurl->filename)+1+4) ) == NULL ) {
-                printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
+                printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
                 return -1 ;
             }
 	    strcpy(tempbuf, "get ");
@@ -288,8 +288,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
                 ** Only one name
                 */
 	        if (decodeTURL(action, &dRemoteTurl) == -1) {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 } 
@@ -299,7 +299,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	          sscanf(dRemoteTurl->port, "%d", port);
 	        }
                 if ( (tempbuf = (char *) malloc (strlen(dRemoteTurl->filename)+1+4) ) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
                     return -1 ;
                 }
 	        strcpy(tempbuf, "get ");
@@ -313,30 +313,30 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 		char *localfile;
 		char *remotefile;
 		if ( (remotefile = (char *) malloc (strlen(action)+1)) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","remotefile",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","remotefile",strerror(errno)) ;
                     return -1 ;
 		}
 		if ( (localfile = (char *) malloc (strlen(action)+1)) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","localfile",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","localfile",strerror(errno)) ;
                     return -1 ;
 		}
                 sscanf(action,"%s %s", remotefile, localfile);
 	        if (decodeTURL(localfile, &dLocalTurl) == -1) {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 } 
         	if (dLocalTurl == NULL) goto end;
 		if (dLocalTurl->hostname[0] != '\0') {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
 		}
 	        if (decodeTURL(remotefile, &dRemoteTurl) == -1) {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 } 
@@ -346,7 +346,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	          sscanf(dRemoteTurl->port, "%d", port);
 	        }
                 if ( (tempbuf = (char *) malloc (strlen(dRemoteTurl->filename)+strlen(dLocalTurl->filename)+1+5) ) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
                     return -1 ;
                 }
 	        strcpy(tempbuf, "get ");
@@ -368,8 +368,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
         /*
         ** get needs one or two parameters
         */
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         }
@@ -378,8 +378,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
             /*
             ** get needs one or two parameters
             */
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         }
@@ -390,8 +390,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
             ** Only one name
             */
 	    if (decodeTURL(action, &dRemoteTurl) == -1) {
-                printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                myexitcode = 26 ;
+                printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                Bbftp_Myexitcode = 26 ;
                 free(dupbuffercmd) ;
                 return -1 ;
             } 
@@ -401,7 +401,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	      sscanf(dRemoteTurl->port, "%d", port);
 	    }
             if ( (tempbuf = (char *) malloc (strlen(dRemoteTurl->filename)+1+5) ) == NULL ) {
-                printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
+                printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
                 return -1 ;
             }
 	    strcpy(tempbuf, "mget ");
@@ -415,8 +415,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
                 ** Only one name
                 */
 	        if (decodeTURL(action, &dRemoteTurl) == -1) {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 } 
@@ -426,7 +426,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	          sscanf(dRemoteTurl->port, "%d", port);
 	        }
                 if ( (tempbuf = (char *) malloc (strlen(dRemoteTurl->filename)+1+5) ) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
                     return -1 ;
                 }
 	        strcpy(tempbuf, "mget ");
@@ -440,31 +440,31 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 		char *localfile;
 		char *remotefile;
 		if ( (remotefile = (char *) malloc (strlen(action)+1)) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","remotefile",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","remotefile",strerror(errno)) ;
                     return -1 ;
 		}
 		if ( (localfile = (char *) malloc (strlen(action)+1)) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","localfile",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","localfile",strerror(errno)) ;
                     return -1 ;
 		}
                 sscanf(action,"%s %s", remotefile, localfile);
 	        if (decodeTURL(localfile, &dLocalTurl) == -1) {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 } 
         	if (dLocalTurl == NULL) goto end;
 		/*if (dLocalTurl->hostname[0] != '\0') {*/
 		if (dLocalTurl->hostname[0] != '\0') {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
 		}
 	        if (decodeTURL(remotefile, &dRemoteTurl) == -1) {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 } 
@@ -474,7 +474,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	          sscanf(dRemoteTurl->port, "%d", port);
 	        }
                 if ( (tempbuf = (char *) malloc (strlen(dRemoteTurl->filename)+strlen(dLocalTurl->filename)+1+6) ) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
                     return -1 ;
                 }
 	        strcpy(tempbuf, "mget ");
@@ -493,8 +493,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	char *tempbuf;
 	mybuffercmd += 5;
 	if (decodeTURL(mybuffercmd, &dRemoteTurl) == -1) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         } 
@@ -506,7 +506,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	    sscanf(dRemoteTurl->port, "%d", port);
 	}
         if ( (tempbuf = (char *) malloc (strlen(dRemoteTurl->filename)+1+6) ) == NULL ) {
-            printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","tempbuf",strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","tempbuf",strerror(errno)) ;
             return -1 ;
         }
 	strcpy(tempbuf, "mkdir ");
@@ -520,15 +520,15 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	char *tempbuf;
 	mybuffercmd += 4;
         if ( action == NULL ) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         }
         while (*action == ' ') action++ ;
         if ( *action == '\0' ) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         }
@@ -536,20 +536,20 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
         startfn = (char *) strchr (startfn, ' ');
         if ( startfn == NULL ) {
 	    if (decodeTURL(action, &dLocalTurl) == -1) {
-                printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                myexitcode = 26 ;
+                printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                Bbftp_Myexitcode = 26 ;
                 free(dupbuffercmd) ;
                 return -1 ;
             } 
 	    if (dLocalTurl == NULL) goto end;
 	    if (dLocalTurl->hostname[0] != '\0') {
-                printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                myexitcode = 26 ;
+                printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                Bbftp_Myexitcode = 26 ;
                 free(dupbuffercmd) ;
                 return -1 ;
 	    }
             if ( (tempbuf = (char *) malloc (strlen(dLocalTurl->filename)+1+5) ) == NULL ) {
-                printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
+                printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
                 return -1 ;
             }
 	    strcpy(tempbuf, "mput ");
@@ -560,20 +560,20 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
             while ( *startfn == ' ' ) startfn++ ;
             if ( *startfn == '\0' ) {
 	        if (decodeTURL(action, &dLocalTurl) == -1) {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 } 
         	if (dLocalTurl == NULL) goto end;
 	        if (dLocalTurl->hostname[0] != '\0') {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
 	        }
                 if ( (tempbuf = (char *) malloc (strlen(dLocalTurl->filename)+1+5) ) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
                     return -1 ;
                 }
 	        strcpy(tempbuf, "mput ");
@@ -584,30 +584,30 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 		char *localfile;
 		char *remotefile;
 		if ( (remotefile = (char *) malloc (strlen(action)+1)) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","remotefile",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","remotefile",strerror(errno)) ;
                     return -1 ;
 		}
 		if ( (localfile = (char *) malloc (strlen(action)+1)) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","localfile",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","localfile",strerror(errno)) ;
                     return -1 ;
 		}
                 sscanf(action,"%s %s", localfile, remotefile);
 	        if (decodeTURL(localfile, &dLocalTurl) == -1) {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 } 
         	if (dLocalTurl == NULL) goto end;
 		if (dLocalTurl->hostname[0] != '\0') {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
 		}
 	        if (decodeTURL(remotefile, &dRemoteTurl) == -1) {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 } 
@@ -617,7 +617,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	          sscanf(dRemoteTurl->port, "%d", port);
 	        }
                 if ( (tempbuf = (char *) malloc (strlen(dLocalTurl->filename)+strlen(dRemoteTurl->filename)+1+6) ) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
                     return -1 ;
                 }
 	        strcpy(tempbuf, "mput ");
@@ -636,15 +636,15 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	char *tempbuf;
 	mybuffercmd += 3;
         if ( action == NULL ) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         }
         while (*action == ' ') action++ ;
         if ( *action == '\0' ) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         }
@@ -652,20 +652,20 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
         startfn = (char *) strchr (startfn, ' ');
         if ( startfn == NULL ) {
 	    if (decodeTURL(action, &dLocalTurl) == -1) {
-                printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                myexitcode = 26 ;
+                printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                Bbftp_Myexitcode = 26 ;
                 free(dupbuffercmd) ;
                 return -1 ;
             } 
 	    if (dLocalTurl == NULL) goto end;
 	    if (dLocalTurl->hostname[0] != '\0') {
-                printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                myexitcode = 26 ;
+                printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                Bbftp_Myexitcode = 26 ;
                 free(dupbuffercmd) ;
                 return -1 ;
 	    }
             if ( (tempbuf = (char *) malloc (strlen(dLocalTurl->filename)+1+4) ) == NULL ) {
-                printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
+                printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
                 return -1 ;
             }
 	    strcpy(tempbuf, "put ");
@@ -679,20 +679,20 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
                 ** Only one name
                 */
 	        if (decodeTURL(action, &dLocalTurl) == -1) {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 } 
         	if (dLocalTurl == NULL) goto end;
 	        if (dLocalTurl->hostname[0] != '\0') {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
 	        }
                 if ( (tempbuf = (char *) malloc (strlen(dLocalTurl->filename)+1+4) ) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
                     return -1 ;
                 }
 	        strcpy(tempbuf, "put ");
@@ -706,30 +706,30 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 		char *localfile;
 		char *remotefile;
 		if ( (remotefile = (char *) malloc (strlen(action)+1)) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","remotefile",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","remotefile",strerror(errno)) ;
                     return -1 ;
 		}
 		if ( (localfile = (char *) malloc (strlen(action)+1)) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","localfile",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","localfile",strerror(errno)) ;
                     return -1 ;
 		}
                 sscanf(action,"%s %s", localfile, remotefile);
 	        if (decodeTURL(localfile, &dLocalTurl) == -1) {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 } 
         	if (dLocalTurl == NULL) goto end;
 		if (dLocalTurl->hostname[0] != '\0') {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
 		}
 	        if (decodeTURL(remotefile, &dRemoteTurl) == -1) {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",action) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",action) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 } 
@@ -739,7 +739,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	          sscanf(dRemoteTurl->port, "%d", port);
 	        }
                 if ( (tempbuf = (char *) malloc (strlen(dLocalTurl->filename)+strlen(dRemoteTurl->filename)+1+5) ) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s: %s\n","tempbuf",strerror(errno)) ;
                     return -1 ;
                 }
 	        strcpy(tempbuf, "put ");
@@ -758,8 +758,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	char *tempbuf;
 	mybuffercmd += 2;
 	if (decodeTURL(mybuffercmd, &dRemoteTurl) == -1) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         } 
@@ -770,7 +770,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	    sscanf(dRemoteTurl->port, "%d", port);
 	}
         if ( (tempbuf = (char *) malloc (strlen(dRemoteTurl->filename)+1+3) ) == NULL ) {
-            printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","tempbuf",strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","tempbuf",strerror(errno)) ;
             return -1 ;
         }
 	strcpy(tempbuf, "rm ");
@@ -784,8 +784,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	char *tempbuf;
 	mybuffercmd += 4;
 	if (decodeTURL(mybuffercmd, &dRemoteTurl) == -1) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         } 
@@ -796,7 +796,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	    sscanf(dRemoteTurl->port, "%d", port);
 	}
         if ( (tempbuf = (char *) malloc (strlen(dRemoteTurl->filename)+1+5) ) == NULL ) {
-            printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","tempbuf",strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","tempbuf",strerror(errno)) ;
             return -1 ;
         }
 	strcpy(tempbuf, "stat ");
@@ -810,8 +810,8 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	char *tempbuf;
 	mybuffercmd += 2;
 	if (decodeTURL(mybuffercmd, &dRemoteTurl) == -1) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-            myexitcode = 26 ;
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+            Bbftp_Myexitcode = 26 ;
             free(dupbuffercmd) ;
             return -1 ;
         } 
@@ -822,7 +822,7 @@ int translatecommand(char *buffercmd, char **translatedcmd, char **host, int *po
 	    sscanf(dRemoteTurl->port, "%d", port);
 	}
         if ( (tempbuf = (char *) malloc (strlen(dRemoteTurl->filename)+1+3) ) == NULL ) {
-            printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","tempbuf",strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","tempbuf",strerror(errno)) ;
             return -1 ;
         }
 	strcpy(tempbuf, "df ");

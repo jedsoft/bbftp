@@ -33,6 +33,7 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <sys/socket.h>
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -48,12 +49,14 @@
 # include <string.h>
 #endif
 
+#include "_bbftp.h"
+
 #include <client.h>
 #include <client_proto.h>
 #include <common.h>
 #include <structures.h>
 #include <gssapi.h>
-#include <gfw.h>
+/* #include <gfw.h> */
 
 /*******************************************************************************
 ** bbftp_cert_connect :                                                     *
@@ -65,8 +68,8 @@
 **      OUPUT variable :                                                       *
 **                                                                             *
 **      GLOBAL VARIABLE USED :                                                 *                                                                      *
-**          incontrolsock       MAY BE MODIFIED                                *
-**          outcontrolsock      MAY BE MODIFIED                                *
+**          BBftp_Incontrolsock       MAY BE MODIFIED                                *
+**          BBftp_Outcontrolsock      MAY BE MODIFIED                                *
 **          hisrsa              MAY BE MODIFIED                                *
 **          tmpctrlsock        MODIFIED                                       *
 **                                                                             *
@@ -77,13 +80,13 @@
 **                                                                             *
 *******************************************************************************/
 
-int bbftp_cert_connect() 
+int bbftp_cert_connect(void)
 
 {
 #if defined(SUNOS) || defined(_HPUX_SOURCE) || defined(IRIX)
     int     addrlen ;
 #else
-    size_t  addrlen ;
+    socklen_t addrlen ;
 #endif
     int     tmpctrlsock ;
     char    minbuffer[CRYPTMESSLEN] ;
@@ -93,47 +96,47 @@ int bbftp_cert_connect()
     int     code ; 
     OM_uint32 maj_stat, min_stat;
 
-    hisctladdr.sin_family = AF_INET;
-    hisctladdr.sin_port = htons(newcontrolport);
+    BBftp_His_Ctladdr.sin_family = AF_INET;
+    BBftp_His_Ctladdr.sin_port = htons(BBftp_Newcontrolport);
     if ( (tmpctrlsock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP )) < 0 ) {
-        printmessage(stderr,CASE_ERROR,51,timestamp, "Cannot create control socket : %s\n",strerror(errno));
+        printmessage(stderr,CASE_ERROR,51,BBftp_Timestamp, "Cannot create control socket : %s\n",strerror(errno));
         return -1 ;
     }
     /*
     ** Connect to the server
     */
-    addrlen = sizeof(hisctladdr) ;
-    if ( connect(tmpctrlsock,(struct sockaddr*)&hisctladdr,addrlen) < 0 ) {
+    addrlen = sizeof(BBftp_His_Ctladdr) ;
+    if ( connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,52,timestamp, "Cannot connect to control socket: %s\n",strerror(errno));
+        printmessage(stderr,CASE_ERROR,52,BBftp_Timestamp, "Cannot connect to control socket: %s\n",strerror(errno));
         return -1 ;
     }
     /*
     ** Get the socket name
     */
-    addrlen = sizeof(myctladdr) ;
-    if (getsockname(tmpctrlsock,(struct sockaddr*) &myctladdr, &addrlen) < 0) {
+    addrlen = sizeof(BBftp_My_Ctladdr) ;
+    if (getsockname(tmpctrlsock,(struct sockaddr*) &BBftp_My_Ctladdr, &addrlen) < 0) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,53,timestamp,"Error getsockname on control socket: %s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,53,BBftp_Timestamp,"Error getsockname on control socket: %s\n",strerror(errno)) ;
         return -1 ;
     }
     /*
     ** Connection is correct get the encryption
     */
 
-	if (debug) printmessage(stdout,CASE_NORMAL,0,timestamp,"Connection established\n") ;
+	if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Connection established\n") ;
     /*
     **    Read the encryption supported
     */
-    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,54,timestamp,"Error reading encryption message\n") ;
+        printmessage(stderr,CASE_ERROR,54,BBftp_Timestamp,"Error reading encryption message\n") ;
         return -1 ;
     }
     msg = (struct message *) minbuffer ;
     if ( msg->code != MSG_CRYPT) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,55,timestamp,"No encryption message \n") ;
+        printmessage(stderr,CASE_ERROR,55,BBftp_Timestamp,"No encryption message \n") ;
         return -1 ;
     }
 #ifndef WORDS_BIGENDIAN
@@ -143,13 +146,13 @@ int bbftp_cert_connect()
 #endif
     if ( ( readbuffer = (char *) malloc (msglen + 1) ) == NULL ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,54,timestamp,"Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,54,BBftp_Timestamp,"Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
         return -1 ;
     }
-    if ( readmessage(tmpctrlsock,readbuffer,msglen,recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
         free(readbuffer) ;
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s\n","type") ;
+        printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s\n","type") ;
         return -1 ;
     }
         msg = (struct message *) minbuffer ;
@@ -159,31 +162,31 @@ int bbftp_cert_connect()
 #else
         msg->msglen = CRYPTMESSLEN ;
 #endif
-        if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0) {
+        if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0) {
             free(readbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,58,timestamp,"Error sending CERT_LOG message : %s\n",strerror(errno)) ;
+            printmessage(stderr,CASE_ERROR,58,BBftp_Timestamp,"Error sending CERT_LOG message : %s\n",strerror(errno)) ;
             return -1 ;
         }
 		/* 
 		** The authentication process is run
         */
-        if (!service) { 
-            maj_stat = gfw_init_sec_context(&min_stat, tmpctrlsock, tmpctrlsock, hp->h_name);
+        if (!BBftp_Service) { 
+            maj_stat = gfw_init_sec_context(&min_stat, tmpctrlsock, tmpctrlsock, BBftp_Hostent->h_name);
         } else {
-            maj_stat = gfw_init_sec_context(&min_stat, tmpctrlsock, tmpctrlsock, service);
+            maj_stat = gfw_init_sec_context(&min_stat, tmpctrlsock, tmpctrlsock, BBftp_Service);
         }
         if (maj_stat != GSS_S_COMPLETE && maj_stat != -1) {
             gfw_msgs_list *messages = NULL;
             gfw_status_to_strings(maj_stat, min_stat, &messages) ;
             close(tmpctrlsock) ;
-            if (verbose) {
+            if (BBftp_Verbose) {
                 while (messages != NULL) {
-                    printmessage(stderr,CASE_ERROR,27,timestamp,"%s\n", messages->msg);
+                    printmessage(stderr,CASE_ERROR,27,BBftp_Timestamp,"%s\n", messages->msg);
                     messages = messages->next;
                 }
             } else {
-                printmessage(stderr,CASE_ERROR,27,timestamp,"%s\n", messages->msg);
+                printmessage(stderr,CASE_ERROR,27,BBftp_Timestamp,"%s\n", messages->msg);
             }
             return -1 ;
         } else {
@@ -191,12 +194,12 @@ int bbftp_cert_connect()
             ** Certificate authentication seems OK on client side so wait for the MSG_OK
             ** message
             */
-            if (debug) printmessage(stdout,CASE_NORMAL,0,timestamp,"Client certificate authentication OK\n") ;
-            if (debug) printmessage(stdout,CASE_NORMAL,0,timestamp,"Waiting for server answer\n") ;
-            if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0 ) {
+            if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Client certificate authentication OK\n") ;
+            if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Waiting for server answer\n") ;
+            if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
                 close(tmpctrlsock) ;
                 free(readbuffer) ;
-                printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","") ;
+                printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","") ;
                 return -1 ;
             }
             msg = (struct message *) minbuffer ;
@@ -208,27 +211,27 @@ int bbftp_cert_connect()
                 msglen = msg->msglen ;
 #endif
                 if ( ( readbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
-                    printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : malloc failed (%s)\n",strerror(errno)) ;
+                    printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : malloc failed (%s)\n",strerror(errno)) ;
                     return -1 ;
                 }
-                if ( readmessage(tmpctrlsock,readbuffer,msglen,recvcontrolto,0) < 0 ) {
+                if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
                     close(tmpctrlsock) ;
                     free(readbuffer) ;
                     if ( code == MSG_BAD ) {
-                        printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","BAD message") ;
+                        printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","BAD message") ;
                         return -1 ;
                     } else {
-                        printmessage(stderr,CASE_FATAL_ERROR,59,timestamp,"Error reading login message answer : %s\n","BAD NO RETRY message") ;
+                        printmessage(stderr,CASE_FATAL_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","BAD NO RETRY message") ;
                     }
                 } else {
                     close(tmpctrlsock) ;
                     readbuffer[msglen] = '\0' ;
                     if ( code == MSG_BAD ) {
-                        printmessage(stderr,CASE_ERROR,100,timestamp,"%s\n",readbuffer) ;
+                        printmessage(stderr,CASE_ERROR,100,BBftp_Timestamp,"%s\n",readbuffer) ;
                         free(readbuffer) ;
                         return -1 ;
                     } else {
-                        printmessage(stderr,CASE_FATAL_ERROR,100,timestamp,"%s\n",readbuffer) ;
+                        printmessage(stderr,CASE_FATAL_ERROR,100,BBftp_Timestamp,"%s\n",readbuffer) ;
                     }
                 }
             } else if ( code == MSG_OK || code == MSG_WARN) {
@@ -238,32 +241,32 @@ int bbftp_cert_connect()
                 msglen = msg->msglen ;
 #endif
                 if ( ( readbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
-                    printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
+                    printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
                     return -1 ;
                 }
-                if ( readmessage(tmpctrlsock,readbuffer,msglen,recvcontrolto,0) < 0 ) {
+                if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
                     free(readbuffer) ;
                     close(tmpctrlsock) ;
-                    printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","OK message") ;
+                    printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","OK message") ;
                     return -1 ;
                 } else {
                     readbuffer[msglen] = '\0' ;
                     if ( code == MSG_OK ) {
-                        if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< %s\n",readbuffer) ;
+                        if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< %s\n",readbuffer) ;
                     } else {
-                        if ( warning) printmessage(stdout,CASE_WARNING,100,timestamp," %s\n",readbuffer) ;
+                        if ( BBftp_Warning) printmessage(stdout,CASE_WARNING,100,BBftp_Timestamp," %s\n",readbuffer) ;
                     }
                 }
             } else {
                 free(readbuffer) ;
                 close(tmpctrlsock) ;
-                printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","Unkown answer message") ;
+                printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","Unkown answer message") ;
                 return -1 ;
             }
-            if (debug) printmessage(stdout,CASE_NORMAL,0,timestamp,"Server answer : OK\n") ;
+            if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Server answer : OK\n") ;
             free(readbuffer) ;
-            incontrolsock  = tmpctrlsock ;
-            outcontrolsock = tmpctrlsock ;
+            BBftp_Incontrolsock  = tmpctrlsock ;
+            BBftp_Outcontrolsock = tmpctrlsock ;
             return 0 ;
         }
 }

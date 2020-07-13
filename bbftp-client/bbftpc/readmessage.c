@@ -93,22 +93,22 @@ int readmessage(int sock,char *buffer,int msglen,int to,int fromchild)
             /*
             ** Select error
             */
-            if (debug ) 
-                printmessage(stderr,CASE_NORMAL,0,timestamp,"%sRead message : Select error : MSG (%d,%d)\n",ent,msglen,nbget) ;
+            if (BBftp_Debug ) 
+                printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"%sRead message : Select error : MSG (%d,%d)\n",ent,msglen,nbget) ;
             return -1 ;
         } else if ( retcode == 0 ) {
-            if (debug ) 
-                printmessage(stderr,CASE_NORMAL,0,timestamp,"%sRead message : Time out : MSG (%d,%d)",ent,msglen,nbget) ;
+            if (BBftp_Debug ) 
+                printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"%sRead message : Time out : MSG (%d,%d)",ent,msglen,nbget) ;
             return -1 ;
         } else {
             msgget = read(sock,&buffer[nbget],msgsize-nbget) ;
             if ( msgget < 0 ) {
-                if (debug ) 
-                    printmessage(stderr,CASE_NORMAL,0,timestamp,"%sRead message : Receive error : MSG (%d,%d) %s",ent,msglen,nbget,strerror(errno)) ;
+                if (BBftp_Debug ) 
+                    printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"%sRead message : Receive error : MSG (%d,%d) %s",ent,msglen,nbget,strerror(errno)) ;
                 return -1 ;
             } else if ( msgget == 0 ) {
-                if (debug ) 
-                    printmessage(stderr,CASE_NORMAL,0,timestamp,"%sRead message : Connection breaks : MSG (%d,%d)\n",ent,msglen,nbget) ;
+                if (BBftp_Debug ) 
+                    printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"%sRead message : Connection breaks : MSG (%d,%d)\n",ent,msglen,nbget) ;
                 return -1 ;
             } else {
                 nbget = nbget + msgget ;
@@ -150,22 +150,22 @@ int discardmessage(int sock,int msglen,int to,int fromchild)
             /*
             ** Select error
             */
-            if (debug ) 
-                printmessage(stderr,CASE_NORMAL,0,timestamp,"%sDiscard message :Discard message : Select error : MSG (%d,%d)",ent,msglen,nbget) ;
+            if (BBftp_Debug ) 
+                printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"%sDiscard message :Discard message : Select error : MSG (%d,%d)",ent,msglen,nbget) ;
             return -1 ;
         } else if ( retcode == 0 ) {
-            if (debug ) 
-                printmessage(stderr,CASE_NORMAL,0,timestamp,"%sDiscard message :Discard message : Time out : MSG (%d,%d)",ent,msglen,nbget) ;
+            if (BBftp_Debug ) 
+                printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"%sDiscard message :Discard message : Time out : MSG (%d,%d)",ent,msglen,nbget) ;
             return -1 ;
         } else {
             retcode = read(sock,buffer,sizeof(buffer)) ;
             if ( retcode < 0 ) {
-                if (debug ) 
-                    printmessage(stderr,CASE_NORMAL,0,timestamp,"%sDiscard message :Discard message : Receive error : MSG (%d,%d) : %s",ent,msglen,nbget,strerror(errno)) ;
+                if (BBftp_Debug ) 
+                    printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"%sDiscard message :Discard message : Receive error : MSG (%d,%d) : %s",ent,msglen,nbget,strerror(errno)) ;
                 return -1 ;
             } else if ( retcode == 0 ) {
-                if (debug ) 
-                    printmessage(stderr,CASE_NORMAL,0,timestamp,"%sDiscard message :Discard message : Connexion breaks",ent) ;
+                if (BBftp_Debug ) 
+                    printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"%sDiscard message :Discard message : Connexion breaks",ent) ;
                 return -1 ;
             } else {
                 nbget = nbget + retcode ;
@@ -216,7 +216,7 @@ int discardandprintmessage(int sock,int to,int fromchild)
                 return -1 ;
             } else {
                 buffer[retcode] = '\0' ;
-                printmessage(stdout,CASE_NORMAL,0,timestamp,"%s",buffer) ;
+                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"%s",buffer) ;
             }
         }
     }

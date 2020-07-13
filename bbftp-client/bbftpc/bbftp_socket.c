@@ -86,56 +86,56 @@ int bbftp_createdatasock(int portnumber/*,char *logmessage*/)
 
     sock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
     if ( sock < 0 ) {
-        printmessage(stderr,CASE_ERROR,91,timestamp,"Cannot create data socket: %s\n",strerror(errno));
+        printmessage(stderr,CASE_ERROR,91,BBftp_Timestamp,"Cannot create data socket: %s\n",strerror(errno));
         return (-1) ;
     }
     if ( setsockopt(sock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0 ) {
         close(sock) ;
-        if (warning) printmessage(stderr,CASE_ERROR,92,timestamp,"Cannot set SO_REUSEADDR on data socket : %s\n",strerror(errno));
+        if (BBftp_Warning) printmessage(stderr,CASE_ERROR,92,BBftp_Timestamp,"Cannot set SO_REUSEADDR on data socket : %s\n",strerror(errno));
         return (-1) ;
     }
-    tcpwinsize = 1024 * recvwinsize ;
+    tcpwinsize = 1024 * BBftp_Recvwinsize ;
     if ( setsockopt(sock,SOL_SOCKET, SO_RCVBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)) < 0 ) {
         /*
         ** In this case we are going to log a message
         */
-        if ( warning ) printmessage(stderr,CASE_WARNING,23,timestamp,"Cannot set SO_RCVBUF on data socket : %s\n",strerror(errno));
+        if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,23,BBftp_Timestamp,"Cannot set SO_RCVBUF on data socket : %s\n",strerror(errno));
     }
     addrlen = sizeof(tcpwinsize) ;
     if ( getsockopt(sock,SOL_SOCKET,SO_RCVBUF,(char *)&tcpwinsize,&addrlen) < 0 ) {
         close(sock) ;
-        printmessage(stderr,CASE_ERROR,93,timestamp,"Cannot get SO_RCVBUF on data socket : %s\n",strerror(errno));
+        printmessage(stderr,CASE_ERROR,93,BBftp_Timestamp,"Cannot get SO_RCVBUF on data socket : %s\n",strerror(errno));
         return (-1) ;
     }
-    if ( tcpwinsize < 1024 * recvwinsize ) {
-        if ( warning ) printmessage(stderr,CASE_WARNING,24,timestamp,"Receive buffer on port %d cannot be set to %d Bytes, Value is %d Bytes",portnumber,1024*recvwinsize,tcpwinsize) ;
+    if ( tcpwinsize < 1024 * BBftp_Recvwinsize ) {
+        if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,24,BBftp_Timestamp,"Receive buffer on port %d cannot be set to %d Bytes, Value is %d Bytes",portnumber,1024*BBftp_Recvwinsize,tcpwinsize) ;
     }
-    tcpwinsize = 1024 * sendwinsize ;
+    tcpwinsize = 1024 * BBftp_Sendwinsize ;
     if ( setsockopt(sock,SOL_SOCKET, SO_SNDBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)) < 0 ) {
         /*
         ** In this case we just log an error
         */
-        if ( warning ) printmessage(stderr,CASE_WARNING,25,timestamp,"Cannot set SO_SNDBUF on data socket : %s\n",strerror(errno));
+        if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,25,BBftp_Timestamp,"Cannot set SO_SNDBUF on data socket : %s\n",strerror(errno));
     }
     addrlen = sizeof(tcpwinsize) ;
     if ( getsockopt(sock,SOL_SOCKET, SO_SNDBUF,(char *)&tcpwinsize,&addrlen) < 0 ) {
         close(sock) ;
-        printmessage(stderr,CASE_ERROR,93,timestamp,"Cannot get SO_SNDBUF on data socket : %s\n",strerror(errno));
+        printmessage(stderr,CASE_ERROR,93,BBftp_Timestamp,"Cannot get SO_SNDBUF on data socket : %s\n",strerror(errno));
         return (-1) ;
     }
-    if ( tcpwinsize < 1024 * sendwinsize ) {
-        if ( warning ) printmessage(stderr,CASE_WARNING,26,timestamp ,"Send buffer on port %d cannot be set to %d Bytes, Value is %d Bytes",portnumber,1024*sendwinsize,tcpwinsize) ;
+    if ( tcpwinsize < 1024 * BBftp_Sendwinsize ) {
+        if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,26,BBftp_Timestamp ,"Send buffer on port %d cannot be set to %d Bytes, Value is %d Bytes",portnumber,1024*BBftp_Sendwinsize,tcpwinsize) ;
     }
     if ( setsockopt(sock,IPPROTO_TCP, TCP_NODELAY,(char *)&on,sizeof(on)) < 0 ) {
         close(sock) ;
-        printmessage(stderr,CASE_ERROR,94,timestamp,"Cannot set TCP_NODELAY on data socket : %s\n",strerror(errno));
+        printmessage(stderr,CASE_ERROR,94,BBftp_Timestamp,"Cannot set TCP_NODELAY on data socket : %s\n",strerror(errno));
         return (-1) ;
     }
-	if ( (transferoption & TROPT_QBSS ) == TROPT_QBSS ) {
+	if ( (BBftp_Transferoption & TROPT_QBSS ) == TROPT_QBSS ) {
 		/* Setting the value for IP_TOS to be 0x20 */
 		if ( setsockopt(sock,IPPROTO_IP, IP_TOS, (char *)&qbss_value, sizeof(qbss_value)) < 0 ) {
 		    close(sock) ;
-			printmessage(stderr,CASE_ERROR,95,timestamp, "Cannot set IP_TOS on data socket : %s\n", strerror(errno));
+			printmessage(stderr,CASE_ERROR,95,BBftp_Timestamp, "Cannot set IP_TOS on data socket : %s\n", strerror(errno));
 			return (-1) ;
 		}
 	}
@@ -143,24 +143,24 @@ int bbftp_createdatasock(int portnumber/*,char *logmessage*/)
     data_source.sin_family = AF_INET;
 /*
 #ifdef SUNOS
-    data_source.sin_addr = myctladdr.sin_addr;
+    data_source.sin_addr = BBftp_My_Ctladdr.sin_addr;
 #else
     data_source.sin_addr.s_addr = INADDR_ANY;
 #endif
     data_source.sin_port = 0;
     if ( bind(sock, (struct sockaddr *) &data_source,sizeof(data_source)) < 0) {
         close(sock) ;
-        printmessage(stderr,CASE_ERROR,95,timestamp,"Cannot bind on data socket on port %d: %s\n",portnumber,strerror(errno));
+        printmessage(stderr,CASE_ERROR,95,BBftp_Timestamp,"Cannot bind on data socket on port %d: %s\n",portnumber,strerror(errno));
         return (-1) ;
     }
 */
-    data_source.sin_addr = hisctladdr.sin_addr;
+    data_source.sin_addr = BBftp_His_Ctladdr.sin_addr;
     data_source.sin_port = htons(portnumber);
     addrlen = sizeof(data_source) ;
     retcode = connect(sock,(struct sockaddr *) &data_source,addrlen) ;
     if ( retcode < 0 ) {
         close(sock) ;
-        printmessage(stderr,CASE_ERROR,96,timestamp,"Cannot connect to data socket on port %d: %s\n",portnumber,strerror(errno));
+        printmessage(stderr,CASE_ERROR,96,BBftp_Timestamp,"Cannot connect to data socket on port %d: %s\n",portnumber,strerror(errno));
         if ( errno == EINTR || errno == ETIMEDOUT ) {
             /*
             ** In this case we are going to tell the calling program 
@@ -170,11 +170,11 @@ int bbftp_createdatasock(int portnumber/*,char *logmessage*/)
             return 0 ;
         } else {
             if ( errno == EPERM || errno == EACCES) {
-                printmessage(stderr,CASE_ERROR,96,timestamp,"This is probably caused by a firewall rule on the server");
+                printmessage(stderr,CASE_ERROR,96,BBftp_Timestamp,"This is probably caused by a firewall rule on the server");
 	    }
             return (-1) ;
         }
     }
-	if ( debug ) printmessage(stdout,CASE_NORMAL,91,timestamp,"Connected to port: %d\n",portnumber);
+	if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,91,BBftp_Timestamp,"Connected to port: %d\n",portnumber);
     return sock ;
 }

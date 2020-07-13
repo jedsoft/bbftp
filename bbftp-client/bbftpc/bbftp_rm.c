@@ -71,7 +71,7 @@ int bbftp_rm(char *filename,int  *errcode)
     struct  message *msg ;
     struct  mess_integer *msg_integer ;
    
-    if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : rm %s\n",filename) ;
+    if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : rm %s\n",filename) ;
     
     msg = (struct message *)minbuffer ;
     msg->code = MSG_RM ;
@@ -80,13 +80,13 @@ int bbftp_rm(char *filename,int  *errcode)
 #else
     msg->msglen = strlen(filename)+sizeof(int) ;
 #endif
-    if ( writemessage(outcontrolsock,minbuffer,MINMESSLEN,sendcontrolto,0) < 0 ) {
+    if ( writemessage(BBftp_Outcontrolsock,minbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
         /*
         ** We were not able to send the minimum message so
         ** we are going to close the control socket and to 
         ** tell the calling program to restart a connection
         */
-        printmessage(stderr,CASE_ERROR,64,timestamp,"Error sending %s message\n","MSG_RM");
+        printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_RM");
         *errcode = 64 ;
         bbftp_close_control() ;
         return BB_RET_CONN_BROKEN ; /* restart connection */
@@ -95,9 +95,9 @@ int bbftp_rm(char *filename,int  *errcode)
     ** Sending transfer options
     */
     msg_integer = (struct mess_integer*)minbuffer ;
-    msg_integer->myint = transferoption ;
-    if ( writemessage(outcontrolsock,minbuffer,sizeof(int),sendcontrolto,0) < 0 ) {
-        printmessage(stderr,CASE_ERROR,64,timestamp,"Error sending %s message\n","MSG_RM (transferoption)");
+    msg_integer->myint = BBftp_Transferoption ;
+    if ( writemessage(BBftp_Outcontrolsock,minbuffer,sizeof(int),BBftp_Sendcontrolto,0) < 0 ) {
+        printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_RM (transferoption)");
         *errcode = 64 ;
         bbftp_close_control() ;
         return BB_RET_CONN_BROKEN ; /* restart connection */
@@ -105,8 +105,8 @@ int bbftp_rm(char *filename,int  *errcode)
     /* 
     ** Directory name
     */
-    if ( writemessage(outcontrolsock,filename,strlen(filename),sendcontrolto,0) < 0 ) {
-        printmessage(stderr,CASE_ERROR,64,timestamp,"Error sending %s message\n","MSG_RM (file name)");
+    if ( writemessage(BBftp_Outcontrolsock,filename,strlen(filename),BBftp_Sendcontrolto,0) < 0 ) {
+        printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_RM (file name)");
         *errcode = 64 ;
         bbftp_close_control() ;
         return BB_RET_CONN_BROKEN ; /* restart connection */
@@ -119,7 +119,7 @@ waitcontrol:
     nfds = sysconf(_SC_OPEN_MAX) ;
    (void) nfds;
     FD_ZERO(&selectmask) ;
-    FD_SET(incontrolsock,&selectmask) ;
+    FD_SET(BBftp_Incontrolsock,&selectmask) ;
     retcode = select(FD_SETSIZE,&selectmask,0,0,0) ;
     if ( retcode < 0 ) {
         /*
@@ -130,7 +130,7 @@ waitcontrol:
             ** we have got an error so close the connection
             ** and restart
             */
-            printmessage(stderr,CASE_ERROR,66,timestamp,"Error select on control connection : %s\n",strerror(errno));
+            printmessage(stderr,CASE_ERROR,66,BBftp_Timestamp,"Error select on control connection : %s\n",strerror(errno));
             *errcode = 66 ;
             bbftp_close_control() ;
             return BB_RET_CONN_BROKEN ;
@@ -139,7 +139,7 @@ waitcontrol:
             ** Interrupted by a signal
             */
             FD_ZERO(&selectmask) ;
-            FD_SET(incontrolsock,&selectmask) ;
+            FD_SET(BBftp_Incontrolsock,&selectmask) ;
             goto waitcontrol ;
         }
     } else if ( retcode == 0 ) {
@@ -147,14 +147,14 @@ waitcontrol:
         ** Impossible we do not set any timer
         */
         FD_ZERO(&selectmask) ;
-        FD_SET(incontrolsock,&selectmask) ;
+        FD_SET(BBftp_Incontrolsock,&selectmask) ;
         goto waitcontrol ;
     } else {
         /*
         ** read the message
         */
-        if ( readmessage(incontrolsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,61,timestamp,"Error waiting %s message\n","MSG_OK (on MSG_RM)");
+        if ( readmessage(BBftp_Incontrolsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+            printmessage(stderr,CASE_ERROR,61,BBftp_Timestamp,"Error waiting %s message\n","MSG_OK (on MSG_RM)");
             *errcode = 61 ;
             bbftp_close_control() ;
             return BB_RET_CONN_BROKEN ;
@@ -170,13 +170,13 @@ waitcontrol:
             msglen = msg->msglen ;
 #endif
             if ( (buffer = (char *) malloc(msglen+1) ) == NULL) {
-                printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","buffer (bbftp_rm)",strerror(errno)) ;
+                printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","buffer (bbftp_rm)",strerror(errno)) ;
                 *errcode = 35 ;
                 bbftp_close_control() ;
                 return BB_RET_CONN_BROKEN ;
             }
-            if ( readmessage(incontrolsock,buffer,msglen,recvcontrolto,0) < 0 ) {
-                printmessage(stderr,CASE_ERROR,67,timestamp,"Error reading data for %s message\n","MSG_BAD (on MSG_RM)");
+            if ( readmessage(BBftp_Incontrolsock,buffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+                printmessage(stderr,CASE_ERROR,67,BBftp_Timestamp,"Error reading data for %s message\n","MSG_BAD (on MSG_RM)");
                 *errcode = 67 ;
                 bbftp_close_control() ;
                 free(buffer) ;
@@ -187,8 +187,8 @@ waitcontrol:
                 }
             } else {
                 buffer[msglen] = '\0' ;
-                printmessage(stderr,CASE_ERROR,100,timestamp,"%s\n",buffer) ;
-                if (verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< %s\n",buffer) ;
+                printmessage(stderr,CASE_ERROR,100,BBftp_Timestamp,"%s\n",buffer) ;
+                if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< %s\n",buffer) ;
                 free(buffer) ;
                 if ( code == MSG_BAD ) {
                     *errcode = 100 ;
@@ -218,20 +218,20 @@ waitcontrol:
             msglen = msg->msglen ;
 #endif
             if ( (buffer = (char *) malloc(msglen+1) ) == NULL) {
-                printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","buffer (bbftp_rm)",strerror(errno)) ;
+                printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","buffer (bbftp_rm)",strerror(errno)) ;
                 *errcode = 35 ;
                 bbftp_close_control() ;
                 return BB_RET_CONN_BROKEN ;
             }
-            if ( readmessage(incontrolsock,buffer,msglen,recvcontrolto,0) < 0) {
-                printmessage(stderr,CASE_ERROR,67,timestamp,"Error reading data for %s message\n","MSG_OK (on MSG_RM)");
+            if ( readmessage(BBftp_Incontrolsock,buffer,msglen,BBftp_Recvcontrolto,0) < 0) {
+                printmessage(stderr,CASE_ERROR,67,BBftp_Timestamp,"Error reading data for %s message\n","MSG_OK (on MSG_RM)");
                 *errcode = 67 ;
                 bbftp_close_control() ;
                 free(buffer) ;
                 return BB_RET_CONN_BROKEN ;
             } 
             buffer[msglen] = '\0' ;
-            if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK : %s\n",buffer) ;
+            if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK : %s\n",buffer) ;
             free(buffer) ;
             return BB_RET_OK ;
         } else {
@@ -240,7 +240,7 @@ waitcontrol:
             ** going wrong. close the control socket
             ** and restart
             */
-            printmessage(stderr,CASE_ERROR,62,timestamp,"Unknown message while waiting for %s message\n","MSG_OK (on MSG_RM)");
+            printmessage(stderr,CASE_ERROR,62,BBftp_Timestamp,"Unknown message while waiting for %s message\n","MSG_OK (on MSG_RM)");
             *errcode = 62 ;
             bbftp_close_control() ;
             return BB_RET_CONN_BROKEN ;

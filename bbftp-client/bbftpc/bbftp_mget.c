@@ -57,7 +57,7 @@ int bbftp_mget(char *remotefile,char *localdir, int  *errcode)
     char    *tmpfile, *tmpchar, *slash ;
     int     nbtry ;
     
-    if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : mget %s %s\n",remotefile,localdir) ;
+    if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : mget %s %s\n",remotefile,localdir) ;
     /*
     ** First look at the local directory
     */
@@ -66,8 +66,8 @@ int bbftp_mget(char *remotefile,char *localdir, int  *errcode)
         ** Test if it is a local RFIO 
         */
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
-            printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : local rfio and localdir equal ./ are imcompatible in mget\n") ;
+        if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+            printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : local rfio and localdir equal ./ are imcompatible in mget\n") ;
             *errcode = 26 ;
             return  BB_RET_FT_NR ;
         }
@@ -77,21 +77,21 @@ int bbftp_mget(char *remotefile,char *localdir, int  *errcode)
         ** Check if local dir is a directory
         */
         if ( (retcode = bbftp_retrcheckdir(localdir,logmessage,errcode)) < 0 ) {
-            printmessage(stderr,CASE_ERROR,*errcode,timestamp,"%s\n",logmessage) ;
+            printmessage(stderr,CASE_ERROR,*errcode,BBftp_Timestamp,"%s\n",logmessage) ;
             return BB_RET_FT_NR ;
         } else if ( retcode > 0 ) {
-            printmessage(stderr,CASE_ERROR,*errcode,timestamp,"%s\n",logmessage) ;
+            printmessage(stderr,CASE_ERROR,*errcode,BBftp_Timestamp,"%s\n",logmessage) ;
             return BB_RET_ERROR ;
         }
     }
     filelist = NULL ;
     filelistlen = 0 ;
     if ( (retcode = bbftp_list(remotefile,&filelist,&filelistlen,errcode) ) != BB_RET_OK) {
-        if (verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< FAILED\n") ;
+        if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< FAILED\n") ;
         return retcode ;
     }
     if ( filelistlen == 0 ) {
-        if (verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+        if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
         return BB_RET_OK ;
     }
     tmpfile = filelist ;
@@ -119,26 +119,26 @@ int bbftp_mget(char *remotefile,char *localdir, int  *errcode)
             slash = tmpfile + strlen(tmpfile) ;
             while ( *slash != '/' && slash != tmpfile ) slash-- ;
             if ( *slash == '/' ) slash++ ;
-            for ( nbtry = 1 ; nbtry <= globaltrymax ; nbtry++ ) {
+            for ( nbtry = 1 ; nbtry <= BBftp_Globaltrymax ; nbtry++ ) {
                 /*
-                ** malloc space for curfilename and realfilename
+                ** malloc space for BBftp_Curfilename and BBftp_Realfilename
                 */
-                if ( (curfilename = (char *) malloc (strlen(localdir)+strlen(slash)+2) ) == NULL ) {
-                    printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","curfilename",strerror(errno)) ;
+                if ( (BBftp_Curfilename = (char *) malloc (strlen(localdir)+strlen(slash)+2) ) == NULL ) {
+                    printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Curfilename",strerror(errno)) ;
                     *errcode = 35 ;
                     free(filelist) ;
                     return BB_RET_ERROR ;
                 }
-                if ( (realfilename = (char *) malloc (strlen(localdir)+strlen(slash)+30)) == NULL ) {
-                    printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","realfilename",strerror(errno)) ;
+                if ( (BBftp_Realfilename = (char *) malloc (strlen(localdir)+strlen(slash)+30)) == NULL ) {
+                    printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Realfilename",strerror(errno)) ;
                     *errcode = 35 ;
-                    free(curfilename) ;
+                    free(BBftp_Curfilename) ;
                     free(filelist) ;
-                    curfilename=NULL ;
+                    BBftp_Curfilename=NULL ;
                     return BB_RET_ERROR ;
                 }
-                sprintf(curfilename,"%s/%s",localdir,slash) ;
-                if ( (transferoption & TROPT_TMP) == TROPT_TMP ) {
+                sprintf(BBftp_Curfilename,"%s/%s",localdir,slash) ;
+                if ( (BBftp_Transferoption & TROPT_TMP) == TROPT_TMP ) {
 			char lhostname[10 + 1];
 			if (gethostname(lhostname, sizeof(lhostname)) < 0) {
 				lhostname[0] = '\0';
@@ -146,26 +146,26 @@ int bbftp_mget(char *remotefile,char *localdir, int  *errcode)
 				lhostname[sizeof(lhostname) - 1] = '\0';
 			}
 #ifdef CASTOR
-                    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
-                        sprintf(realfilename,"%s",curfilename) ;
+                    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+                        sprintf(BBftp_Realfilename,"%s",BBftp_Curfilename) ;
                     } else {
-                        sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
+                        sprintf(BBftp_Realfilename,"%s.bbftp.tmp.%s.%d",BBftp_Curfilename,lhostname,getpid()) ;
                     }
 #else                         
-                    sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
+                    sprintf(BBftp_Realfilename,"%s.bbftp.tmp.%s.%d",BBftp_Curfilename,lhostname,getpid()) ;
 #endif
                 } else {
-                    sprintf(realfilename,"%s",curfilename) ;
+                    sprintf(BBftp_Realfilename,"%s",BBftp_Curfilename) ;
                 }
                 /*
                 ** check if the last try was not disconnected
                 */
-                if ( connectionisbroken == 1 ) {
+                if ( BBftp_Connectionisbroken == 1 ) {
                     reconnecttoserver() ;
-                    connectionisbroken = 0 ;
+                    BBftp_Connectionisbroken = 0 ;
                 }
                 retcode = bbftp_get(tmpfile,errcode) ;
-                state = 0 ;
+                BBftp_State = 0 ;
                 if ( retcode == BB_RET_FT_NR ) {
                     /*
                     ** Fatal error no retry and connection is not broken
@@ -175,7 +175,7 @@ int bbftp_mget(char *remotefile,char *localdir, int  *errcode)
                     /*
                     ** Fatal error no retry and connection is broken
                     */
-                    connectionisbroken = 1 ;
+                    BBftp_Connectionisbroken = 1 ;
                     break ;
                 } else if ( retcode == BB_RET_OK ) {
                     /*
@@ -186,7 +186,7 @@ int bbftp_mget(char *remotefile,char *localdir, int  *errcode)
                     /*
                     ** Retry needed with a new connection
                     */
-                    if ( nbtry != globaltrymax ) {
+                    if ( nbtry != BBftp_Globaltrymax ) {
                         sleep(WAITRETRYTIME) ;
                         reconnecttoserver() ;
                     } else {
@@ -195,60 +195,60 @@ int bbftp_mget(char *remotefile,char *localdir, int  *errcode)
                         ** indicate to the next transfer that the connection
                         ** is broken
                         */
-                        connectionisbroken = 1 ;
+                        BBftp_Connectionisbroken = 1 ;
                     }
                 } else {
                     /*
                     ** retcode > 0 means retry on this transfer
                     */
-                    if ( nbtry != globaltrymax ) {
+                    if ( nbtry != BBftp_Globaltrymax ) {
                         sleep(WAITRETRYTIME) ;
                     }
                 }
             }
-            if ( retcode != BB_RET_OK && nbtry == globaltrymax+1) {
-                myexitcode = *errcode ;
-                if ( resfd < 0 ) {
-                    if (!verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"get %s %s/%s FAILED\n",tmpfile,localdir,slash)        ;
+            if ( retcode != BB_RET_OK && nbtry == BBftp_Globaltrymax+1) {
+                Bbftp_Myexitcode = *errcode ;
+                if ( BBftp_Resfd < 0 ) {
+                    if (!BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"get %s %s/%s FAILED\n",tmpfile,localdir,slash)        ;
                 } else {
-                    write(resfd,"get ",4) ;
-                    write(resfd,tmpfile,strlen(tmpfile)) ;
-                    write(resfd," ",1) ;
-                    write(resfd,localdir,strlen(localdir)) ;                
-                    write(resfd,"/",1) ;
-                    write(resfd,slash,strlen(slash)) ;                
-                    write(resfd," FAILED\n",8) ;
+                    write(BBftp_Resfd,"get ",4) ;
+                    write(BBftp_Resfd,tmpfile,strlen(tmpfile)) ;
+                    write(BBftp_Resfd," ",1) ;
+                    write(BBftp_Resfd,localdir,strlen(localdir)) ;                
+                    write(BBftp_Resfd,"/",1) ;
+                    write(BBftp_Resfd,slash,strlen(slash)) ;                
+                    write(BBftp_Resfd," FAILED\n",8) ;
                 }
             } else if ( retcode == BB_RET_OK) {        
-                if ( resfd < 0 ) {
-                    if (!verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"get %s %s/%s OK\n",tmpfile,localdir,slash)        ;
+                if ( BBftp_Resfd < 0 ) {
+                    if (!BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"get %s %s/%s OK\n",tmpfile,localdir,slash)        ;
                 } else {
-                    write(resfd,"get ",4) ;
-                    write(resfd,tmpfile,strlen(tmpfile)) ;
-                    write(resfd," ",1) ;
-                    write(resfd,localdir,strlen(localdir)) ;                
-                    write(resfd,"/",1) ;
-                    write(resfd,slash,strlen(slash)) ;                
-                    write(resfd," OK\n",4) ;
+                    write(BBftp_Resfd,"get ",4) ;
+                    write(BBftp_Resfd,tmpfile,strlen(tmpfile)) ;
+                    write(BBftp_Resfd," ",1) ;
+                    write(BBftp_Resfd,localdir,strlen(localdir)) ;                
+                    write(BBftp_Resfd,"/",1) ;
+                    write(BBftp_Resfd,slash,strlen(slash)) ;                
+                    write(BBftp_Resfd," OK\n",4) ;
                 }    
             } else {
-                myexitcode = *errcode ;
-                if ( resfd < 0 ) {
-                    if (!verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"get %s %s/%s FAILED\n",tmpfile,localdir,slash)        ;
+                Bbftp_Myexitcode = *errcode ;
+                if ( BBftp_Resfd < 0 ) {
+                    if (!BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"get %s %s/%s FAILED\n",tmpfile,localdir,slash)        ;
                 } else {
-                    write(resfd,"get ",4) ;
-                    write(resfd,tmpfile,strlen(tmpfile)) ;
-                    write(resfd," ",1) ;
-                    write(resfd,localdir,strlen(localdir)) ;                
-                    write(resfd,"/",1) ;
-                    write(resfd,slash,strlen(slash)) ;                
-                    write(resfd," FAILED\n",8) ;
+                    write(BBftp_Resfd,"get ",4) ;
+                    write(BBftp_Resfd,tmpfile,strlen(tmpfile)) ;
+                    write(BBftp_Resfd," ",1) ;
+                    write(BBftp_Resfd,localdir,strlen(localdir)) ;                
+                    write(BBftp_Resfd,"/",1) ;
+                    write(BBftp_Resfd,slash,strlen(slash)) ;                
+                    write(BBftp_Resfd," FAILED\n",8) ;
                 }
             } 
             tmpfile = tmpchar + strlen(tmpchar) + 1 ;
         }
     }
-    if (verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+    if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
     free(filelist) ;
     return BB_RET_OK ;
     

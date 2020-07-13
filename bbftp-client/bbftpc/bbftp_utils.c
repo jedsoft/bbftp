@@ -97,7 +97,7 @@ void printmessage(FILE *strm , int flag, int errcode, int tok, char *fmt, ...)
     va_start(ap,fmt);
     
     /*
-    ** If timestamp start to print the time
+    ** If BBftp_Timestamp start to print the time
     */
     if (tok) {
         /*
@@ -201,42 +201,42 @@ void strip_trailing_slashes (char *path)
 void bbftp_close_control() 
 {
 
-    close(incontrolsock) ;
-    if ( incontrolsock != outcontrolsock) close(outcontrolsock) ;
-    if ( sshchildpid != 0 ) {
-        kill(sshchildpid,SIGKILL) ;
+    close(BBftp_Incontrolsock) ;
+    if ( BBftp_Incontrolsock != BBftp_Outcontrolsock) close(BBftp_Outcontrolsock) ;
+    if ( BBftp_SSH_Childpid != 0 ) {
+        kill(BBftp_SSH_Childpid,SIGKILL) ;
     }
 }
 void bbftp_free_all_var() 
 {
 
-    if ( myports != NULL ) {
-        free(myports) ;
-        myports = NULL ;
+    if ( BBftp_Myports != NULL ) {
+        free(BBftp_Myports) ;
+        BBftp_Myports = NULL ;
     }
-     if ( mychildren != NULL ) {
-        free(mychildren) ;
-        mychildren = NULL ;
+     if ( BBftp_Mychildren != NULL ) {
+        free(BBftp_Mychildren) ;
+        BBftp_Mychildren = NULL ;
     }
-   if ( realfilename != NULL ) {
-        free(realfilename) ;
-        realfilename = NULL ;
+   if ( BBftp_Realfilename != NULL ) {
+        free(BBftp_Realfilename) ;
+        BBftp_Realfilename = NULL ;
     }
-    if ( curfilename != NULL ) {
-        free(curfilename) ;
-        curfilename = NULL ;
+    if ( BBftp_Curfilename != NULL ) {
+        free(BBftp_Curfilename) ;
+        BBftp_Curfilename = NULL ;
     }
-    if ( mysockets != NULL ) {
-        free(mysockets) ;
-        mysockets = NULL ;
+    if ( BBftp_Mysockets != NULL ) {
+        free(BBftp_Mysockets) ;
+        BBftp_Mysockets = NULL ;
     }
-    if ( readbuffer != NULL ) {
-        free(readbuffer) ;
-        readbuffer = NULL ;
+    if ( BBftp_Readbuffer != NULL ) {
+        free(BBftp_Readbuffer) ;
+        BBftp_Readbuffer = NULL ;
     }
-    if ( compbuffer != NULL ) {
-        free(compbuffer) ;
-        compbuffer = NULL ;
+    if ( BBftp_Compbuffer != NULL ) {
+        free(BBftp_Compbuffer) ;
+        BBftp_Compbuffer = NULL ;
     }
 }
 void bbftp_clean_child()
@@ -244,11 +244,11 @@ void bbftp_clean_child()
     int     *pidfree ;
     int     i ;
     
-    if (mychildren != NULL ) {
-        pidfree = mychildren ;
-        for ( i=0 ; i<requestedstreamnumber ; i++) {
+    if (BBftp_Mychildren != NULL ) {
+        pidfree = BBftp_Mychildren ;
+        for ( i=0 ; i<BBftp_Requestedstreamnumber ; i++) {
             if ( *pidfree != 0 ) {
-                if (debug) printf("Killing child %d\n",*pidfree) ; 
+                if (BBftp_Debug) printf("Killing child %d\n",*pidfree) ; 
                 kill(*pidfree,SIGKILL) ;
             }
             *pidfree++ = 0 ;

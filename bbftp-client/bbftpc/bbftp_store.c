@@ -80,7 +80,7 @@
 **          logmessage :  to write the error message in case of error          *
 **                                                                             *
 **      GLOBAL VARIABLE USED :                                                 *                                                                      *
-**          castfd                          MODIFIED                           * 
+**          BBftp_Cast_Fd                          MODIFIED                           * 
 **                                                                             *
 **      RETURN:                                                                *
 **          -1  Failed                                                         *
@@ -93,7 +93,7 @@ int bbftp_storeclosecastfile(char *filename,char *logmessage)
    (void) filename; (void) logmessage;
 
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
-    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
         return bbftp_storeclosecastfile_rfio(filename,logmessage) ;
     }
 #endif
@@ -108,7 +108,7 @@ int bbftp_storeclosecastfile(char *filename,char *logmessage)
 **          logmessage :  to write the error message in case of error          *
 **                                                                             *
 **      GLOBAL VARIABLE USED :                                                 *                                                                      *
-**          transferoption                   NOT MODIFIED                      * 
+**          BBftp_Transferoption                   NOT MODIFIED                      * 
 **                                                                             *
 **      RETURN:                                                                *
 **          -1  Failed                                                         *
@@ -121,7 +121,7 @@ int bbftp_storechmod(char *filename,int mode,char *logmessage,int  *errcode)
     int     retcode ;
     
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
-    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
         return bbftp_storechmod_rfio(filename,mode,logmessage,errcode) ;
     }
 #endif
@@ -143,7 +143,7 @@ int bbftp_storechmod(char *filename,int mode,char *logmessage,int  *errcode)
 **          logmessage :  to write the error message in case of error          *
 **                                                                             *
 **      GLOBAL VARIABLE USED :                                                 *                                                                      *
-**          transferoption                   NOT MODIFIED                      * 
+**          BBftp_Transferoption                   NOT MODIFIED                      * 
 **                                                                             *
 **      RETURN:                                                                *
 **          -1  Failed                                                         *
@@ -156,7 +156,7 @@ int bbftp_storerename(char *newfilename,char *oldfilename,char *logmessage,int  
     int     retcode ;
     
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
-    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
         return bbftp_storerename_rfio(newfilename,oldfilename,logmessage,errcode) ;
     }
 #endif
@@ -177,7 +177,7 @@ int bbftp_storerename(char *newfilename,char *oldfilename,char *logmessage,int  
 **          logmessage :  to write the error message in case of error          *
 **                                                                             *
 **      GLOBAL VARIABLE USED :                                                 *                                                                      *
-**          transferoption                   NOT MODIFIED                      * 
+**          BBftp_Transferoption                   NOT MODIFIED                      * 
 **                                                                             *
 **      RETURN:                                                                *
 **          -1  Failed                                                         *
@@ -188,7 +188,7 @@ int bbftp_storerename(char *newfilename,char *oldfilename,char *logmessage,int  
 int bbftp_storeunlink(char *filename)
 {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
-    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
         return bbftp_storeunlink_rfio(filename) ;
     }
 #endif
@@ -205,7 +205,7 @@ int bbftp_storeunlink(char *filename)
 **          logmessage :  to write the error message in case of error          *
 **                                                                             *
 **      GLOBAL VARIABLE USED :                                                 *                                                                      *
-**          transferoption                   NOT MODIFIED                      * 
+**          BBftp_Transferoption                   NOT MODIFIED                      * 
 **                                                                             *
 **      RETURN:                                                                *
 **          -1  Failed no retry                                                *
@@ -225,7 +225,7 @@ int bbftp_storecheckfile(char *filename,char *logmessage,int *errcode)
     int     savederrno ;
     
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
-    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
         return bbftp_storecheckfile_rfio(filename,logmessage,errcode) ;
     }
 #endif
@@ -316,7 +316,7 @@ int bbftp_storemkdir(char *dirname,char *logmessage,int recursif,int *errcode)
 #endif
 
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
-    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
         return bbftp_storemkdir_rfio(dirname,logmessage,recursif,errcode) ;
     }
 #endif
@@ -482,8 +482,8 @@ int bbftp_storemkdir(char *dirname,char *logmessage,int recursif,int *errcode)
 **          logmessage :  to write the error message in case of error          *
 **                                                                             *
 **      GLOBAL VARIABLE USED :                                                 *                                                                      *
-**          transferoption                   NOT MODIFIED                      * 
-**          filesize                         NOT MODIFIED                      *
+**          BBftp_Transferoption                   NOT MODIFIED                      * 
+**          BBftp_Filesize                         NOT MODIFIED                      *
 **                                                                             *
 **      TO FREE before any return : filepath                                   *
 **                                                                             *
@@ -513,7 +513,7 @@ int bbftp_storecreatefile(char *filename,char *logmessage, int *errcode)
     ** Check if it is a rfio creation
     */
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
-    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
         return bbftp_storecreatefile_rfio(filename,logmessage,errcode) ;
     }
 #endif
@@ -586,7 +586,7 @@ int bbftp_storecreatefile(char *filename,char *logmessage, int *errcode)
                 ** The directory does not exist so check for the TROPT_DIR
                 ** option 
                 */
-                if ( (transferoption & TROPT_DIR ) != TROPT_DIR ) {
+                if ( (BBftp_Transferoption & TROPT_DIR ) != TROPT_DIR ) {
                     sprintf(logmessage,"Directory (%s) creation needed but TROPT_DIR not set",filepath) ;
                     *errcode = 75 ;
                     free(filepath) ;
@@ -669,19 +669,19 @@ int bbftp_storecreatefile(char *filename,char *logmessage, int *errcode)
             return 1 ;
         }
     }
-    if ( filesize == 0 ) {
+    if ( BBftp_Filesize == 0 ) {
         close(fd) ;
         free(filepath) ;
         return 0 ;
     }
     /*
     ** Lseek to set it to the correct size
-    ** We use toseek because filesize is of type my64t and 
+    ** We use toseek because BBftp_Filesize is of type my64t and 
     ** call to lseek can be done with off_t which may be
     ** of length 64 bits or 32 bits
     */
 /*
-*    toseek = filesize-1 ;
+*    toseek = BBftp_Filesize-1 ;
 *#ifdef STANDART_FILE_CALL
 *    if ( lseek(fd,toseek,SEEK_SET) < 0 ) {
 *#else
@@ -807,27 +807,27 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
     ** Check if it is a rfio transfer
     */
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
-    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
         return bbftp_storetransferfile_rfio(filename,logmessage,errcode) ;
     }
 #endif
     
-    if (protocol == 2) { /* Active mode */
-      socknumber = mysockets ;
+    if (BBftp_Protocol == 2) { /* Active mode */
+      socknumber = BBftp_Mysockets ;
     } else { /* Passive mode */
-      portnumber = myports ;
+      portnumber = BBftp_Myports ;
     }
-    nbperchild = filesize/requestedstreamnumber ;
-    pidfree = mychildren ;
-    for (i = 1 ; i <= requestedstreamnumber ; i++) {
-        if ( i == requestedstreamnumber ) {
+    nbperchild = BBftp_Filesize/BBftp_Requestedstreamnumber ;
+    pidfree = BBftp_Mychildren ;
+    for (i = 1 ; i <= BBftp_Requestedstreamnumber ; i++) {
+        if ( i == BBftp_Requestedstreamnumber ) {
             startpoint = (i-1)*nbperchild;
-            nbtoget = filesize-(nbperchild*(requestedstreamnumber-1)) ;
+            nbtoget = BBftp_Filesize-(nbperchild*(BBftp_Requestedstreamnumber-1)) ;
         } else {
             startpoint = (i-1)*nbperchild;
             nbtoget = nbperchild ;
         }
-        if (protocol == 2) {
+        if (BBftp_Protocol == 2) {
             sendsock = *socknumber ;
             socknumber++ ;
 	} else { /* Passive mode */
@@ -871,12 +871,12 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
             close(STDIN_FILENO) ;
             close(STDOUT_FILENO) ;
             close(STDERR_FILENO) ;
-            close(incontrolsock) ;
-            close(outcontrolsock) ;
-            if (protocol == 2) { /* Active mode */
+            close(BBftp_Incontrolsock) ;
+            close(BBftp_Outcontrolsock) ;
+            if (BBftp_Protocol == 2) { /* Active mode */
               int     *socktoclose ;
-              socktoclose = mysockets ;
-              for ( i=0 ; i< requestedstreamnumber ; i++ ) {
+              socktoclose = BBftp_Mysockets ;
+              for ( i=0 ; i< BBftp_Requestedstreamnumber ; i++ ) {
                 if ( *socktoclose !=  sendsock) close(*socktoclose) ;
                 socktoclose++ ;
               }
@@ -941,7 +941,7 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
             */
             wait_timer.tv_sec  = CHILDWAITTIME ;
             wait_timer.tv_usec = 0 ;
-            if (protocol == 2) {
+            if (BBftp_Protocol == 2) {
                 retcode = select(FD_SETSIZE,&selectmask,0,0,&wait_timer) ;
             } else {
                 retcode = select(FD_SETSIZE,0,&selectmask,0,&wait_timer) ;
@@ -971,7 +971,7 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
             ** At this point as we only set one bit we have 
             ** got a connection
             */
-			if (protocol == 2) { /* Active mode */
+			if (BBftp_Protocol == 2) { /* Active mode */
               if ( (ns = accept(sendsock,0,0) ) < 0 ) {
                 i = errno ;
                 close(fd) ;
@@ -989,21 +989,21 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
             ** start the reading loop
             ** In simulation mode, simulate the transfer
             */
-            if (!simulation_mode) {
+            if (!BBftp_Simulation_Mode) {
               nbget = 0 ;
               while ( nbget < nbtoget) {
 #ifdef WITH_GZIP                
-                if ( (transferoption & TROPT_GZIP ) == TROPT_GZIP ) {
+                if ( (BBftp_Transferoption & TROPT_GZIP ) == TROPT_GZIP ) {
                     /*
                     ** Receive the header first 
                     */
-                    if (readmessage(ns,readbuffer,COMPMESSLEN,datato,1) < 0 ) {
+                    if (readmessage(ns,BBftp_Readbuffer,COMPMESSLEN,BBftp_Datato,1) < 0 ) {
                         close(fd) ;
                         unlink(filename) ;
                         i = ETIMEDOUT ;
                         exit(i) ;
                     }
-                    msg_compress = ( struct mess_compress *) readbuffer ;
+                    msg_compress = ( struct mess_compress *) BBftp_Readbuffer ;
 #ifndef WORDS_BIGENDIAN
                     msg_compress->datalen = ntohl(msg_compress->datalen) ;
 #endif
@@ -1017,15 +1017,15 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
                     /*
                     ** No compression just adjust the length to receive
                     */
-                    if (buffersizeperstream*1024  <= nbtoget-nbget ) {
-                        datatoreceive =  buffersizeperstream*1024 ;
+                    if (BBftp_Buffersizeperstream*1024  <= nbtoget-nbget ) {
+                        datatoreceive =  BBftp_Buffersizeperstream*1024 ;
                     } else {
                         datatoreceive = nbtoget-nbget ;
                     }
                 }
 #else
-                if (buffersizeperstream*1024  <= nbtoget-nbget ) {
-                    datatoreceive =  buffersizeperstream*1024 ;
+                if (BBftp_Buffersizeperstream*1024  <= nbtoget-nbget ) {
+                    datatoreceive =  BBftp_Buffersizeperstream*1024 ;
                 } else {
                     datatoreceive = nbtoget-nbget ;
                 }
@@ -1038,7 +1038,7 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
                     nfds = sysconf(_SC_OPEN_MAX) ;
                     FD_ZERO(&selectmask) ;
                     FD_SET(ns,&selectmask) ;
-                    wait_timer.tv_sec  = datato ;
+                    wait_timer.tv_sec  = BBftp_Datato ;
                     wait_timer.tv_usec = 0 ;
                     if ( (retcode = select(FD_SETSIZE,&selectmask,0,0,&wait_timer) ) == -1 ) {
                         /*
@@ -1054,7 +1054,7 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
                         i=ETIMEDOUT ;
                         _exit(i) ;
                     } else {
-                        retcode = recv(ns,&readbuffer[dataonone],datatoreceive-dataonone,0) ;
+                        retcode = recv(ns,&BBftp_Readbuffer[dataonone],datatoreceive-dataonone,0) ;
                         if ( retcode < 0 ) {
                             i = errno ;
                             close(fd) ;
@@ -1074,18 +1074,18 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
                 ** We have received all data needed
                 */
 #ifdef WITH_GZIP                
-                if ( (transferoption & TROPT_GZIP ) == TROPT_GZIP ) {
+                if ( (BBftp_Transferoption & TROPT_GZIP ) == TROPT_GZIP ) {
                     if ( compressionon == 1 ) {
-                        bufcomplen = buffersizeperstream*1024 ;
+                        bufcomplen = BBftp_Buffersizeperstream*1024 ;
                         buflen = dataonone ;
-                        retcode = uncompress((Bytef *) compbuffer, &bufcomplen, (Bytef *) readbuffer, buflen) ;
+                        retcode = uncompress((Bytef *) BBftp_Compbuffer, &bufcomplen, (Bytef *) BBftp_Readbuffer, buflen) ;
                         if ( retcode != 0 ) {
                             i = EILSEQ ;
                             close(fd) ;
                             unlink(filename) ;
                             _exit(i) ;
                         }
-                        memcpy(readbuffer,compbuffer,buffersizeperstream*1024) ;
+                        memcpy(BBftp_Readbuffer,BBftp_Compbuffer,BBftp_Buffersizeperstream*1024) ;
                         lentowrite = bufcomplen ;
                     } else {
                         lentowrite = dataonone ;
@@ -1101,7 +1101,7 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
                 */
                 lenwrited = 0 ;
                 while ( lenwrited < lentowrite ) {
-                    if ( (retcode = write(fd,&readbuffer[lenwrited],lentowrite-lenwrited)) < 0 ) {
+                    if ( (retcode = write(fd,&BBftp_Readbuffer[lenwrited],lentowrite-lenwrited)) < 0 ) {
                         i = errno ;
                         close(fd) ;
                         unlink(filename) ;
@@ -1119,10 +1119,10 @@ int bbftp_storetransferfile(char *filename,char *logmessage, int *errcode)
               /*
               ** All data have been received so send the ACK message
               */
-              msg = (struct message *) readbuffer ;
+              msg = (struct message *) BBftp_Readbuffer ;
               msg->code = MSG_ACK ;
               msg->msglen = 0 ;
-              if ( writemessage(ns,readbuffer,MINMESSLEN,sendcontrolto,1) < 0 ) {
+              if ( writemessage(ns,BBftp_Readbuffer,MINMESSLEN,BBftp_Sendcontrolto,1) < 0 ) {
                 close(fd) ;
                 unlink(filename) ;
                 exit(ETIMEDOUT) ;

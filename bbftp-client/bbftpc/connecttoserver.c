@@ -196,7 +196,7 @@ int connectviassh()
 
   /*  add multiple addresses  */
     char **sav_h_addr_list;
-    if (hp) sav_h_addr_list = hp->h_addr_list;
+    if (BBftp_Hostent) sav_h_addr_list = BBftp_Hostent->h_addr_list;
 
 /* 
 ** Reserve two descriptors so that the real pipes won't get descriptors
@@ -207,17 +207,17 @@ int connectviassh()
 ** Create a socket pair for communicating with ssh. 
 */
     if (pipe(pin) < 0)
-        printmessage(stderr,CASE_FATAL_ERROR,41,timestamp,"Pipe for ssh failed : %s", strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,41,BBftp_Timestamp,"Pipe for ssh failed : %s", strerror(errno)) ;
 
     if (pipe(pout) < 0)
-        printmessage(stderr,CASE_FATAL_ERROR,41,timestamp,"Pipe for ssh failed : %s", strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,41,BBftp_Timestamp,"Pipe for ssh failed : %s", strerror(errno)) ;
 
 /*
 ** Free the reserved descriptors. 
 */
     close(reserved[0]);
     close(reserved[1]);
-    sshchildpid = 0 ;
+    BBftp_SSH_Childpid = 0 ;
 
 /*
 ** Fork a child to execute the command on the remote host using ssh. 
@@ -238,27 +238,27 @@ int connectviassh()
         close(pout[1]);
         
         i = 0;
-        largbuf= strlen (sshcmd)+1;
+        largbuf= strlen (BBftp_SSHcmd)+1;
         argbuf= (char*) malloc (largbuf * sizeof (char));
-        ntok= splitargs(sshcmd,args,250,argbuf,largbuf);
+        ntok= splitargs(BBftp_SSHcmd,args,250,argbuf,largbuf);
         if (ntok<0)
-            printmessage(stderr,CASE_FATAL_ERROR,42,timestamp,"Too many arguments in ssh command :%s \n",sshcmd) ;
+            printmessage(stderr,CASE_FATAL_ERROR,42,BBftp_Timestamp,"Too many arguments in ssh command :%s \n",BBftp_SSHcmd) ;
         if (ntok==0)
-            printmessage(stderr,CASE_FATAL_ERROR,43,timestamp,"No ssh command specified\n") ;
+            printmessage(stderr,CASE_FATAL_ERROR,43,BBftp_Timestamp,"No ssh command specified\n") ;
         i += ntok;
 
         for(j = 0; j < ssh_options_cnt; j++) {
             args[i++] = "-o";
             args[i++] = ssh_options[j];
             if (i > 250)
-                printmessage(stderr,CASE_FATAL_ERROR,44,timestamp,"Too many -o options (total number of arguments is more than 256)");
+                printmessage(stderr,CASE_FATAL_ERROR,44,BBftp_Timestamp,"Too many -o options (total number of arguments is more than 256)");
         }
         args[i++] = "-x";
         args[i++] = "-a";
         args[i++] = "-oFallBackToRsh no";
         if (sshcompress) args[i++] = "-C";
         if (!use_privileged_port) args[i++] = "-P";
-        if (sshbatchmode) {
+        if (BBftp_SSHbatchmode) {
             args[i++] = "-oBatchMode yes";
             args[i++] = "-oStrictHostKeyChecking no" ;
         }
@@ -266,147 +266,147 @@ int connectviassh()
             args[i++] = "-c";
             args[i++] = cipher;
         }
-        if (sshidentityfile  != NULL) {
+        if (BBftp_SSHidentityfile  != NULL) {
             args[i++] = "-i";
-            args[i++] = sshidentityfile;
+            args[i++] = BBftp_SSHidentityfile;
         }
-	if (username != NULL) {
+	if (BBftp_Username != NULL) {
             args[i++] = "-l";
-            args[i++] = username;
+            args[i++] = BBftp_Username;
 	}
-        args[i++] = hostname;
-        /*args[i++] = inet_ntoa(hisctladdr.sin_addr);*/
-        args[i++] = sshremotecmd;
+        args[i++] = BBftp_Hostname;
+        /*args[i++] = inet_ntoa(BBftp_His_Ctladdr.sin_addr);*/
+        args[i++] = BBftp_SSHremotecmd;
         args[i++] = NULL;
         
-        if ( debug ) {
+        if ( BBftp_Debug ) {
             /*
             ** We write on stderr and not on stdout because writing on
             ** stdout will cause problem on the contrlo connection
             */
-            printmessage(stderr,CASE_NORMAL,0,timestamp,"Executing :%s",args[0]) ;
-            for (j= 1; args[j]; j++)  printmessage(stderr,CASE_NORMAL,0,timestamp," %s", args[j]);
-            printmessage(stderr,CASE_NORMAL,0,timestamp,"\n");
+            printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"Executing :%s",args[0]) ;
+            for (j= 1; args[j]; j++)  printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp," %s", args[j]);
+            printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"\n");
         }
             
         execvp(args[0], args);
-        printmessage(stderr,CASE_FATAL_ERROR,46,timestamp,"Error while execvp ssh command (%s) : %s\n",sshcmd,strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,46,BBftp_Timestamp,"Error while execvp ssh command (%s) : %s\n",BBftp_SSHcmd,strerror(errno)) ;
     } else if ( retcode < 0 ) {
         /*
         ** fork error
         */
-        printmessage(stderr,CASE_ERROR,45,timestamp,"Fork for ssh command failed\n");
+        printmessage(stderr,CASE_ERROR,45,BBftp_Timestamp,"Fork for ssh command failed\n");
         return -1 ;
     } else {
         /*
         ** We are in father
         */
         close(pin[0]);
-        outcontrolsock = pin[1];
+        BBftp_Outcontrolsock = pin[1];
         close(pout[1]);
-        incontrolsock = pout[0];
-        sshchildpid = retcode ;
+        BBftp_Incontrolsock = pout[0];
+        BBftp_SSH_Childpid = retcode ;
         /*
         ** Now we are going to wait for the remote port to connect to
         */
-        if ( readmessage(incontrolsock,buffer,MINMESSLEN,2 * recvcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,61,timestamp,"Error waiting %s message\n","MSG_LOGGED_STDIN");
-            kill(sshchildpid,SIGKILL) ;
-            close(incontrolsock) ;
-            close(outcontrolsock) ;
+        if ( readmessage(BBftp_Incontrolsock,buffer,MINMESSLEN,2 * BBftp_Recvcontrolto,0) < 0 ) {
+            printmessage(stderr,CASE_ERROR,61,BBftp_Timestamp,"Error waiting %s message\n","MSG_LOGGED_STDIN");
+            kill(BBftp_SSH_Childpid,SIGKILL) ;
+            close(BBftp_Incontrolsock) ;
+            close(BBftp_Outcontrolsock) ;
             return -1 ;
         }
         msg = (struct message *)buffer ;
         if ( msg->code != MSG_LOGGED_STDIN) {
-            printmessage(stderr,CASE_ERROR,62,timestamp,"Unknown message while waiting for %s message\n","MSG_LOGGED_STDIN");
-            if ( debug ) {
-                printmessage(stdout,CASE_NORMAL,0,timestamp,"Incorrect message is : ") ;
+            printmessage(stderr,CASE_ERROR,62,BBftp_Timestamp,"Unknown message while waiting for %s message\n","MSG_LOGGED_STDIN");
+            if ( BBftp_Debug ) {
+                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Incorrect message is : ") ;
                 buffer[MINMESSLEN] = '\0' ;
-                printmessage(stdout,CASE_NORMAL,0,timestamp,"%s",buffer) ;
-                discardandprintmessage(incontrolsock,recvcontrolto,0) ;
+                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"%s",buffer) ;
+                discardandprintmessage(BBftp_Incontrolsock,BBftp_Recvcontrolto,0) ;
             }
-            kill(sshchildpid,SIGKILL) ;
-            close(incontrolsock) ;
-            close(outcontrolsock) ;
+            kill(BBftp_SSH_Childpid,SIGKILL) ;
+            close(BBftp_Incontrolsock) ;
+            close(BBftp_Outcontrolsock) ;
             return -1 ;
         }
 #ifndef WORDS_BIGENDIAN
         msg->msglen = ntohl(msg->msglen) ;
 #endif
         if ( msg->msglen != 4) {
-            printmessage(stderr,CASE_ERROR,63,timestamp,"Unexpected message length while waiting for %s message\n","MSG_LOGGED_STDIN");
-            kill(sshchildpid,SIGKILL) ;
-            close(incontrolsock) ;
-            close(outcontrolsock) ;
+            printmessage(stderr,CASE_ERROR,63,BBftp_Timestamp,"Unexpected message length while waiting for %s message\n","MSG_LOGGED_STDIN");
+            kill(BBftp_SSH_Childpid,SIGKILL) ;
+            close(BBftp_Incontrolsock) ;
+            close(BBftp_Outcontrolsock) ;
             return -1 ;
         }
         /*
         ** Read for the port number
         */
-        if ( readmessage(incontrolsock,buffer,4,recvcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,67,timestamp,"Error reading data for %s message\n","MSG_LOGGED_STDIN");
-            kill(sshchildpid,SIGKILL) ;
-            close(incontrolsock) ;
-            close(outcontrolsock) ;
+        if ( readmessage(BBftp_Incontrolsock,buffer,4,BBftp_Recvcontrolto,0) < 0 ) {
+            printmessage(stderr,CASE_ERROR,67,BBftp_Timestamp,"Error reading data for %s message\n","MSG_LOGGED_STDIN");
+            kill(BBftp_SSH_Childpid,SIGKILL) ;
+            close(BBftp_Incontrolsock) ;
+            close(BBftp_Outcontrolsock) ;
             return -1 ;
         }
 #ifndef WORDS_BIGENDIAN
         msg->code = ntohl(msg->code) ;
 #endif
-        if (debug) 
-            printmessage(stderr,CASE_NORMAL,0,timestamp,"Port number = %d\n",msg->code) ;
+        if (BBftp_Debug) 
+            printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"Port number = %d\n",msg->code) ;
         while (1) {
            if ( (tmpctrlsock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP )) < 0 ) {
-               printmessage(stderr,CASE_ERROR,47,timestamp,"Cannot get socket for MSG_IPADDR message : %s\n",strerror(errno));
-               kill(sshchildpid,SIGKILL) ;
-               close(incontrolsock) ;
-               close(outcontrolsock) ;
+               printmessage(stderr,CASE_ERROR,47,BBftp_Timestamp,"Cannot get socket for MSG_IPADDR message : %s\n",strerror(errno));
+               kill(BBftp_SSH_Childpid,SIGKILL) ;
+               close(BBftp_Incontrolsock) ;
+               close(BBftp_Outcontrolsock) ;
                return -1 ;
            }
            if ( setsockopt(tmpctrlsock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0 ) {
                close(tmpctrlsock) ;
-               printmessage(stderr,CASE_ERROR,47,timestamp,"Cannot set SO_REUSEADDR on socket for MSG_IPADDR message : %s\n",strerror(errno));
-               kill(sshchildpid,SIGKILL) ;
-               close(incontrolsock) ;
-               close(outcontrolsock) ;
+               printmessage(stderr,CASE_ERROR,47,BBftp_Timestamp,"Cannot set SO_REUSEADDR on socket for MSG_IPADDR message : %s\n",strerror(errno));
+               kill(BBftp_SSH_Childpid,SIGKILL) ;
+               close(BBftp_Incontrolsock) ;
+               close(BBftp_Outcontrolsock) ;
                return -1 ;
            }
            data_source.sin_family = AF_INET;
            data_source.sin_addr.s_addr = INADDR_ANY;
            /*
-           data_source.sin_port = htons(newcontrolport+1);
+           data_source.sin_port = htons(BBftp_Newcontrolport+1);
            */
            data_source.sin_port = 0;
            if ( bind(tmpctrlsock, (struct sockaddr *) &data_source,sizeof(data_source)) < 0) {
-               printmessage(stderr,CASE_ERROR,49,timestamp,"Cannot bind socket for MSG_IPADDR message : %s\n",strerror(errno));
+               printmessage(stderr,CASE_ERROR,49,BBftp_Timestamp,"Cannot bind socket for MSG_IPADDR message : %s\n",strerror(errno));
                close(tmpctrlsock) ;
-               kill(sshchildpid,SIGKILL) ;
-               close(incontrolsock) ;
-               close(outcontrolsock) ;
+               kill(BBftp_SSH_Childpid,SIGKILL) ;
+               close(BBftp_Incontrolsock) ;
+               close(BBftp_Outcontrolsock) ;
            }
-           if (debug) printmessage(stderr,CASE_NORMAL,0,timestamp,"connect control to address %s\n", inet_ntoa(hisctladdr.sin_addr)) ;
-           hisctladdr.sin_family = AF_INET ;
-           hisctladdr.sin_port = htons(msg->code);
-           addrlen = sizeof(hisctladdr) ;
-           if ( connect(tmpctrlsock,(struct sockaddr*)&hisctladdr,addrlen) < 0 ) {
-               if ( hp ) {
-                  if ( hp->h_addr_list[1] ) {
+           if (BBftp_Debug) printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"connect control to address %s\n", inet_ntoa(BBftp_His_Ctladdr.sin_addr)) ;
+           BBftp_His_Ctladdr.sin_family = AF_INET ;
+           BBftp_His_Ctladdr.sin_port = htons(msg->code);
+           addrlen = sizeof(BBftp_His_Ctladdr) ;
+           if ( connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
+               if ( BBftp_Hostent ) {
+                  if ( BBftp_Hostent->h_addr_list[1] ) {
                       close(tmpctrlsock) ;
-                      hp->h_addr_list++;
-                      memcpy(&hisctladdr.sin_addr,hp->h_addr_list[0],  hp->h_length);
+                      BBftp_Hostent->h_addr_list++;
+                      memcpy(&BBftp_His_Ctladdr.sin_addr,BBftp_Hostent->h_addr_list[0],  BBftp_Hostent->h_length);
                       /* Sleep a moment before retrying. */
                       sleep(1);
                       continue;
                    } else {
-                       hp->h_addr_list = sav_h_addr_list;
-                       memcpy(&hisctladdr.sin_addr,hp->h_addr_list[0],  hp->h_length);
+                       BBftp_Hostent->h_addr_list = sav_h_addr_list;
+                       memcpy(&BBftp_His_Ctladdr.sin_addr,BBftp_Hostent->h_addr_list[0],  BBftp_Hostent->h_length);
                    }
                }
-               printmessage(stderr,CASE_ERROR,48,timestamp,"Cannot connect socket for MSG_IPADDR message : %s\n",strerror(errno));
+               printmessage(stderr,CASE_ERROR,48,BBftp_Timestamp,"Cannot connect socket for MSG_IPADDR message : %s\n",strerror(errno));
                close(tmpctrlsock) ;
-               kill(sshchildpid,SIGKILL) ;
-               close(incontrolsock) ;
-               close(outcontrolsock) ;
+               kill(BBftp_SSH_Childpid,SIGKILL) ;
+               close(BBftp_Incontrolsock) ;
+               close(BBftp_Outcontrolsock) ;
                return -1 ;
            }
            break;
@@ -416,31 +416,31 @@ int connectviassh()
         /*
         ** Read the message 
         */
-        if ( writemessage(tmpctrlsock,buffer,MINMESSLEN,sendcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,64,timestamp,"Error sending %s message\n","MSG_IPADDR");
-            kill(sshchildpid,SIGKILL) ;
+        if ( writemessage(tmpctrlsock,buffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
+            printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_IPADDR");
+            kill(BBftp_SSH_Childpid,SIGKILL) ;
             close(tmpctrlsock) ;
-            close(incontrolsock) ;
-            close(outcontrolsock) ;
+            close(BBftp_Incontrolsock) ;
+            close(BBftp_Outcontrolsock) ;
             return -1 ;
         }
         /*
         ** And wait for MSG_IPADDR_OK
         */
-        if ( readmessage(tmpctrlsock,buffer,MINMESSLEN,recvcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,61,timestamp,"Error waiting %s message\n","MSG_IPADDR_OK");
-            kill(sshchildpid,SIGKILL) ;
+        if ( readmessage(tmpctrlsock,buffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+            printmessage(stderr,CASE_ERROR,61,BBftp_Timestamp,"Error waiting %s message\n","MSG_IPADDR_OK");
+            kill(BBftp_SSH_Childpid,SIGKILL) ;
             close(tmpctrlsock) ;
-            close(incontrolsock) ;
-            close(outcontrolsock) ;
+            close(BBftp_Incontrolsock) ;
+            close(BBftp_Outcontrolsock) ;
             return -1 ;
         }
         if ( msg->code != MSG_IPADDR_OK) {
-            printmessage(stderr,CASE_ERROR,65,timestamp,"Unknown message while waiting for %s message\n","MSG_IPADDR_OK");
+            printmessage(stderr,CASE_ERROR,65,BBftp_Timestamp,"Unknown message while waiting for %s message\n","MSG_IPADDR_OK");
             close(tmpctrlsock) ;
-            kill(sshchildpid,SIGKILL) ;
-            close(incontrolsock) ;
-            close(outcontrolsock) ;
+            kill(BBftp_SSH_Childpid,SIGKILL) ;
+            close(BBftp_Incontrolsock) ;
+            close(BBftp_Outcontrolsock) ;
             return -1 ;
         }
         close(tmpctrlsock) ;
@@ -494,28 +494,28 @@ int connectviapassword(void)
     ** Get the socket
     */
     
-    hisctladdr.sin_family = AF_INET;
-    hisctladdr.sin_port = htons(newcontrolport);
+    BBftp_His_Ctladdr.sin_family = AF_INET;
+    BBftp_His_Ctladdr.sin_port = htons(BBftp_Newcontrolport);
     if ( (tmpctrlsock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP )) < 0 ) {
-        printmessage(stderr,CASE_ERROR,51,timestamp, "Cannot create control socket : %s\n",strerror(errno));
+        printmessage(stderr,CASE_ERROR,51,BBftp_Timestamp, "Cannot create control socket : %s\n",strerror(errno));
         return -1 ;
     }
     /*
     ** Connect to the server
     */
-    addrlen = sizeof(hisctladdr) ;
-    if ( connect(tmpctrlsock,(struct sockaddr*)&hisctladdr,addrlen) < 0 ) {
+    addrlen = sizeof(BBftp_His_Ctladdr) ;
+    if ( connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,52,timestamp, "Cannot connect to control socket: %s\n",strerror(errno));
+        printmessage(stderr,CASE_ERROR,52,BBftp_Timestamp, "Cannot connect to control socket: %s\n",strerror(errno));
         return -1 ;
     }
     /*
     ** Get the socket name
     */
-    addrlen = sizeof(myctladdr) ;
-    if (getsockname(tmpctrlsock,(struct sockaddr*) &myctladdr, &addrlen) < 0) {
+    addrlen = sizeof(BBftp_My_Ctladdr) ;
+    if (getsockname(tmpctrlsock,(struct sockaddr*) &BBftp_My_Ctladdr, &addrlen) < 0) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,53,timestamp,"Error getsockname on control socket: %s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,53,BBftp_Timestamp,"Error getsockname on control socket: %s\n",strerror(errno)) ;
         return -1 ;
     }
     /*
@@ -524,15 +524,15 @@ int connectviapassword(void)
     /*
     **    Read the encryption supported
     */
-    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,54,timestamp,"Error reading encryption message\n") ;
+        printmessage(stderr,CASE_ERROR,54,BBftp_Timestamp,"Error reading encryption message\n") ;
         return -1 ;
     }
     msg = (struct message *) minbuffer ;
     if ( msg->code != MSG_CRYPT) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,55,timestamp,"No encryption message \n") ;
+        printmessage(stderr,CASE_ERROR,55,BBftp_Timestamp,"No encryption message \n") ;
         return -1 ;
     }
     /*
@@ -545,13 +545,13 @@ int connectviapassword(void)
 #endif
     if ( ( lreadbuffer = (char *) malloc (msglen + 1) ) == NULL ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,54,timestamp,"Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,54,BBftp_Timestamp,"Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
         return -1 ;
     }
-    if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
         free(lreadbuffer) ;
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s\n","type") ;
+        printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s\n","type") ;
         return -1 ;
     }
 
@@ -596,7 +596,7 @@ int connectviapassword(void)
         if ( (hisrsa = RSA_new()) == NULL) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting RSA",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s (%s)\n","getting RSA",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
         }
         /*
@@ -608,7 +608,7 @@ int connectviapassword(void)
 	    RSA_free (hisrsa);
 	    free (lreadbuffer);
 	    close (tmpctrlsock);
-            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
 	 }
        if (NULL == (rsa_e = BN_new()))
@@ -617,7 +617,7 @@ int connectviapassword(void)
 	    RSA_free (hisrsa);
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
 	 }
        if (1 != RSA_set0_key (hisrsa, rsa_n, rsa_e, NULL))
@@ -628,20 +628,20 @@ int connectviapassword(void)
 	    RSA_free (hisrsa);
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","RSA_set0_key",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s (%s)\n","RSA_set0_key",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
 	 }
 #else
         if ( (hisrsa->n = BN_new()) == NULL) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
         }
         if ( (hisrsa->e = BN_new()) == NULL) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s (%s)\n","getting BIGNUM",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
         }
 
@@ -655,42 +655,42 @@ int connectviapassword(void)
         if ( BN_mpi2bn(pubkey,lenkey,rsa_n) == NULL ) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","copying pubkey",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s (%s)\n","copying pubkey",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
         }
         if ( BN_mpi2bn(pubexponent,lenexpo,rsa_e) == NULL ) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","copying pubexponent",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s (%s)\n","copying pubexponent",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
         }
         lenrsa = RSA_size(hisrsa) ;
        
-        if ((int)strlen(username) > lenrsa - 41 ) {
+        if ((int)strlen(BBftp_Username) > lenrsa - 41 ) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_FATAL_ERROR,56,timestamp,"Error reading encrypted message : %s (%d/%d)\n","username too long",strlen(username),lenrsa-41) ;
+            printmessage(stderr,CASE_FATAL_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s (%d/%d)\n","username too long",strlen(BBftp_Username),lenrsa-41) ;
         }
-        if ((int)strlen(password) > lenrsa - 41 ) {
+        if ((int)strlen(BBftp_Password) > lenrsa - 41 ) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_FATAL_ERROR,56,timestamp,"Error reading encrypted message : %s (%d/%d)\n","password too long",strlen(password),lenrsa-41) ;
+            printmessage(stderr,CASE_FATAL_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s (%d/%d)\n","password too long",strlen(BBftp_Password),lenrsa-41) ;
             return -2 ;
         }
         msg_rsa = ( struct mess_rsa *) rsabuffer ;
-        if ( (msg_rsa->numuser = RSA_public_encrypt(strlen(username),(unsigned char *)username,msg_rsa->cryptuser,hisrsa,RSA_PKCS1_OAEP_PADDING)) < 0 ) {
+        if ( (msg_rsa->numuser = RSA_public_encrypt(strlen(BBftp_Username),(unsigned char *)BBftp_Username,msg_rsa->cryptuser,hisrsa,RSA_PKCS1_OAEP_PADDING)) < 0 ) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","RSA_public_encrypt username",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s (%s)\n","RSA_public_encrypt username",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
         }
 #ifndef WORDS_BIGENDIAN
         msg_rsa->numuser = ntohl(msg_rsa->numuser) ;
 #endif
-        if ( (msg_rsa->numpass = RSA_public_encrypt(strlen(password),(unsigned char *)password,msg_rsa->cryptpass,hisrsa,RSA_PKCS1_OAEP_PADDING)) < 0 ) {
+        if ( (msg_rsa->numpass = RSA_public_encrypt(strlen(BBftp_Password),(unsigned char *)BBftp_Password,msg_rsa->cryptpass,hisrsa,RSA_PKCS1_OAEP_PADDING)) < 0 ) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s (%s)\n","RSA_public_encrypt password",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
+            printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s (%s)\n","RSA_public_encrypt password",(char *) ERR_error_string(ERR_get_error(),NULL)) ;
             return -1 ;
         }
 #ifndef WORDS_BIGENDIAN
@@ -700,7 +700,7 @@ int connectviapassword(void)
     } else {
         free(lreadbuffer) ;
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,57,timestamp,"Unkown encryption method \n") ;
+        printmessage(stderr,CASE_ERROR,57,BBftp_Timestamp,"Unkown encryption method \n") ;
         return -1  ;
     }
     free(lreadbuffer) ;
@@ -717,9 +717,9 @@ int connectviapassword(void)
 #else
     msg->msglen = CRYPTMESSLEN+RSAMESSLEN ;
 #endif
-    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0) {
+    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,58,timestamp,"Error sending username : %s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,58,BBftp_Timestamp,"Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
     }
     /*
@@ -727,26 +727,26 @@ int connectviapassword(void)
     */
     msg_sec = (struct mess_sec *)cryptbuffer ;
     msg_sec->crtype = crtype ;
-    if ( writemessage(tmpctrlsock,cryptbuffer,CRYPTMESSLEN,recvcontrolto,0) < 0 ) {
+    if ( writemessage(tmpctrlsock,cryptbuffer,CRYPTMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,58,timestamp,"Error sending username : %s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,58,BBftp_Timestamp,"Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
     }
     /*
     ** Then real informations
     */
-    if ( writemessage(tmpctrlsock,rsabuffer,RSAMESSLEN,recvcontrolto,0) < 0) {
+    if ( writemessage(tmpctrlsock,rsabuffer,RSAMESSLEN,BBftp_Recvcontrolto,0) < 0) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,58,timestamp,"Error sending username : %s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,58,BBftp_Timestamp,"Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
     }
-    if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> USER %s PASS\n",username) ;
+    if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> USER %s PASS\n",BBftp_Username) ;
     /*
     ** Now wait for the OK message
     */
-    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","") ;
+        printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","") ;
         return -1 ;
     }
     msg = (struct message *) minbuffer ;
@@ -758,27 +758,27 @@ int connectviapassword(void)
         msglen = msg->msglen ;
 #endif
         if ( ( lreadbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
-            printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : malloc failed (%s) BAD message\n",strerror(errno)) ;
+            printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : malloc failed (%s) BAD message\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
             close(tmpctrlsock) ;
             free(lreadbuffer) ;
             if ( code == MSG_BAD ) {
-                printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","BAD message") ;
+                printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","BAD message") ;
                 return -1 ;
             } else {
-                printmessage(stderr,CASE_FATAL_ERROR,59,timestamp,"Error reading login message answer : %s\n","BAD NO RETRY message") ;
+                printmessage(stderr,CASE_FATAL_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","BAD NO RETRY message") ;
             }
         } else {
             close(tmpctrlsock) ;
             lreadbuffer[msglen] = '\0' ;
             if ( code == MSG_BAD ) {
-                printmessage(stderr,CASE_ERROR,100,timestamp,"%s\n",lreadbuffer) ;
+                printmessage(stderr,CASE_ERROR,100,BBftp_Timestamp,"%s\n",lreadbuffer) ;
                 free(lreadbuffer) ;
                 return -1 ;
             } else {
-                 printmessage(stderr,CASE_FATAL_ERROR,100,timestamp,"%s\n",lreadbuffer) ;
+                 printmessage(stderr,CASE_FATAL_ERROR,100,BBftp_Timestamp,"%s\n",lreadbuffer) ;
             }
         }
     } else if ( code == MSG_OK ) {
@@ -788,22 +788,22 @@ int connectviapassword(void)
         msglen = msg->msglen ;
 #endif
         if ( ( lreadbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
-            printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
+            printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","OK message") ;
+            printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","OK message") ;
             return -1 ;
         } else {
             lreadbuffer[msglen] = '\0' ;
-            if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< %s\n",lreadbuffer) ;
+            if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< %s\n",lreadbuffer) ;
             free(lreadbuffer) ;
         }    
     } else {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","Unkown answer message") ;
+        printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","Unkown answer message") ;
         return -1 ;
     }
 
@@ -814,7 +814,7 @@ int connectviapassword(void)
     } else {
         free(lreadbuffer) ;
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,57,timestamp,"Unkown encryption method \n") ;
+        printmessage(stderr,CASE_ERROR,57,BBftp_Timestamp,"Unkown encryption method \n") ;
         return -1  ;
     }
     free(lreadbuffer) ;
@@ -828,18 +828,18 @@ int connectviapassword(void)
 #else
     msg->msglen = CRYPTMESSLEN+RSAMESSLEN ;
 #endif
-    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0) {
+    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,58,timestamp,"Error sending username : %s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,58,BBftp_Timestamp,"Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
     }
-    if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> MSG_CRYPT message sent\n") ;
+    if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> MSG_CRYPT message sent\n") ;
     /*
     ** Now wait for the server decision
     */
-    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","") ;
+        printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","") ;
         return -1 ;
     }
     msg = (struct message *) minbuffer ;
@@ -851,27 +851,27 @@ int connectviapassword(void)
         msglen = msg->msglen ;
 #endif
         if ( ( lreadbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
-            printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : malloc failed (%s) BAD message\n",strerror(errno)) ;
+            printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : malloc failed (%s) BAD message\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
             close(tmpctrlsock) ;
             free(lreadbuffer) ;
             if ( code == MSG_BAD ) {
-                printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","BAD message") ;
+                printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","BAD message") ;
                 return -1 ;
             } else {
-                printmessage(stderr,CASE_FATAL_ERROR,59,timestamp,"Error reading login message answer : %s\n","BAD NO RETRY message") ;
+                printmessage(stderr,CASE_FATAL_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","BAD NO RETRY message") ;
             }
         } else {
             close(tmpctrlsock) ;
             lreadbuffer[msglen] = '\0' ;
             if ( code == MSG_BAD ) {
-                printmessage(stderr,CASE_ERROR,100,timestamp,"%s\n",lreadbuffer) ;
+                printmessage(stderr,CASE_ERROR,100,BBftp_Timestamp,"%s\n",lreadbuffer) ;
                 free(lreadbuffer) ;
                 return -1 ;
             } else {
-                 printmessage(stderr,CASE_FATAL_ERROR,100,timestamp,"%s\n",lreadbuffer) ;
+                 printmessage(stderr,CASE_FATAL_ERROR,100,BBftp_Timestamp,"%s\n",lreadbuffer) ;
             }
         }
     } else if ( code == MSG_OK ) {
@@ -881,22 +881,22 @@ int connectviapassword(void)
         msglen = msg->msglen ;
 #endif
         if ( ( lreadbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
-            printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
+            printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","OK message") ;
+            printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","OK message") ;
             return -1 ;
         } else {
             lreadbuffer[msglen] = '\0' ;
-            if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"%s\n", lreadbuffer) ;
+            if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"%s\n", lreadbuffer) ;
             free(lreadbuffer) ;
         }    
     } else {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","Unkown answer message") ;
+        printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","Unkown answer message") ;
         return -1 ;
     }
     /*
@@ -909,9 +909,9 @@ int connectviapassword(void)
 #else
     msg->msglen = CRYPTMESSLEN+RSAMESSLEN ;
 #endif
-    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0) {
+    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,58,timestamp,"Error sending username : %s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,58,BBftp_Timestamp,"Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
     }
     /*
@@ -919,22 +919,22 @@ int connectviapassword(void)
     */
     msg_sec = (struct mess_sec *)cryptbuffer ;
     msg_sec->crtype = NO_CRYPT ;
-    if ( writemessage(tmpctrlsock,cryptbuffer,CRYPTMESSLEN,recvcontrolto,0) < 0 ) {
+    if ( writemessage(tmpctrlsock,cryptbuffer,CRYPTMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,58,timestamp,"Error sending username : %s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,58,BBftp_Timestamp,"Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
     }
     /*
     ** Send uncrypted logon and password
     */
     msg_rsa = ( struct mess_rsa *) rsabuffer ;
-    msg_rsa->numuser = strlen(username) ;
-    strcpy((char *)msg_rsa->cryptuser, (char *)username) ;
+    msg_rsa->numuser = strlen(BBftp_Username) ;
+    strcpy((char *)msg_rsa->cryptuser, (char *)BBftp_Username) ;
 #ifndef WORDS_BIGENDIAN
     msg_rsa->numuser = ntohl(msg_rsa->numuser) ;
 #endif
-    msg_rsa->numpass = strlen(password) ;
-    strcpy((char *) msg_rsa->cryptpass, ( char *)password) ;
+    msg_rsa->numpass = strlen(BBftp_Password) ;
+    strcpy((char *) msg_rsa->cryptpass, ( char *)BBftp_Password) ;
 #ifndef WORDS_BIGENDIAN
     msg_rsa->numpass = ntohl(msg_rsa->numpass) ;
 #endif
@@ -942,18 +942,18 @@ int connectviapassword(void)
     /*
     ** Then real informations
     */
-    if ( writemessage(tmpctrlsock,rsabuffer,RSAMESSLEN,recvcontrolto,0) < 0) {
+    if ( writemessage(tmpctrlsock,rsabuffer,RSAMESSLEN,BBftp_Recvcontrolto,0) < 0) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,58,timestamp,"Error sending username : %s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,58,BBftp_Timestamp,"Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
     }
-    if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> USERNAME %s PASS\n",username) ;
+    if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> USERNAME %s PASS\n",BBftp_Username) ;
     /*
     ** Now wait for the OK message
     */
-    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","") ;
+        printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","") ;
         return -1 ;
     }
     msg = (struct message *) minbuffer ;
@@ -965,27 +965,27 @@ int connectviapassword(void)
         msglen = msg->msglen ;
 #endif
         if ( ( lreadbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
-            printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : malloc failed (%s) BAD message\n",strerror(errno)) ;
+            printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : malloc failed (%s) BAD message\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
             close(tmpctrlsock) ;
             free(lreadbuffer) ;
             if ( code == MSG_BAD ) {
-                printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","BAD message") ;
+                printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","BAD message") ;
                 return -1 ;
             } else {
-                printmessage(stderr,CASE_FATAL_ERROR,59,timestamp,"Error reading login message answer : %s\n","BAD NO RETRY message") ;
+                printmessage(stderr,CASE_FATAL_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","BAD NO RETRY message") ;
             }
         } else {
             close(tmpctrlsock) ;
             lreadbuffer[msglen] = '\0' ;
             if ( code == MSG_BAD ) {
-                printmessage(stderr,CASE_ERROR,100,timestamp,"%s\n",lreadbuffer) ;
+                printmessage(stderr,CASE_ERROR,100,BBftp_Timestamp,"%s\n",lreadbuffer) ;
                 free(lreadbuffer) ;
                 return -1 ;
             } else {
-                 printmessage(stderr,CASE_FATAL_ERROR,100,timestamp,"%s\n",lreadbuffer) ;
+                 printmessage(stderr,CASE_FATAL_ERROR,100,BBftp_Timestamp,"%s\n",lreadbuffer) ;
             }
         }
     } else if ( code == MSG_OK ) {
@@ -995,28 +995,28 @@ int connectviapassword(void)
         msglen = msg->msglen ;
 #endif
         if ( ( lreadbuffer = (char *) malloc(msglen + 1) ) == NULL ) {
-            printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
+            printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
-            printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","OK message") ;
+            printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","OK message") ;
             return -1 ;
         } else {
             lreadbuffer[msglen] = '\0' ;
-            if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< %s\n",lreadbuffer) ;
+            if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< %s\n",lreadbuffer) ;
             free(lreadbuffer) ;
         }    
     } else {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,59,timestamp,"Error reading login message answer : %s\n","Unkown answer message") ;
+        printmessage(stderr,CASE_ERROR,59,BBftp_Timestamp,"Error reading login message answer : %s\n","Unkown answer message") ;
         return -1 ;
     }
 
 #endif    
-    incontrolsock  = tmpctrlsock ;
-    outcontrolsock = tmpctrlsock ;
+    BBftp_Incontrolsock  = tmpctrlsock ;
+    BBftp_Outcontrolsock = tmpctrlsock ;
     return 0 ;
 }
 
@@ -1027,30 +1027,30 @@ int todoafterconnection()
     int     retcode ;
     /*
     ** Things to do are :
-    **      chdir remote if remotedir != NULL
-    **      chumask remote if remoteumask !=0
-    **      remotecos if != -1
+    **      chdir remote if BBftp_Remotedir != NULL
+    **      chumask remote if BBftp_remoteumask !=0
+    **      BBftp_Remotecos if != -1
     */
-    if ( remoteumask !=0 ) {
-        if ( bbftp_setremoteumask(remoteumask,&errcode) != 0 ) {
+    if ( BBftp_remoteumask !=0 ) {
+        if ( bbftp_setremoteumask(BBftp_remoteumask,&errcode) != 0 ) {
             return -1 ;
         }
     }
-    if ( remotecos != -1 ) {
-        if ( bbftp_setremotecos(remotecos,&errcode) != 0 ) {
+    if ( BBftp_Remotecos != -1 ) {
+        if ( bbftp_setremotecos(BBftp_Remotecos,&errcode) != 0 ) {
 	    return -1 ;
     }
     }
-    if ( remotedir != NULL ) {
+    if ( BBftp_Remotedir != NULL ) {
         /*
         ** Care has to be taken if we are under remoterfio
         ** We have first to change the option to noremoterfio,
         ** make the cd command and reset the option
         */
-        oldtransferoption = transferoption ;
-        transferoption = transferoption & ~TROPT_RFIO ;
-        retcode = bbftp_cd(remotedir,&errcode) ;
-        transferoption = oldtransferoption ;
+        oldtransferoption = BBftp_Transferoption ;
+        BBftp_Transferoption = BBftp_Transferoption & ~TROPT_RFIO ;
+        retcode = bbftp_cd(BBftp_Remotedir,&errcode) ;
+        BBftp_Transferoption = oldtransferoption ;
         if ( retcode != 0 ) return -1 ;
     }
     return 0 ;
@@ -1061,38 +1061,38 @@ void reconnecttoserver()
     int     retcode ;
   /*  add multiple addresses  */
     char **sav_h_addr_list;
-    if (hp) sav_h_addr_list = hp->h_addr_list;
+    if (BBftp_Hostent) sav_h_addr_list = BBftp_Hostent->h_addr_list;
 
-    for ( nbtrycon = 1 ; nbtrycon <= globaltrymax ; nbtrycon++ ) {
+    for ( nbtrycon = 1 ; nbtrycon <= BBftp_Globaltrymax ; nbtrycon++ ) {
         while (1) {
-            if (warning) printmessage(stderr,CASE_WARNING,28,timestamp,"connect to address %s\n",inet_ntoa(hisctladdr.sin_addr)) ;
+            if (BBftp_Warning) printmessage(stderr,CASE_WARNING,28,BBftp_Timestamp,"connect to address %s\n",inet_ntoa(BBftp_His_Ctladdr.sin_addr)) ;
 #if defined(PRIVATE_AUTH)
-            if ( debug ) printmessage(stdout,CASE_NORMAL,0,timestamp,"Private authentication...\n") ;
+            if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Private authentication...\n") ;
             retcode = bbftp_private_connect() ;
 #else
 # ifdef CERTIFICATE_AUTH
             if (usecert) {
-                if ( debug ) printmessage(stdout,CASE_NORMAL,0,timestamp,"Certificate authentication...\n") ;
+                if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Certificate authentication...\n") ;
                 retcode = bbftp_cert_connect() ;
                 /* stop at the first try */
 		/* NOT ANYMORE because of multiple IP */
 		/*
                 if (retcode != 0) {
-                    printmessage(stderr,CASE_FATAL_ERROR,33,timestamp,"Connection not established\n") ;
+                    printmessage(stderr,CASE_FATAL_ERROR,33,BBftp_Timestamp,"Connection not established\n") ;
                 }
 		*/
             } else
 # endif
-            if (usessh) {
-                if ( debug ) printmessage(stdout,CASE_NORMAL,0,timestamp,"SSH connection...\n") ;
+            if (BBftp_Use_SSH) {
+                if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"SSH connection...\n") ;
                 retcode = connectviassh() ;
             } else {
-                if ( debug ) printmessage(stdout,CASE_NORMAL,0,timestamp,"Password authentication...\n") ;
+                if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Password authentication...\n") ;
                 retcode = connectviapassword() ;
             }
 #endif
             if ( retcode == 0 ) {
-                if ( debug ) printmessage(stdout,CASE_NORMAL,0,timestamp,"Connection and authentication correct\n") ;
+                if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Connection and authentication correct\n") ;
                 if ( sendproto() == 0 ) {
                     retcode = todoafterconnection() ;
                     if ( retcode == 0 ) {
@@ -1105,25 +1105,25 @@ void reconnecttoserver()
                 }   
             } else {
       /* add  multiple addresses  */
-               if ( hp ) {
-                   if ( hp->h_addr_list[1] ) {
-                        hp->h_addr_list++;
-                        memcpy(&hisctladdr.sin_addr,hp->h_addr_list[0],  hp->h_length);
+               if ( BBftp_Hostent ) {
+                   if ( BBftp_Hostent->h_addr_list[1] ) {
+                        BBftp_Hostent->h_addr_list++;
+                        memcpy(&BBftp_His_Ctladdr.sin_addr,BBftp_Hostent->h_addr_list[0],  BBftp_Hostent->h_length);
                         continue;
                     } else {
-                        hp->h_addr_list = sav_h_addr_list;
-                        memcpy(&hisctladdr.sin_addr,hp->h_addr_list[0],  hp->h_length);
+                        BBftp_Hostent->h_addr_list = sav_h_addr_list;
+                        memcpy(&BBftp_His_Ctladdr.sin_addr,BBftp_Hostent->h_addr_list[0],  BBftp_Hostent->h_length);
                     }
                 }
                 break;
             }
         }
-        if ( nbtrycon != globaltrymax ) {
-            if (warning) printmessage(stderr,CASE_WARNING,22,timestamp,"Retrying connection waiting %d s\n",WAITRETRYTIME) ;
+        if ( nbtrycon != BBftp_Globaltrymax ) {
+            if (BBftp_Warning) printmessage(stderr,CASE_WARNING,22,BBftp_Timestamp,"Retrying connection waiting %d s\n",WAITRETRYTIME) ;
             sleep(WAITRETRYTIME) ;
         }
     }
-    if (nbtrycon == globaltrymax+1) {
-        printmessage(stderr,CASE_FATAL_ERROR,33,timestamp,"Maximum try on connection reached (%d) aborting\n",globaltrymax) ;
+    if (nbtrycon == BBftp_Globaltrymax+1) {
+        printmessage(stderr,CASE_FATAL_ERROR,33,BBftp_Timestamp,"Maximum try on connection reached (%d) aborting\n",BBftp_Globaltrymax) ;
     }
 }

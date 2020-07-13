@@ -69,39 +69,39 @@
 #endif
 */
 
-int     newcontrolport = CONTROLPORT ;
+int     BBftp_Newcontrolport = CONTROLPORT ;
 /* 
-** hisctladdr:
+** BBftp_His_Ctladdr:
 **      the remote address
 */
-struct sockaddr_in hisctladdr ;
+struct sockaddr_in BBftp_His_Ctladdr ;
 /* 
-** myctladdr:
+** BBftp_My_Ctladdr:
 **      the local address
 */
-struct sockaddr_in myctladdr ;
+struct sockaddr_in BBftp_My_Ctladdr ;
 
-int     incontrolsock ;
-int     outcontrolsock ;
+int     BBftp_Incontrolsock ;
+int     BBftp_Outcontrolsock ;
 /*
-** myexitcode :
+** Bbftp_Myexitcode :
 **      Contains the first error code that has to be return when program
 **      is ended
 */
-int     myexitcode = SETTOZERO ;
-char    *hostname   = NULL ;
-struct hostent  *hp = NULL ;
-char    *username   = NULL ;
-char    *password   = NULL ;
+int     Bbftp_Myexitcode = SETTOZERO ;
+char    *BBftp_Hostname   = NULL ;
+struct hostent  *BBftp_Hostent = NULL ;
+char    *BBftp_Username   = NULL ;
+char    *BBftp_Password   = NULL ;
 /*
 **
 */
-int connectionisbroken = SETTOZERO ;
+int BBftp_Connectionisbroken = SETTOZERO ;
 
-int	timestamp ;
-int	debug ;
-int		recvcontrolto	= CONTROLSOCKTO;
-int		sendcontrolto	= SENDCONTROLTO;
+int	BBftp_Timestamp ;
+int	BBftp_Debug ;
+int		BBftp_Recvcontrolto	= CONTROLSOCKTO;
+int		BBftp_Sendcontrolto	= SENDCONTROLTO;
 
 void printmessage(FILE *strm , int flag, int errcode, int tok, char *fmt, ...) 
 {
@@ -112,7 +112,7 @@ void printmessage(FILE *strm , int flag, int errcode, int tok, char *fmt, ...)
     va_start(ap,fmt);
     
     /*
-    ** If timestamp start to print the time
+    ** If BBftp_Timestamp start to print the time
     */
     if (tok) {
         /*
@@ -163,8 +163,8 @@ void printmessage(FILE *strm , int flag, int errcode, int tok, char *fmt, ...)
 void bbftp_close_control() 
 {
 
-    close(incontrolsock) ;
-    if ( incontrolsock != outcontrolsock) close(outcontrolsock) ;
+    close(BBftp_Incontrolsock) ;
+    if ( BBftp_Incontrolsock != BBftp_Outcontrolsock) close(BBftp_Outcontrolsock) ;
 }
 
 int main (int argc, char **argv)
@@ -173,7 +173,7 @@ int main (int argc, char **argv)
 ** Variable set by options
 */
 /*
-** For hostname
+** For BBftp_Hostname
 */  
     int     hosttype = 0 ;
     char    *calchostname ;
@@ -187,15 +187,15 @@ int main (int argc, char **argv)
 /*
 ** Get local umask 
 */
-    /*localumask = umask(0) ;*/
+    /*BBftp_Localumask = umask(0) ;*/
 /*
 ** and reset it to the correct value
 */
-    /*umask(localumask) ;*/
+    /*umask(BBftp_Localumask) ;*/
 /*
 ** Check for -v option
 */
-    debug = 0 ;
+    BBftp_Debug = 0 ;
 
     opterr = 0 ;
     optind = 1 ;
@@ -222,7 +222,7 @@ int main (int argc, char **argv)
                     fprintf(stderr,"Control port must be numeric\n") ;
 		    exit(1);
                 }
-                newcontrolport = alluse ;
+                BBftp_Newcontrolport = alluse ;
                 break ;
             }
             default : {
@@ -235,7 +235,7 @@ int main (int argc, char **argv)
 ** Check hostname
 */          
     if ( optind == argc-1 ) {
-        hostname= argv[optind] ;
+        BBftp_Hostname= argv[optind] ;
     } else {
         fprintf(stderr,"No hostname on command line\n") ;
 	exit(1);
@@ -244,9 +244,9 @@ int main (int argc, char **argv)
 ** Check if hostname is in numeric format 
 */
    j = 0;
-   while (hostname[j] != 0)
+   while (BBftp_Hostname[j] != 0)
      {
-	unsigned char ch = (unsigned char)hostname[j++];
+	unsigned char ch = (unsigned char)BBftp_Hostname[j++];
 
         if (isalpha(ch))
 	  {
@@ -256,10 +256,10 @@ int main (int argc, char **argv)
 	     hosttype = 1 ;
 	     break ;
 	  }
-	if (isdigit(hostname[j]) || (hostname[j] == '.'))
+	if (isdigit(BBftp_Hostname[j]) || (BBftp_Hostname[j] == '.'))
 	  continue;
 
-	fprintf(stderr,"Invalid hostname (%s)\n",hostname) ;
+	fprintf(stderr,"Invalid hostname (%s)\n",BBftp_Hostname) ;
 	exit(1);
     }
 
@@ -267,29 +267,29 @@ int main (int argc, char **argv)
        /*
        ** Numeric format 
        */
-        hisctladdr.sin_addr.s_addr = 0 ;
-        hisctladdr.sin_addr.s_addr = inet_addr(hostname) ;
-        if (hisctladdr.sin_addr.s_addr == INADDR_NONE ) {
-            fprintf(stderr,"Invalid IP address (%s)\n",hostname) ;
+        BBftp_His_Ctladdr.sin_addr.s_addr = 0 ;
+        BBftp_His_Ctladdr.sin_addr.s_addr = inet_addr(BBftp_Hostname) ;
+        if (BBftp_His_Ctladdr.sin_addr.s_addr == INADDR_NONE ) {
+            fprintf(stderr,"Invalid IP address (%s)\n",BBftp_Hostname) ;
 	    exit(1);
         }
-        calchostname = (char *)inet_ntoa(hisctladdr.sin_addr) ;
-        if ( strcmp(hostname,calchostname) ) {
-            fprintf(stderr,"Invalid IP address (%s)\n",hostname) ;
+        calchostname = (char *)inet_ntoa(BBftp_His_Ctladdr.sin_addr) ;
+        if ( strcmp(BBftp_Hostname,calchostname) ) {
+            fprintf(stderr,"Invalid IP address (%s)\n",BBftp_Hostname) ;
 	    exit(1);
         }
     } else {
        /*
        ** Alpha format 
        */
-        if ( (hp = gethostbyname((char *)hostname) ) == NULL ) {
-            fprintf(stderr,"Hostname no found (%s)\n",hostname) ;
+        if ( (BBftp_Hostent = gethostbyname((char *)BBftp_Hostname) ) == NULL ) {
+            fprintf(stderr,"BBftp_Hostname no found (%s)\n",BBftp_Hostname) ;
 	    exit(1);
         } else {
-            if (hp->h_length > (int)sizeof(hisctladdr.sin_addr)) {
-                hp->h_length = sizeof(hisctladdr.sin_addr);
+            if (BBftp_Hostent->h_length > (int)sizeof(BBftp_His_Ctladdr.sin_addr)) {
+                BBftp_Hostent->h_length = sizeof(BBftp_His_Ctladdr.sin_addr);
             }
-            memcpy(&hisctladdr.sin_addr, hp->h_addr_list[0], hp->h_length) ;
+            memcpy(&BBftp_His_Ctladdr.sin_addr, BBftp_Hostent->h_addr_list[0], BBftp_Hostent->h_length) ;
         }
     }
 
@@ -315,50 +315,50 @@ int main (int argc, char **argv)
     int     tmpctrlsock ;
     char    *readbuffer ;
 
-    hisctladdr.sin_family = AF_INET;
-    hisctladdr.sin_port = htons(newcontrolport);
+    BBftp_His_Ctladdr.sin_family = AF_INET;
+    BBftp_His_Ctladdr.sin_port = htons(BBftp_Newcontrolport);
     if ( (tmpctrlsock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP )) < 0 ) {
-        printmessage(stderr,CASE_ERROR,51,timestamp, "Cannot create control socket : %s\n",strerror(errno));
+        printmessage(stderr,CASE_ERROR,51,BBftp_Timestamp, "Cannot create control socket : %s\n",strerror(errno));
         return -1 ;
     }
     /*
     ** Connect to the server
     */
-    addrlen = sizeof(hisctladdr) ;
-    if ( connect(tmpctrlsock,(struct sockaddr*)&hisctladdr,addrlen) < 0 ) {
+    addrlen = sizeof(BBftp_His_Ctladdr) ;
+    if ( connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,52,timestamp, "Cannot connect to control socket: %s\n",strerror(errno));
+        printmessage(stderr,CASE_ERROR,52,BBftp_Timestamp, "Cannot connect to control socket: %s\n",strerror(errno));
         return -1 ;
     }
     /*
     ** Get the socket name
     */
-    addrlen = sizeof(myctladdr) ;
-    if (getsockname(tmpctrlsock,(struct sockaddr*) &myctladdr, &addrlen) < 0) {
+    addrlen = sizeof(BBftp_My_Ctladdr) ;
+    if (getsockname(tmpctrlsock,(struct sockaddr*) &BBftp_My_Ctladdr, &addrlen) < 0) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,53,timestamp,"Error getsockname on control socket: %s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,53,BBftp_Timestamp,"Error getsockname on control socket: %s\n",strerror(errno)) ;
         return -1 ;
     }
     /*
     ** Connection is correct get the encryption
     */
 
-	if (debug) printmessage(stdout,CASE_NORMAL,0,timestamp,"Connection established\n") ;
+	if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Connection established\n") ;
     /*
     **    Read the encryption supported
     */
-    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,54,timestamp,"Error reading encryption message\n") ;
+        printmessage(stderr,CASE_ERROR,54,BBftp_Timestamp,"Error reading encryption message\n") ;
         return -1 ;
     }
     msg = (struct message *) minbuffer ;
     if ( msg->code != MSG_CRYPT) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,55,timestamp,"No encryption message \n") ;
+        printmessage(stderr,CASE_ERROR,55,BBftp_Timestamp,"No encryption message \n") ;
         return -1 ;
     }
-	if (debug) printmessage(stdout,CASE_NORMAL,0,timestamp,"Received message 1\n") ;
+	if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Received message 1\n") ;
 #ifndef WORDS_BIGENDIAN
     msglen = ntohl(msg->msglen) ;
 #else
@@ -366,16 +366,16 @@ int main (int argc, char **argv)
 #endif
     if ( ( readbuffer = (char *) malloc (msglen + 1) ) == NULL ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,54,timestamp,"Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
+        printmessage(stderr,CASE_ERROR,54,BBftp_Timestamp,"Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
         return -1 ;
     }
-    if ( readmessage(tmpctrlsock,readbuffer,msglen,recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
         free(readbuffer) ;
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,56,timestamp,"Error reading encrypted message : %s\n","type") ;
+        printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s\n","type") ;
         return -1 ;
     }
-	if (debug) printmessage(stdout,CASE_NORMAL,0,timestamp,"Received message 2\n") ;
+	if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Received message 2\n") ;
     msg = (struct message *)minbuffer ;
     msg->code = MSG_SERVER_STATUS ;
 #ifndef WORDS_BIGENDIAN
@@ -383,7 +383,7 @@ int main (int argc, char **argv)
 #else
     msg->msglen = CRYPTMESSLEN+RSAMESSLEN ;
 #endif
-    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,sendcontrolto,0) < 0 ) {
+    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
         /*
         ** We were not able to send the minimum message so
         ** we are going to close the control socket and to 
@@ -393,12 +393,12 @@ int main (int argc, char **argv)
         close(tmpctrlsock) ;
         return -1 ;
     }
-	if (debug) printmessage(stdout,CASE_NORMAL,0,timestamp,"Sent message \n") ;
+	if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Sent message \n") ;
     /*
     ** Now we are going to wait for the message on the control 
     ** connection
     */
-        if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
             fprintf(stderr,"Error waiting %s message\n","MSG_OK (on MSG_SERVER_STATUS)");
             close(tmpctrlsock) ;
             return -1 ;
@@ -418,14 +418,14 @@ int main (int argc, char **argv)
                 close(tmpctrlsock) ;
                 return -1 ;
             }
-            if ( readmessage(tmpctrlsock,buffer,msglen,recvcontrolto,0) < 0) {
+            if ( readmessage(tmpctrlsock,buffer,msglen,BBftp_Recvcontrolto,0) < 0) {
                 fprintf(stderr,"Error reading data for %s message\n","MSG_OK (on MSG_DF)");
                 free(buffer) ;
                 close(tmpctrlsock) ;
                 return -1 ;
             } 
             buffer[msglen] = '\0' ;
-            printmessage(stdout,CASE_NORMAL,0,timestamp,"%s\n", buffer) ;
+            printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"%s\n", buffer) ;
             free(buffer) ;
             close(tmpctrlsock) ;
             return 0 ;
@@ -448,7 +448,7 @@ int main (int argc, char **argv)
     ** We do not care of the result because this routine is called
     ** only at the end of the client
     */
-    writemessage(tmpctrlsock,minbuffer,MINMESSLEN,sendcontrolto,0) ;
+    writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) ;
     sleep(1) ;
     bbftp_close_control() ;
     exit(0) ;

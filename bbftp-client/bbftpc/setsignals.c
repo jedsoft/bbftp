@@ -57,20 +57,20 @@ void bbftp_sigint(int sig)
     ** Check if a transfer is occuring
     ** if yes kill the child, destroy the children, and erase the file 
     */
-    if ( state == 1 ) {
-        if ( realfilename != NULL ) bbftp_storeunlink(realfilename) ;
+    if ( BBftp_State == 1 ) {
+        if ( BBftp_Realfilename != NULL ) bbftp_storeunlink(BBftp_Realfilename) ;
     }
     bbftp_clean_child() ;
     /*
     ** Check if cennected through ssh
     ** if yes kill the child and exit
     */
-    if (usessh) {
-        if ( sshchildpid != 0) {
-             kill(sshchildpid,SIGKILL) ;
+    if (BBftp_Use_SSH) {
+        if ( BBftp_SSH_Childpid != 0) {
+             kill(BBftp_SSH_Childpid,SIGKILL) ;
         }
     }
-    printmessage(stderr,CASE_FATAL_ERROR,33,timestamp,"Killed by SIGINT\n") ;    
+    printmessage(stderr,CASE_FATAL_ERROR,33,BBftp_Timestamp,"Killed by SIGINT\n") ;    
 }
 void bbftp_sigterm(int sig) 
 {
@@ -79,20 +79,20 @@ void bbftp_sigterm(int sig)
     ** Check if a transfer is occuring
     ** if yes kill the child, destroy the children, and erase the file 
     */
-    if ( state == 1 ) {
-        if ( realfilename != NULL ) bbftp_storeunlink(realfilename) ;
+    if ( BBftp_State == 1 ) {
+        if ( BBftp_Realfilename != NULL ) bbftp_storeunlink(BBftp_Realfilename) ;
     }
     bbftp_clean_child() ;
     /*
     ** Check if cennected through ssh
     ** if yes kill the child and exit
     */
-    if (usessh) {
-        if ( sshchildpid != 0) {
-             kill(sshchildpid,SIGKILL) ;
+    if (BBftp_Use_SSH) {
+        if ( BBftp_SSH_Childpid != 0) {
+             kill(BBftp_SSH_Childpid,SIGKILL) ;
         }
     }
-    printmessage(stderr,CASE_FATAL_ERROR,34,timestamp,"Killed by SIGTERM\n") ;    
+    printmessage(stderr,CASE_FATAL_ERROR,34,BBftp_Timestamp,"Killed by SIGTERM\n") ;    
 }
 
 
@@ -104,51 +104,51 @@ void blockallsignals()
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0   ;
     if ( sigaction(SIGABRT,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGABRT : %s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGABRT : %s\n",strerror(errno)) ;
     }
     if ( sigaction(SIGALRM,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGALRM : s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGALRM : s\n",strerror(errno)) ;
     }
     if ( sigaction(SIGHUP,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGHUP : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGHUP : %s \n",strerror(errno)) ;
     }
     if ( sigaction(SIGINT,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGINT : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGINT : %s \n",strerror(errno)) ;
     }
     if ( sigaction(SIGPIPE,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGPIPE : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGPIPE : %s \n",strerror(errno)) ;
     }
     if ( sigaction(SIGQUIT,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGQUIT : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGQUIT : %s \n",strerror(errno)) ;
     }
     if ( sigaction(SIGTERM,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGTERM : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGTERM : %s \n",strerror(errno)) ;
     }
     if ( sigaction(SIGUSR1,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGUSR1 : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGUSR1 : %s \n",strerror(errno)) ;
     }
     if ( sigaction(SIGUSR2,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGUSR2 : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGUSR2 : %s \n",strerror(errno)) ;
     }
     if ( sigaction(SIGTSTP,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGTSTP : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGTSTP : %s \n",strerror(errno)) ;
     }
 #ifndef DARWIN
     if ( sigaction(SIGPOLL,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGPOLL : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGPOLL : %s \n",strerror(errno)) ;
     }
 #endif
 #ifdef SIGPROF
     if ( sigaction(SIGPROF,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGPROF : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGPROF : %s \n",strerror(errno)) ;
     }
 #endif
     if ( sigaction(SIGURG,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGURG : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGURG : %s \n",strerror(errno)) ;
     }
 #ifdef SIGVTALRM
     if ( sigaction(SIGVTALRM,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGVTALRM : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGVTALRM : %s \n",strerror(errno)) ;
     }
 #endif
     sga.sa_handler= SIG_IGN ;
@@ -159,7 +159,7 @@ void blockallsignals()
     sga.sa_flags = SA_NOCLDSTOP   ;
 #endif
     if ( sigaction(SIGCHLD,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGCHLD : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGCHLD : %s \n",strerror(errno)) ;
     }
 }
 
@@ -171,13 +171,13 @@ void bbftp_setsignals()
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0   ;
     if ( sigaction(SIGINT,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGINT : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGINT : %s \n",strerror(errno)) ;
     }
     sga.sa_handler= bbftp_sigterm ;
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0   ;
     if ( sigaction(SIGTERM,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGTERM : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGTERM : %s \n",strerror(errno)) ;
     }
 }
 void bbftp_setsignal_sigchld() 
@@ -188,7 +188,7 @@ void bbftp_setsignal_sigchld()
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0   ;
     if ( sigaction(SIGCHLD,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGCHLD : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGCHLD : %s \n",strerror(errno)) ;
     }
 }
 void bbftp_unsetsignal_sigchld() 
@@ -199,6 +199,6 @@ void bbftp_unsetsignal_sigchld()
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0   ;
     if ( sigaction(SIGCHLD,&sga,0) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,32,timestamp,"Error setting signal SIGCHLD : %s \n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,32,BBftp_Timestamp,"Error setting signal SIGCHLD : %s \n",strerror(errno)) ;
     }
 }

@@ -31,9 +31,9 @@
 #include <bbftp_private_user.h>
 
 /*
-** username contain a pointer to the string given with the -u flag
+** BBftp_Username contain a pointer to the string given with the -u flag
 */
-/* extern char *username ; */
+/* extern char *BBftp_Username ; */
 /*
 ** privatestr contain a pointer to the string given with the -P flag
 */

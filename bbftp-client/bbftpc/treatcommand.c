@@ -69,7 +69,7 @@ int treatcommand(char *buffercmd)
     char    *localfilename ;
     
     if ( (dupbuffercmd = (char *) malloc (strlen(buffercmd)+1) ) == NULL ) {
-        printmessage(stderr,CASE_FATAL_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","dupbuffercmd",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","dupbuffercmd",strerror(errno)) ;
     }
     strcpy (dupbuffercmd, buffercmd);
     /*
@@ -134,13 +134,13 @@ int treatcommand(char *buffercmd)
          !strncmp(mybuffercmd,"setsendcontrolto",16) ||
          !strncmp(mybuffercmd,"setackto",8) ||
          !strncmp(mybuffercmd,"setdatato",9) ) {
-        for ( nbtry = 1 ; nbtry <= globaltrymax ; nbtry++ ) {
+        for ( nbtry = 1 ; nbtry <= BBftp_Globaltrymax ; nbtry++ ) {
             /*
             ** check if the last try was not disconnected
             */
-            if ( connectionisbroken == 1 ) {
+            if ( BBftp_Connectionisbroken == 1 ) {
                 reconnecttoserver() ;
-                connectionisbroken = 0 ;
+                BBftp_Connectionisbroken = 0 ;
             }
             if (!strncmp(mybuffercmd,"cd",2) ) {
 /*******************************************************************************
@@ -150,8 +150,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** cd needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -160,8 +160,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** cd needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -177,8 +177,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** dir needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -187,8 +187,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** cd needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -210,8 +210,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** get needs one or two parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -220,8 +220,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** get needs one or two parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -232,44 +232,44 @@ int treatcommand(char *buffercmd)
                     ** Only one name
                     */
                     if ( (remotefilename = (char *) malloc (strlen(action)+1)) == NULL ) {
-                        printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
-                        myexitcode = 35 ;
+                        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
+                        Bbftp_Myexitcode = 35 ;
                         free(dupbuffercmd) ;
                         return -1 ;
                     }
-                    if ( (curfilename = (char *) malloc (strlen(action)+1) ) == NULL ) {
-                        printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","curfilename",strerror(errno)) ;
-                        myexitcode = 35 ;
+                    if ( (BBftp_Curfilename = (char *) malloc (strlen(action)+1) ) == NULL ) {
+                        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Curfilename",strerror(errno)) ;
+                        Bbftp_Myexitcode = 35 ;
                         free(dupbuffercmd) ;
                         free(remotefilename) ;
                         return -1 ;
                     }
-                    if ( (realfilename = (char *) malloc (strlen(action)+30)) == NULL ) {
-                        printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","realfilename",strerror(errno)) ;
-                        myexitcode = 35 ;
+                    if ( (BBftp_Realfilename = (char *) malloc (strlen(action)+30)) == NULL ) {
+                        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Realfilename",strerror(errno)) ;
+                        Bbftp_Myexitcode = 35 ;
                         free(dupbuffercmd) ;
                         free(remotefilename) ;
-                        free(curfilename) ;
-                        curfilename=NULL ;
+                        free(BBftp_Curfilename) ;
+                        BBftp_Curfilename=NULL ;
                        return -1 ;
                     }
                     /*
                     ** We usesscanf  in order to avoid white space
                     */
-                    sscanf(action,"%s",curfilename) ;
+                    sscanf(action,"%s",BBftp_Curfilename) ;
                     sscanf(action,"%s",remotefilename) ;
-                    if ( (transferoption & TROPT_TMP) == TROPT_TMP ) {
+                    if ( (BBftp_Transferoption & TROPT_TMP) == TROPT_TMP ) {
 #ifdef CASTOR
-                        if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
-                            sprintf(realfilename,"%s",curfilename) ;
+                        if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+                            sprintf(BBftp_Realfilename,"%s",BBftp_Curfilename) ;
                         } else {
-                            sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
+                            sprintf(BBftp_Realfilename,"%s.bbftp.tmp.%s.%d",BBftp_Curfilename,lhostname,getpid()) ;
                         }
 #else                         
-                        sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
+                        sprintf(BBftp_Realfilename,"%s.bbftp.tmp.%s.%d",BBftp_Curfilename,lhostname,getpid()) ;
 #endif
                     } else {
-                        sprintf(realfilename,"%s",curfilename) ;
+                        sprintf(BBftp_Realfilename,"%s",BBftp_Curfilename) ;
                     }
                 } else {
                     while ( *startfn == ' ' ) startfn++ ;
@@ -278,97 +278,97 @@ int treatcommand(char *buffercmd)
                         ** Only one name
                         */
                         if ( (remotefilename = (char *) malloc (strlen(action)+1)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(remotefilename) ;
                             return -1 ;
                         }
-                        if ( (curfilename = (char *) malloc (strlen(action)+1) ) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","curfilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                        if ( (BBftp_Curfilename = (char *) malloc (strlen(action)+1) ) == NULL ) {
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Curfilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(remotefilename) ;
                             return -1 ;
                         }
-                        if ( (realfilename = (char *) malloc (strlen(action)+30)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","realfilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                        if ( (BBftp_Realfilename = (char *) malloc (strlen(action)+30)) == NULL ) {
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Realfilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(remotefilename) ;
-                            free(curfilename) ;
-                            curfilename=NULL ;
+                            free(BBftp_Curfilename) ;
+                            BBftp_Curfilename=NULL ;
                             return -1 ;
                         }
-                        sscanf(action,"%s",curfilename) ;
+                        sscanf(action,"%s",BBftp_Curfilename) ;
                         sscanf(action,"%s",remotefilename) ;
-                        if ( (transferoption & TROPT_TMP) == TROPT_TMP ) {
+                        if ( (BBftp_Transferoption & TROPT_TMP) == TROPT_TMP ) {
 #ifdef CASTOR
-                            if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
-                                sprintf(realfilename,"%s",curfilename) ;
+                            if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+                                sprintf(BBftp_Realfilename,"%s",BBftp_Curfilename) ;
                             } else {
-                                sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
+                                sprintf(BBftp_Realfilename,"%s.bbftp.tmp.%s.%d",BBftp_Curfilename,lhostname,getpid()) ;
                             }
 #else                         
-                            sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
+                            sprintf(BBftp_Realfilename,"%s.bbftp.tmp.%s.%d",BBftp_Curfilename,lhostname,getpid()) ;
 #endif
                         } else {
-                            sprintf(realfilename,"%s",curfilename) ;
+                            sprintf(BBftp_Realfilename,"%s",BBftp_Curfilename) ;
                         }
                     } else {
                         /*
                         ** two names
                         */
                         if ( (remotefilename = (char *) malloc (strlen(action)+1)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(remotefilename) ;
                             return -1 ;
                         }
-                        if ( (curfilename = (char *) malloc (strlen(startfn)+strlen(action)+1) ) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","curfilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                        if ( (BBftp_Curfilename = (char *) malloc (strlen(startfn)+strlen(action)+1) ) == NULL ) {
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Curfilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(remotefilename) ;
                             return -1 ;
                         }
-                        if ( (realfilename = (char *) malloc (strlen(startfn)+strlen(action)+30)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","realfilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                        if ( (BBftp_Realfilename = (char *) malloc (strlen(startfn)+strlen(action)+30)) == NULL ) {
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Realfilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(remotefilename) ;
-                            free(curfilename) ;
-                            curfilename=NULL ;
+                            free(BBftp_Curfilename) ;
+                            BBftp_Curfilename=NULL ;
                             return -1 ;
                         }
                         sscanf(action,"%s",remotefilename) ;
-                        sscanf(startfn,"%s",curfilename) ;
-                        /* If curfilename ends with '/', add remotefilename without path */
-                        if (*(curfilename+(strlen(curfilename)-1)) == '/') {
+                        sscanf(startfn,"%s",BBftp_Curfilename) ;
+                        /* If BBftp_Curfilename ends with '/', add remotefilename without path */
+                        if (*(BBftp_Curfilename+(strlen(BBftp_Curfilename)-1)) == '/') {
                             if (rindex(remotefilename, '/') != NULL) {
-                                sprintf(curfilename,"%s%s",startfn,rindex(remotefilename,'/'));
+                                sprintf(BBftp_Curfilename,"%s%s",startfn,rindex(remotefilename,'/'));
                             } else {
-                                sprintf(curfilename,"%s%s",startfn,remotefilename);
+                                sprintf(BBftp_Curfilename,"%s%s",startfn,remotefilename);
                             }
                         }
-                        if ( (transferoption & TROPT_TMP) == TROPT_TMP ) {
+                        if ( (BBftp_Transferoption & TROPT_TMP) == TROPT_TMP ) {
 #ifdef CASTOR
-                            if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
-                                sprintf(realfilename,"%s",curfilename) ;
+                            if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+                                sprintf(BBftp_Realfilename,"%s",BBftp_Curfilename) ;
                             } else {
-                                sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
+                                sprintf(BBftp_Realfilename,"%s.bbftp.tmp.%s.%d",BBftp_Curfilename,lhostname,getpid()) ;
                             }
 #else                         
-                            sprintf(realfilename,"%s.bbftp.tmp.%s.%d",curfilename,lhostname,getpid()) ;
+                            sprintf(BBftp_Realfilename,"%s.bbftp.tmp.%s.%d",BBftp_Curfilename,lhostname,getpid()) ;
 #endif
                         } else {
-                            sprintf(realfilename,"%s",curfilename) ;
+                            sprintf(BBftp_Realfilename,"%s",BBftp_Curfilename) ;
                         }
                     }
                 }
                 retcode = bbftp_get(remotefilename,&errcode) ;
-                state = 0 ;
+                BBftp_State = 0 ;
                 free(remotefilename) ;
             } else if (  !strncmp(mybuffercmd,"lcd",3) ) {
 /*******************************************************************************
@@ -378,8 +378,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** lcd needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -388,8 +388,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** lcd needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -405,8 +405,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** get needs one or two parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -415,8 +415,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** get needs one or two parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -427,14 +427,14 @@ int treatcommand(char *buffercmd)
                     ** Only one name
                     */
                     if ( (remotefilename = (char *) malloc (strlen(action)+1)) == NULL ) {
-                        printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
-                        myexitcode = 35 ;
+                        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
+                        Bbftp_Myexitcode = 35 ;
                         free(dupbuffercmd) ;
                         return -1 ;
                     }
                     if ( (localfilename = (char *) malloc (2+1)) == NULL ) {
-                        printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","localfilename",strerror(errno)) ;
-                        myexitcode = 35 ;
+                        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","localfilename",strerror(errno)) ;
+                        Bbftp_Myexitcode = 35 ;
                         free(dupbuffercmd) ;
                         free(remotefilename) ;
                         return -1 ;
@@ -451,14 +451,14 @@ int treatcommand(char *buffercmd)
                         ** Only one name
                         */
                         if ( (remotefilename = (char *) malloc (strlen(action)+1)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             return -1 ;
                         }
                         if ( (localfilename = (char *) malloc (2+1)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","localfilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","localfilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(remotefilename) ;
                             return -1 ;
@@ -470,14 +470,14 @@ int treatcommand(char *buffercmd)
                         ** two names
                         */
                         if ( (remotefilename = (char *) malloc (strlen(action)+1)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             return -1 ;
                         }
                         if ( (localfilename = (char *) malloc (strlen(startfn)+1)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","localfilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","localfilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(remotefilename) ;
                             return -1 ;
@@ -497,8 +497,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** mkdir needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -507,8 +507,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** mkdir needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -524,8 +524,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** get needs one or two parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -534,8 +534,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** get needs one or two parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -546,14 +546,14 @@ int treatcommand(char *buffercmd)
                     ** Only one name
                     */
                     if ( (localfilename = (char *) malloc (strlen(action)+1)) == NULL ) {
-                        printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
-                        myexitcode = 35 ;
+                        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
+                        Bbftp_Myexitcode = 35 ;
                         free(dupbuffercmd) ;
                         return -1 ;
                     }
                     if ( (remotefilename = (char *) malloc (2+1)) == NULL ) {
-                        printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","localfilename",strerror(errno)) ;
-                        myexitcode = 35 ;
+                        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","localfilename",strerror(errno)) ;
+                        Bbftp_Myexitcode = 35 ;
                         free(dupbuffercmd) ;
                         free(localfilename) ;
                         return -1 ;
@@ -570,14 +570,14 @@ int treatcommand(char *buffercmd)
                         ** Only one name
                         */
                         if ( (localfilename = (char *) malloc (strlen(action)+1)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             return -1 ;
                         }
                         if ( (remotefilename = (char *) malloc (2+1)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","localfilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","localfilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(localfilename) ;
                             return -1 ;
@@ -589,14 +589,14 @@ int treatcommand(char *buffercmd)
                         ** two names
                         */
                         if ( (localfilename = (char *) malloc (strlen(action)+1)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             return -1 ;
                         }
                         if ( (remotefilename = (char *) malloc (strlen(startfn)+1)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","localfilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","localfilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(localfilename) ;
                             return -1 ;
@@ -616,8 +616,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** put needs one or two parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -626,8 +626,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** put needs one or two parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -638,33 +638,33 @@ int treatcommand(char *buffercmd)
                     ** Only one name
                     */
                     if ( (remotefilename = (char *) malloc (strlen(action)+1)) == NULL ) {
-                        printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
-                        myexitcode = 35 ;
+                        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
+                        Bbftp_Myexitcode = 35 ;
                         free(dupbuffercmd) ;
                         return -1 ;
                     }
-                    if ( (curfilename = (char *) malloc (strlen(action)+1) ) == NULL ) {
-                        printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","curfilename",strerror(errno)) ;
-                        myexitcode = 35 ;
+                    if ( (BBftp_Curfilename = (char *) malloc (strlen(action)+1) ) == NULL ) {
+                        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Curfilename",strerror(errno)) ;
+                        Bbftp_Myexitcode = 35 ;
                         free(dupbuffercmd) ;
                         free(remotefilename) ;
                         return -1 ;
                     }
-                    if ( (realfilename = (char *) malloc (strlen(action)+11)) == NULL ) {
-                        printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","realfilename",strerror(errno)) ;
-                        myexitcode = 35 ;
+                    if ( (BBftp_Realfilename = (char *) malloc (strlen(action)+11)) == NULL ) {
+                        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Realfilename",strerror(errno)) ;
+                        Bbftp_Myexitcode = 35 ;
                         free(dupbuffercmd) ;
                         free(remotefilename) ;
-                        free(curfilename) ;
-                        curfilename=NULL ;
+                        free(BBftp_Curfilename) ;
+                        BBftp_Curfilename=NULL ;
                        return -1 ;
                     }
                     /*
                     ** We usesscanf  in order to avoid white space
                     */
-                    sscanf(action,"%s",curfilename) ;
+                    sscanf(action,"%s",BBftp_Curfilename) ;
                     sscanf(action,"%s",remotefilename) ;
-                    sprintf(realfilename,"%s",curfilename) ;
+                    sprintf(BBftp_Realfilename,"%s",BBftp_Curfilename) ;
                 } else {
                     while ( *startfn == ' ' ) startfn++ ;
                     if ( *startfn == '\0' ) {
@@ -672,66 +672,66 @@ int treatcommand(char *buffercmd)
                         ** Only one name
                         */
                         if ( (remotefilename = (char *) malloc (strlen(action)+1)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(remotefilename) ;
                             return -1 ;
                         }
-                        if ( (curfilename = (char *) malloc (strlen(action)+1) ) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","curfilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                        if ( (BBftp_Curfilename = (char *) malloc (strlen(action)+1) ) == NULL ) {
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Curfilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(remotefilename) ;
                             return -1 ;
                         }
-                        if ( (realfilename = (char *) malloc (strlen(action)+11)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","realfilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                        if ( (BBftp_Realfilename = (char *) malloc (strlen(action)+11)) == NULL ) {
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Realfilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(remotefilename) ;
-                            free(curfilename) ;
-                            curfilename=NULL ;
+                            free(BBftp_Curfilename) ;
+                            BBftp_Curfilename=NULL ;
                             return -1 ;
                         }
-                        sscanf(action,"%s",curfilename) ;
+                        sscanf(action,"%s",BBftp_Curfilename) ;
                         sscanf(action,"%s",remotefilename) ;
-                        sprintf(realfilename,"%s",curfilename) ;
+                        sprintf(BBftp_Realfilename,"%s",BBftp_Curfilename) ;
                     } else {
                         /*
                         ** two names
                         */
                         if ( (remotefilename = (char *) malloc (strlen(startfn)+strlen(action)+1) ) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","remotefilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             return -1 ;
                         }
-                        if ( (curfilename = (char *) malloc (strlen(action)+1) ) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","curfilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                        if ( (BBftp_Curfilename = (char *) malloc (strlen(action)+1) ) == NULL ) {
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Curfilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
                             free(remotefilename);
                             return -1 ;
                         }
-                        if ( (realfilename = (char *) malloc (strlen(action)+11)) == NULL ) {
-                            printmessage(stderr,CASE_ERROR,35,timestamp,"Error allocating memory for %s : %s\n","realfilename",strerror(errno)) ;
-                            myexitcode = 35 ;
+                        if ( (BBftp_Realfilename = (char *) malloc (strlen(action)+11)) == NULL ) {
+                            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Realfilename",strerror(errno)) ;
+                            Bbftp_Myexitcode = 35 ;
                             free(dupbuffercmd) ;
-                            free(curfilename) ;
+                            free(BBftp_Curfilename) ;
                             free(remotefilename);
-                            curfilename=NULL ;
+                            BBftp_Curfilename=NULL ;
                             return -1 ;
                         }
-                        sscanf(action,"%s",curfilename) ;
-                        sprintf(realfilename,"%s",curfilename) ;
+                        sscanf(action,"%s",BBftp_Curfilename) ;
+                        sprintf(BBftp_Realfilename,"%s",BBftp_Curfilename) ;
                         sscanf(startfn,"%s",remotefilename) ;
-                        /* If remote file name ends with '/', add curfilename */
+                        /* If remote file name ends with '/', add BBftp_Curfilename */
                         if (*(remotefilename+(strlen(remotefilename)-1)) == '/') {
-                            if (rindex(curfilename, '/') != NULL) {
-                                sprintf(remotefilename,"%s%s",startfn,rindex(curfilename,'/'));
+                            if (rindex(BBftp_Curfilename, '/') != NULL) {
+                                sprintf(remotefilename,"%s%s",startfn,rindex(BBftp_Curfilename,'/'));
                             } else {
-                                sprintf(remotefilename,"%s%s",startfn,curfilename);
+                                sprintf(remotefilename,"%s%s",startfn,BBftp_Curfilename);
                             }
                         }
                     }
@@ -746,8 +746,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** rm needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -756,8 +756,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** rm needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -773,8 +773,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** stat needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -783,8 +783,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** mkdir needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -800,8 +800,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** stat needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -810,8 +810,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** mkdir needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -827,8 +827,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setbuffersize needs one parameter
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -837,21 +837,21 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setbuffersize needs one parameter
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = sscanf(action,"%d",&alluse) ;
                 if ( retcode != 1 || alluse <= 0) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (remoteumask must be numeric octal)\n",buffercmd) ;
-                    myexitcode = 26 ;
+                     printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (remoteumask must be numeric octal)\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                buffersizeperstream = alluse ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : %s\n",buffercmd) ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+                BBftp_Buffersizeperstream = alluse ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : %s\n",buffercmd) ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
                 free(dupbuffercmd) ;
                 return 0 ;
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
@@ -863,8 +863,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setlocalcos needs one parameter
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -873,21 +873,21 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setlocalcos needs one parameter
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = sscanf(action,"%o",&alluse) ;
                 if ( retcode != 1 /*|| alluse < 0*/) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (localcos must be numeric octal)\n",buffercmd) ;
-                    myexitcode = 26 ;
+                     printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (localcos must be numeric octal)\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                localcos = alluse ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : %s\n",buffercmd) ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+                BBftp_Localcos = alluse ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : %s\n",buffercmd) ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
                 free(dupbuffercmd) ;
                 return 0 ;
 #endif
@@ -899,8 +899,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setlocalumask needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -909,23 +909,23 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setlocalumask needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = sscanf(action,"%o",&ualluse) ;
                 if ( retcode != 1) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (localumask must be octal numeric)\n",buffercmd) ;
-                    myexitcode = 26 ;
+                     printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (localumask must be octal numeric)\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : %s\n",buffercmd) ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : %s\n",buffercmd) ;
                 umask(alluse) ;
-                localumask = ualluse ;
+                BBftp_Localumask = ualluse ;
                 free(dupbuffercmd) ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
                 return 0 ;
             } else if (  !strncmp(mybuffercmd,"setnbstream",11) ) {
 /*******************************************************************************
@@ -935,8 +935,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setnbstream needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -945,22 +945,22 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setnbstream needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = sscanf(action,"%d",&alluse) ;
                 if ( retcode != 1 || alluse <= 0 ) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (number of stream must be numeric)\n",buffercmd) ;
-                    myexitcode = 26 ;
+                     printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (number of stream must be numeric)\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : %s\n",buffercmd) ;
-                nbport = alluse ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : %s\n",buffercmd) ;
+                Bbftp_Nbport = alluse ;
                 free(dupbuffercmd) ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
                 return 0 ;
            } else if (  !strncmp(mybuffercmd,"setoption",9) ) {
 /*******************************************************************************
@@ -970,8 +970,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setoption needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -980,8 +980,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setoption needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -993,67 +993,67 @@ int treatcommand(char *buffercmd)
                 }
                 if ( !strncmp(action,"createdir",9) ) {
                     if ( nooption ) {
-                        transferoption = transferoption & ~TROPT_DIR ;
+                        BBftp_Transferoption = BBftp_Transferoption & ~TROPT_DIR ;
                     } else {
-                        transferoption = transferoption | TROPT_DIR ;
+                        BBftp_Transferoption = BBftp_Transferoption | TROPT_DIR ;
                    }
                 } else if ( !strncmp(action,"tmpfile",7) ) {
                     if ( nooption ) {
-                        transferoption = transferoption & ~TROPT_TMP ;
+                        BBftp_Transferoption = BBftp_Transferoption & ~TROPT_TMP ;
                     } else {
-                        transferoption = transferoption | TROPT_TMP ;
+                        BBftp_Transferoption = BBftp_Transferoption | TROPT_TMP ;
                    }
                 } else if ( !strncmp(action,"remoterfio",10) ) {
                     if ( nooption ) {
-                        transferoption = transferoption & ~TROPT_RFIO ;
+                        BBftp_Transferoption = BBftp_Transferoption & ~TROPT_RFIO ;
                     } else {
-                        transferoption = transferoption | TROPT_RFIO ;
+                        BBftp_Transferoption = BBftp_Transferoption | TROPT_RFIO ;
                     }
                 } else if ( !strncmp(action,"localrfio",9) ) {
                     if ( nooption ) {
-                        transferoption = transferoption & ~TROPT_RFIO_O ;
+                        BBftp_Transferoption = BBftp_Transferoption & ~TROPT_RFIO_O ;
                     } else {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
-                        transferoption = transferoption | TROPT_RFIO_O ;
+                        BBftp_Transferoption = BBftp_Transferoption | TROPT_RFIO_O ;
 #else
-                        printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (RFIO not supported)\n",buffercmd) ;
-                        myexitcode = 26 ;
+                        printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (RFIO not supported)\n",buffercmd) ;
+                        Bbftp_Myexitcode = 26 ;
                         free(dupbuffercmd) ;
                         return -1 ;
 #endif
                     }
                 } else if ( !strncmp(action,"keepmode",8) ) {
                     if ( nooption ) {
-                        transferoption = transferoption & ~TROPT_MODE ;
+                        BBftp_Transferoption = BBftp_Transferoption & ~TROPT_MODE ;
                     } else {
-                        transferoption = transferoption | TROPT_MODE ;
+                        BBftp_Transferoption = BBftp_Transferoption | TROPT_MODE ;
                     }
                 } else if ( !strncmp(action,"keepaccess",10) ) {
                     if ( nooption ) {
-                        transferoption = transferoption & ~TROPT_ACC ;
+                        BBftp_Transferoption = BBftp_Transferoption & ~TROPT_ACC ;
                     } else {
-                        transferoption = transferoption | TROPT_ACC ;
+                        BBftp_Transferoption = BBftp_Transferoption | TROPT_ACC ;
                     }
                 } else if ( !strncmp(action,"gzip",4) ) {
                     if ( nooption ) {
-                        transferoption = transferoption & ~TROPT_GZIP ;
+                        BBftp_Transferoption = BBftp_Transferoption & ~TROPT_GZIP ;
                     } else {
-                        transferoption = transferoption | TROPT_GZIP ;
+                        BBftp_Transferoption = BBftp_Transferoption | TROPT_GZIP ;
                     }
                 } else if ( !strncmp(action,"qbss",4) ) {
                     if ( nooption ) {
-                        transferoption = transferoption & ~TROPT_QBSS ;
+                        BBftp_Transferoption = BBftp_Transferoption & ~TROPT_QBSS ;
                     } else {
-                        transferoption = transferoption | TROPT_QBSS ;
+                        BBftp_Transferoption = BBftp_Transferoption | TROPT_QBSS ;
                     }
                 } else {
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : %s\n",buffercmd) ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : %s\n",buffercmd) ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
                 free(dupbuffercmd) ;
                 return 0 ;
             } else if (  !strncmp(mybuffercmd,"setremotecos",12) ) {
@@ -1064,8 +1064,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setremotecos needs one parameter
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -1074,20 +1074,20 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setremotecos needs one parameter
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = sscanf(action,"%d",&alluse) ;
                 if ( retcode != 1 /*|| alluse < 0*/ ) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (remotecos must be numeric octal)\n",buffercmd) ;
-                    myexitcode = 26 ;
+                     printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (remotecos must be numeric octal)\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = bbftp_setremotecos(alluse,&errcode) ;
-                if ( retcode == BB_RET_OK ) remotecos = alluse ;
+                if ( retcode == BB_RET_OK ) BBftp_Remotecos = alluse ;
             } else if (  !strncmp(mybuffercmd,"setremoteumask",14) ) {
 /*******************************************************************************
 ** setremoteumask                                                              *
@@ -1096,8 +1096,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setremoteumask needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -1106,20 +1106,20 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setremoteumask needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = sscanf(action,"%o",&ualluse) ;
                 if ( retcode != 1) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (remoteumask must be numeric octal)\n",buffercmd) ;
-                    myexitcode = 26 ;
+                     printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (remoteumask must be numeric octal)\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = bbftp_setremoteumask(ualluse,&errcode) ;
-                if ( retcode == BB_RET_OK ) remoteumask = ualluse ;
+                if ( retcode == BB_RET_OK ) BBftp_remoteumask = ualluse ;
             } else if (  !strncmp(mybuffercmd,"setrecvwinsize",14) ) {
 /*******************************************************************************
 ** setrecvwinsize                                                              *
@@ -1128,8 +1128,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setsendwinsize needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -1138,21 +1138,21 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setsendwinsize needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = sscanf(action,"%d",&alluse) ;
                 if ( retcode != 1 || alluse <= 0) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (recvwinsize must be numeric)\n",buffercmd) ;
-                    myexitcode = 26 ;
+                     printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (recvwinsize must be numeric)\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                recvwinsize = alluse ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : %s\n",buffercmd) ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+                BBftp_Recvwinsize = alluse ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : %s\n",buffercmd) ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
                 free(dupbuffercmd) ;
                 return 0 ;
             } else if (  !strncmp(mybuffercmd,"setsendwinsize",14) ) {
@@ -1163,8 +1163,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setsendwinsize needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -1173,21 +1173,21 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setsendwinsize needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = sscanf(action,"%d",&alluse) ;
                 if ( retcode != 1 || alluse <= 0 ) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (sendwinsize must be numeric)\n",buffercmd) ;
-                    myexitcode = 26 ;
+                     printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (sendwinsize must be numeric)\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                sendwinsize = alluse ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : %s\n",buffercmd) ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+                BBftp_Sendwinsize = alluse ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : %s\n",buffercmd) ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
                 free(dupbuffercmd) ;
                 return 0 ;
             } else if (  !strncmp(mybuffercmd,"setackto",8) ) {
@@ -1198,8 +1198,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setackto needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -1208,21 +1208,21 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setackto needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = sscanf(action,"%d",&alluse) ;
                 if ( retcode != 1 || alluse <= 0 ) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (ackto must be numeric)\n",buffercmd) ;
-                    myexitcode = 26 ;
+                     printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (ackto must be numeric)\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                ackto = alluse ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : %s\n",buffercmd) ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+                BBftp_Ackto = alluse ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : %s\n",buffercmd) ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
                 free(dupbuffercmd) ;
                 return 0 ;
             } else if (  !strncmp(mybuffercmd,"setrecvcontrolto",16) ) {
@@ -1233,8 +1233,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setrecvcontrolto needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -1243,21 +1243,21 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setrecvcontrolto needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = sscanf(action,"%d",&alluse) ;
                 if ( retcode != 1 || alluse <= 0 ) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (recvcontrolto must be numeric)\n",buffercmd) ;
-                    myexitcode = 26 ;
+                     printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (recvcontrolto must be numeric)\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                recvcontrolto = alluse ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : %s\n",buffercmd) ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+                BBftp_Recvcontrolto = alluse ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : %s\n",buffercmd) ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
                 free(dupbuffercmd) ;
                 return 0 ;
             } else if (  !strncmp(mybuffercmd,"setsendcontrolto",16) ) {
@@ -1268,8 +1268,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setsendcontrolto needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -1278,21 +1278,21 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setsendcontrolto needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = sscanf(action,"%d",&alluse) ;
                 if ( retcode != 1 || alluse <= 0 ) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (sendcontrolto must be numeric)\n",buffercmd) ;
-                    myexitcode = 26 ;
+                     printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (sendcontrolto must be numeric)\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                sendcontrolto = alluse ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : %s\n",buffercmd) ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+                BBftp_Sendcontrolto = alluse ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : %s\n",buffercmd) ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
                 free(dupbuffercmd) ;
                 return 0 ;
             } else if (  !strncmp(mybuffercmd,"setdatato",9) ) {
@@ -1303,8 +1303,8 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setdatato needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
@@ -1313,21 +1313,21 @@ int treatcommand(char *buffercmd)
                     /*
                     ** setdatato needs one parameters
                     */
-                    printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s\n",buffercmd) ;
-                    myexitcode = 26 ;
+                    printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
                 retcode = sscanf(action,"%d",&alluse) ;
                 if ( retcode != 1 || alluse <= 0 ) {
-                     printmessage(stderr,CASE_ERROR,26,timestamp,"Incorrect command : %s (datato must be numeric)\n",buffercmd) ;
-                    myexitcode = 26 ;
+                     printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s (datato must be numeric)\n",buffercmd) ;
+                    Bbftp_Myexitcode = 26 ;
                     free(dupbuffercmd) ;
                     return -1 ;
                 }
-                datato = alluse ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,">> COMMAND : %s\n",buffercmd) ;
-                if ( verbose) printmessage(stdout,CASE_NORMAL,0,timestamp,"<< OK\n") ;
+                BBftp_Datato = alluse ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : %s\n",buffercmd) ;
+                if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
                 free(dupbuffercmd) ;
                 return 0 ;
             }
@@ -1343,7 +1343,7 @@ int treatcommand(char *buffercmd)
                 /*
                 ** Fatal error no retry and connection is broken
                 */
-                connectionisbroken = 1 ;
+                BBftp_Connectionisbroken = 1 ;
                 break ;
             } else if ( retcode == BB_RET_OK ) {
                 /*
@@ -1354,7 +1354,7 @@ int treatcommand(char *buffercmd)
                 /*
                 ** Retry needed with a new connection
                 */
-                if ( nbtry != globaltrymax ) {
+                if ( nbtry != BBftp_Globaltrymax ) {
                     sleep(WAITRETRYTIME) ;
                     reconnecttoserver() ;
                 } else {
@@ -1363,20 +1363,20 @@ int treatcommand(char *buffercmd)
                     ** indicate to the next transfer that the connection
                     ** is broken
                     */
-                    connectionisbroken = 1 ;
+                    BBftp_Connectionisbroken = 1 ;
                 }
             } else {
                 /*
                 ** retcode > 0 means retry on this transfer
                 */
-                if ( nbtry != globaltrymax ) {
-                    if ( verbose ) printmessage(stdout,CASE_NORMAL,0,timestamp,"Retrying command waiting %d s\n",WAITRETRYTIME) ;
+                if ( nbtry != BBftp_Globaltrymax ) {
+                    if ( BBftp_Verbose ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Retrying command waiting %d s\n",WAITRETRYTIME) ;
                     sleep(WAITRETRYTIME) ;
                 }
             }
         }
         if ( retcode != 0 ) {
-            myexitcode = errcode ;
+            Bbftp_Myexitcode = errcode ;
             free(dupbuffercmd) ;
             return -1 ;
         } else {
@@ -1384,7 +1384,7 @@ int treatcommand(char *buffercmd)
             return 0 ;
         }
     } else {
-        printmessage(stderr,CASE_ERROR,25,timestamp,"Unkown command : %s\n",buffercmd) ;
+        printmessage(stderr,CASE_ERROR,25,BBftp_Timestamp,"Unkown command : %s\n",buffercmd) ;
         free(dupbuffercmd) ;
         return -1 ;
     }

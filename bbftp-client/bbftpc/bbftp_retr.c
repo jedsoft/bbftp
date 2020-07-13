@@ -127,7 +127,7 @@ int bbftp_retrlistdir(char *pattern,char **filelist,int *filelistlen,char *logme
     ** Check if it is a rfio creation
     */
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
-    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
         return bbftp_retrlistdir_rfio(pattern,filelist,filelistlen,logmessage,errcode) ;
     }
 #endif
@@ -410,7 +410,7 @@ int bbftp_retrcheckdir(char *filename,char *logmessage,int *errcode)
     ** Check if it is a rfio creation
     */
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
-    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
         return bbftp_retrcheckdir_rfio(filename,logmessage,errcode) ;
     }
 #endif
@@ -462,12 +462,12 @@ int bbftp_retrcheckdir(char *filename,char *logmessage,int *errcode)
 **          logmessage :  to write the error message in case of error          *
 **                                                                             *
 **      GLOBAL VARIABLE USED :                                                 *                                                                      *
-**          transferoption                      NOT MODIFIED                   * 
-**          filemode                            MODIFIED                       *
-**          lastaccess                          MODIFIED                       *
-**          lastmodif                           MODIFIED                       *
-**          filesize                            MODIFIED                       *
-**          requestedstreamnumber               POSSIBLY MODIFIED              *
+**          BBftp_Transferoption                      NOT MODIFIED                   * 
+**          BBftp_Filemode                            MODIFIED                       *
+**          BBftp_Lastaccess                          MODIFIED                       *
+**          BBftp_Lastmodif                           MODIFIED                       *
+**          BBftp_Filesize                            MODIFIED                       *
+**          BBftp_Requestedstreamnumber               POSSIBLY MODIFIED              *
 **                                                                             *
 **      RETURN:                                                                *
 **          -1  Unrecoverable error                                            *
@@ -489,7 +489,7 @@ int bbftp_retrcheckfile(char *filename,char *logmessage,int *errcode)
     ** Check if it is a rfio creation
     */
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
-    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
         return bbftp_retrcheckfile_rfio(filename,logmessage,errcode) ;
     }
 #endif
@@ -532,22 +532,22 @@ int bbftp_retrcheckfile(char *filename,char *logmessage,int *errcode)
         }
     }
     if (S_ISREG(statbuf.st_mode)) {
-        filemode = statbuf.st_mode & ~S_IFREG;
+        BBftp_Filemode = statbuf.st_mode & ~S_IFREG;
     } else {
-        filemode = statbuf.st_mode;
+        BBftp_Filemode = statbuf.st_mode;
     }
-    sprintf(lastaccess,"%08lx",statbuf.st_atime) ;
-    sprintf(lastmodif,"%08lx",statbuf.st_mtime) ;
-    lastaccess[8] = '\0' ;
-    lastmodif[8]  = '\0' ;
-    filesize = statbuf.st_size ;
-    tmpnbport = filesize/(buffersizeperstream*1024) ;
+    sprintf(BBftp_Lastaccess,"%08lx",statbuf.st_atime) ;
+    sprintf(BBftp_Lastmodif,"%08lx",statbuf.st_mtime) ;
+    BBftp_Lastaccess[8] = '\0' ;
+    BBftp_Lastmodif[8]  = '\0' ;
+    BBftp_Filesize = statbuf.st_size ;
+    tmpnbport = BBftp_Filesize/(BBftp_Buffersizeperstream*1024) ;
     if ( tmpnbport == 0 ) {
-        requestedstreamnumber = 1 ;
-    } else if ( tmpnbport < nbport ) {
-        requestedstreamnumber = tmpnbport ;
+        BBftp_Requestedstreamnumber = 1 ;
+    } else if ( tmpnbport < Bbftp_Nbport ) {
+        BBftp_Requestedstreamnumber = tmpnbport ;
     } else {
-        requestedstreamnumber = nbport ;
+        BBftp_Requestedstreamnumber = Bbftp_Nbport ;
     }
     return 0 ;   
 }
@@ -616,30 +616,30 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
     ** Check if it is a rfio transfer
     */
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)    
-    if ( (transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
+    if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
         return bbftp_retrtransferfile_rfio(filename,logmessage,errcode) ;
     }
 #endif
-    if (protocol == 2) { /* Active mode */
-      socknumber = mysockets ;
+    if (BBftp_Protocol == 2) { /* Active mode */
+      socknumber = BBftp_Mysockets ;
 	} else { /* Passive mode */
-	  portnumber = myports ;
+	  portnumber = BBftp_Myports ;
 	}
-    nbperchild = filesize/requestedstreamnumber ;
-    pidfree = mychildren ;
+    nbperchild = BBftp_Filesize/BBftp_Requestedstreamnumber ;
+    pidfree = BBftp_Mychildren ;
 
     /*
     ** Now start all our children
     */
-    for (i = 1 ; i <= requestedstreamnumber ; i++) {
-        if ( i == requestedstreamnumber ) {
+    for (i = 1 ; i <= BBftp_Requestedstreamnumber ; i++) {
+        if ( i == BBftp_Requestedstreamnumber ) {
             startpoint = (i-1)*nbperchild;
-            nbtosend = filesize-(nbperchild*(requestedstreamnumber-1)) ;
+            nbtosend = BBftp_Filesize-(nbperchild*(BBftp_Requestedstreamnumber-1)) ;
         } else {
             startpoint = (i-1)*nbperchild;
             nbtosend = nbperchild ;
         }
-        if (protocol == 2) {
+        if (BBftp_Protocol == 2) {
 		  sendsock = *socknumber ;
 		  socknumber++ ;
 		} else { /* Passive mode */
@@ -686,12 +686,12 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
             close(STDIN_FILENO) ;
             close(STDOUT_FILENO) ;
             close(STDERR_FILENO) ;
-            close(incontrolsock) ;
-            close(outcontrolsock) ; 
-			if (protocol == 2) { /* Active mode */
+            close(BBftp_Incontrolsock) ;
+            close(BBftp_Outcontrolsock) ; 
+			if (BBftp_Protocol == 2) { /* Active mode */
               int     *socktoclose ;
-              socktoclose = mysockets ;
-              for ( i=0 ; i< requestedstreamnumber ; i++ ) {
+              socktoclose = BBftp_Mysockets ;
+              for ( i=0 ; i< BBftp_Requestedstreamnumber ; i++ ) {
                 if ( *socktoclose !=  sendsock) close(*socktoclose) ;
                 socktoclose++ ;
               }
@@ -736,7 +736,7 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
             */
             wait_timer.tv_sec  = CHILDWAITTIME ;
             wait_timer.tv_usec = 0 ;
-            if (protocol == 2) {
+            if (BBftp_Protocol == 2) {
                 retcode = select(FD_SETSIZE,&selectmask,0,0,&wait_timer) ;
             } else {
                 retcode = select(FD_SETSIZE,0,&selectmask,0,&wait_timer) ;
@@ -764,7 +764,7 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
             ** At this point as we only set one bit we have 
             ** got a connection
             */
-			if (protocol == 2) { /* Active mode */
+			if (BBftp_Protocol == 2) { /* Active mode */
               if ( (ns = accept(sendsock,0,0) ) < 0 ) {
                 i = errno ;
                 close(fd) ;
@@ -782,22 +782,22 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
             ** Start the sending loop
             ** In simulation mode, simulate the transfer
             */
-            if (!simulation_mode) {
+            if (!BBftp_Simulation_Mode) {
               nbread = 0 ;
               while ( nbread < nbtosend ) {
-                if ( (numberread = read ( fd, readbuffer, ( (buffersizeperstream*1024) <= nbtosend - nbread) ?  (buffersizeperstream*1024) : nbtosend-nbread) ) > 0 ) {
+                if ( (numberread = read ( fd, BBftp_Readbuffer, ( (BBftp_Buffersizeperstream*1024) <= nbtosend - nbread) ?  (BBftp_Buffersizeperstream*1024) : nbtosend-nbread) ) > 0 ) {
                     nbread = nbread+numberread ;
 #ifdef WITH_GZIP
-                    if ( (transferoption & TROPT_GZIP ) == TROPT_GZIP ) {
+                    if ( (BBftp_Transferoption & TROPT_GZIP ) == TROPT_GZIP ) {
                         /*
                         ** In case of compression we are going to use
                         ** a temporary buffer
                         */
-                        bufcomplen = buffersizeperstream*1024 ;
+                        bufcomplen = BBftp_Buffersizeperstream*1024 ;
                         buflen = numberread ;
-                        retcode = compress((Bytef *)compbuffer,&bufcomplen,(Bytef *)readbuffer,buflen) ;
+                        retcode = compress((Bytef *)BBftp_Compbuffer,&bufcomplen,(Bytef *)BBftp_Readbuffer,buflen) ;
                         if ( retcode != 0 ) {
-                            msg_compress = ( struct mess_compress *) compbuffer;
+                            msg_compress = ( struct mess_compress *) BBftp_Compbuffer;
                             /*
                             ** Compress error, in this cas we are sending the
                             ** date uncompressed
@@ -811,8 +811,8 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
 #endif
                             realnbtosend = numberread ;
                         } else {
-                            memcpy(readbuffer,compbuffer,buffersizeperstream*1024) ;
-                            msg_compress = ( struct mess_compress *) compbuffer;
+                            memcpy(BBftp_Readbuffer,BBftp_Compbuffer,BBftp_Buffersizeperstream*1024) ;
+                            msg_compress = ( struct mess_compress *) BBftp_Compbuffer;
                             msg_compress->code = DATA_COMPRESS ;
                             lentosend = bufcomplen ;
 #ifndef WORDS_BIGENDIAN
@@ -825,7 +825,7 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
                         /*
                         ** Send the header
                         */
-                        if ( writemessage(ns,compbuffer,COMPMESSLEN,datato,1) < 0 ) {
+                        if ( writemessage(ns,BBftp_Compbuffer,COMPMESSLEN,BBftp_Datato,1) < 0 ) {
                             i = ETIMEDOUT ;
                             _exit(i) ;
                         }
@@ -844,7 +844,7 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
                         nfds = sysconf(_SC_OPEN_MAX) ;
                         FD_ZERO(&selectmask) ;
                         FD_SET(ns,&selectmask) ;
-                        wait_timer.tv_sec  = datato  ;
+                        wait_timer.tv_sec  = BBftp_Datato  ;
                         wait_timer.tv_usec = 0 ;
                         if ( (retcode = select(FD_SETSIZE,0,&selectmask,0,&wait_timer) ) == -1 ) {
                             /*
@@ -860,7 +860,7 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
                             close(ns) ;
                             _exit(i) ;
                         } else {
-                            retcode = send(ns,&readbuffer[nbsent],lentosend,0) ;
+                            retcode = send(ns,&BBftp_Readbuffer[nbsent],lentosend,0) ;
                             if ( retcode < 0 ) {
                                 i = errno ;
                                 close(fd) ;
@@ -887,11 +887,11 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
               /*
               ** All data has been sent so wait for the acknoledge
               */
-              if ( readmessage(ns,readbuffer,MINMESSLEN,ackto,1) < 0 ) {
+              if ( readmessage(ns,BBftp_Readbuffer,MINMESSLEN,BBftp_Ackto,1) < 0 ) {
                 close(ns) ;
                 _exit(ETIMEDOUT) ;
               }
-              msg = (struct message *) readbuffer ;
+              msg = (struct message *) BBftp_Readbuffer ;
               if ( msg->code != MSG_ACK) {
                 close(ns) ;
                 _exit(1) ;
