@@ -55,11 +55,11 @@ int bbftp_lcd(char *dirpath,int  *errcode)
 
     int     savederrno ;
 
-    if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : lcd %s\n",dirpath) ;
+    if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, ">> COMMAND : lcd %s\n",dirpath) ;
 
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
     if ( (BBftp_Transferoption & TROPT_RFIO_O) == TROPT_RFIO_O ) {
-        printmessage(stderr,CASE_ERROR,26,BBftp_Timestamp,"Incorrect command : %s\n","lcd not supported under RFIO") ;
+        printmessage(stderr,CASE_ERROR,26, "Incorrect command : %s\n","lcd not supported under RFIO") ;
         *errcode = 26 ;
         return BB_RET_FT_NR ;
     }
@@ -74,11 +74,11 @@ int bbftp_lcd(char *dirpath,int  *errcode)
                 savederrno == ENAMETOOLONG ||
                 savederrno == ENOTDIR ||
                 savederrno == ENOENT ) {
-            printmessage(stderr,CASE_ERROR,71,BBftp_Timestamp,"Error changing directory %s (%s)\n",dirpath,strerror(savederrno)) ;
+            printmessage(stderr,CASE_ERROR,71, "Error changing directory %s (%s)\n",dirpath,strerror(savederrno)) ;
             *errcode = 71 ;
             return BB_RET_FT_NR ;
         } else {
-            printmessage(stderr,CASE_ERROR,71,BBftp_Timestamp,"Error changing directory %s (%s)\n",dirpath,strerror(savederrno)) ;
+            printmessage(stderr,CASE_ERROR,71, "Error changing directory %s (%s)\n",dirpath,strerror(savederrno)) ;
             *errcode = 71 ;
             return BB_RET_ERROR ;
         }

@@ -30,6 +30,14 @@
 /*
 ** Prototype for store routines
 */
+
+#ifdef __GNUC__
+# define BBFTP_ATTRIBUTE_(x) __attribute__ (x)
+#else
+# define BBFTP_ATTRIBUTE_(x)
+#endif
+#define BBFTP_ATTRIBUTE_PRINTF(a,b) BBFTP_ATTRIBUTE_((format(printf,a,b)))
+
 int bbftp_storecheckfile(char *filename,char *logmessage,int *errcode) ;
 int bbftp_storechmod(char *filename,int mode,char *logmessage,int  *errcode) ;
 int bbftp_storeclosecastfile(char *filename,char *logmessage) ;
@@ -79,7 +87,8 @@ void strip_trailing_slashes (char *path) ;
 void bbftp_close_control(void)  ;
 void bbftp_free_all_var(void)  ;
 void bbftp_clean_child(void) ;
-void printmessage(FILE *strm , int flag, int errcode, int tok, char *fmt, ...) ;
+void printmessage(FILE *strm , int flag, int errcode, char *fmt, ...) BBFTP_ATTRIBUTE_PRINTF(4,5);
+void printstdout (const char *fmt, ...) BBFTP_ATTRIBUTE_PRINTF(1,2);
 void Usage(void) ;
 /*
 ** Prototype for signal routines

@@ -2,7 +2,7 @@
 # Makefile for bbftp
 #
 
-STDOBJS = bbftp.o\
+STDOBJS = bbftp.o bbftp_msg.o \
 		bbftp_cd.o\
 		bbftp_get.o\
 		bbftp_lcd.o\
@@ -32,7 +32,7 @@ STDOBJS = bbftp.o\
 
 OBJS = $(STDOBJS) @RFIOOBJS@ @CERTOBJS@ @PRIVOBJS@
 
-STATUS_OBJS = bbftpstatus.o writemessage.o readmessage.o
+STATUS_OBJS = bbftpstatus.o writemessage.o readmessage.o bbftp_msg.o
 #
 # Headers
 #
@@ -86,7 +86,7 @@ ${STATUS_PROG} :${STATUS_OBJS}
 	${CC} -o $@ ${STATUS_OBJS} ${LDFLAGS} ${LIBS} 
 
 clean:
-	rm -f ${OBJS} ${STATUS_OBJS} ${PROG} ${STATUS_PROG}
+	rm -f ${OBJS} ${STATUS_OBJS} ${PROG} ${STATUS_PROG} *~
 	rm -rf obj.@host@
 	rm -f config.cache
 	- cd ../gfw && make clean

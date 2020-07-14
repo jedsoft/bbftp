@@ -82,17 +82,17 @@ int getdatasock(int nbsock, int *errcode)
         sck.sin_port = 0;
         *mysockfree = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
         if ( *mysockfree < 0 ) {
-            printmessage(stderr,CASE_ERROR,91,BBftp_Timestamp,"Cannot create data socket: %s\n",strerror(errno));
+            printmessage(stderr,CASE_ERROR,91, "Cannot create data socket: %s\n",strerror(errno));
             *errcode = 91 ;
             return -1 ;
         }
         if ( setsockopt(*mysockfree,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0 ) {
-            printmessage(stderr,CASE_ERROR,92,BBftp_Timestamp,"Cannot set SO_REUSEADDR on data socket : %s\n",strerror(errno));
+            printmessage(stderr,CASE_ERROR,92, "Cannot set SO_REUSEADDR on data socket : %s\n",strerror(errno));
             *errcode = 92 ;
             return -1 ;
         }
         if ( setsockopt(*mysockfree,IPPROTO_TCP, TCP_NODELAY,(char *)&on,sizeof(on)) < 0 ) {
-            printmessage(stderr,CASE_ERROR,93,BBftp_Timestamp,"Cannot set TCP_NODELAY on data socket : : %s\n",strerror(errno));
+            printmessage(stderr,CASE_ERROR,93, "Cannot set TCP_NODELAY on data socket : : %s\n",strerror(errno));
             *errcode = 93 ;
             return -1 ;
         }
@@ -106,7 +106,7 @@ int getdatasock(int nbsock, int *errcode)
 		if ( (BBftp_Transferoption & TROPT_QBSS ) == TROPT_QBSS ) {
 			/* Setting the value for IP_TOS to be 0x20 */
 			if ( setsockopt(*mysockfree,IPPROTO_IP, IP_TOS, (char *)&qbss_value, sizeof(qbss_value)) < 0 ) {
-				printmessage(stderr,CASE_ERROR,93,BBftp_Timestamp, "Cannot set IP_TOS on data socket : : %s\n", strerror(errno)); 
+				printmessage(stderr,CASE_ERROR,93,  "Cannot set IP_TOS on data socket : : %s\n", strerror(errno)); 
 			}
 		}
 
@@ -118,24 +118,24 @@ int getdatasock(int nbsock, int *errcode)
         if ( setsockopt(*mysockfree,SOL_SOCKET, SO_SNDBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)) < 0 ) {
             addrlen = sizeof(tcpwinsize) ;
             if ( getsockopt(*mysockfree,SOL_SOCKET,SO_SNDBUF,(char *)&tcpwinsize,&addrlen) < 0 ) {
-                if ( BBftp_Warning) printmessage(stderr,CASE_WARNING,23,BBftp_Timestamp,"Unable to get send buffer size : %s\n",tcpwinsize,strerror(errno));
+                if ( BBftp_Warning) printmessage(stderr,CASE_WARNING,23, "Unable to get send buffer size : %d: %s\n",tcpwinsize,strerror(errno));
             } else {
-                if ( BBftp_Warning) printmessage(stderr,CASE_WARNING,24,BBftp_Timestamp,"Send buffer cannot be set to %d Bytes, Value is %d Bytes\n",1024*BBftp_Recvwinsize,tcpwinsize);
+                if ( BBftp_Warning) printmessage(stderr,CASE_WARNING,24, "Send buffer cannot be set to %d Bytes, Value is %d Bytes\n",1024*BBftp_Recvwinsize,tcpwinsize);
             }
         }
         tcpwinsize = 1024 * BBftp_Sendwinsize ;
         if ( setsockopt(*mysockfree,SOL_SOCKET, SO_RCVBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)) < 0 ) {
             addrlen = sizeof(tcpwinsize) ;
             if ( getsockopt(*mysockfree,SOL_SOCKET,SO_RCVBUF,(char *)&tcpwinsize,&addrlen) < 0 ) {
-                if ( BBftp_Warning) printmessage(stderr,CASE_WARNING,25,BBftp_Timestamp,"Unable to get receive buffer size : %s\n",tcpwinsize,strerror(errno));
+                if ( BBftp_Warning) printmessage(stderr,CASE_WARNING,25, "Unable to get receive buffer size %d : %s\n",tcpwinsize,strerror(errno));
             } else {
-                if ( BBftp_Warning) printmessage(stderr,CASE_WARNING,26,BBftp_Timestamp,"Receive buffer cannot be set to %d Bytes, Value is %d Bytes\n",1024*BBftp_Sendwinsize,tcpwinsize);
+                if ( BBftp_Warning) printmessage(stderr,CASE_WARNING,26, "Receive buffer cannot be set to %d Bytes, Value is %d Bytes\n",1024*BBftp_Sendwinsize,tcpwinsize);
             }
         }    
         li.l_onoff = 1 ;
         li.l_linger = 1 ;
         if ( setsockopt(*mysockfree,SOL_SOCKET,SO_LINGER,(char *)&li,sizeof(li)) < 0 ) {
-            printmessage(stderr,CASE_ERROR,94,BBftp_Timestamp,"Cannot set SO_LINGER on data socket : %s\n",strerror(errno));
+            printmessage(stderr,CASE_ERROR,94, "Cannot set SO_LINGER on data socket : %s\n",strerror(errno));
             *errcode = 94 ;
             return -1 ;
         }
@@ -145,30 +145,30 @@ int getdatasock(int nbsock, int *errcode)
                     if (bind(*mysockfree, (struct sockaddr *) &sck, sizeof(sck)) >= 0) break;
                 }
                 if (port>BBftp_Pasvport_Max) {
-                printmessage(stderr,CASE_ERROR,95,BBftp_Timestamp,"Cannot bind on data socket : %s\n",strerror(errno));
+                printmessage(stderr,CASE_ERROR,95, "Cannot bind on data socket : %s\n",strerror(errno));
                 *errcode = 95 ;
                 return -1 ;
                 }
         } else {
             if ( bind(*mysockfree, (struct sockaddr *) &sck ,sizeof(sck))  < 0) {
-                printmessage(stderr,CASE_ERROR,95,BBftp_Timestamp,"Cannot bind on data socket : %s\n",strerror(errno));
+                printmessage(stderr,CASE_ERROR,95, "Cannot bind on data socket : %s\n",strerror(errno));
                 *errcode = 95 ;
                return -1 ;
             }
         }
         addrlen = sizeof(sck) ;
         if (getsockname(*mysockfree,(struct sockaddr *)&sck, &addrlen) < 0) {
-            printmessage(stderr,CASE_ERROR,96,BBftp_Timestamp,"Cannot getsockname on data socket : %s\n",strerror(errno));
+            printmessage(stderr,CASE_ERROR,96, "Cannot getsockname on data socket : %s\n",strerror(errno));
             *errcode = 96 ;
             return -1 ;
            }
         if (listen(*mysockfree, 1) < 0) {
-		  printmessage(stderr,CASE_ERROR,97,BBftp_Timestamp,"Cannot listen on data socket : %s\n",strerror(errno));
+		  printmessage(stderr,CASE_ERROR,97, "Cannot listen on data socket : %s\n",strerror(errno));
             *errcode = 97 ;
             return -1 ;
         }
         *myportfree++ =  sck.sin_port ;
-        if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Listen on port %d\n", ntohs(sck.sin_port)) ;
+        if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Listen on port %d\n", ntohs(sck.sin_port)) ;
         mysockfree++ ;
     }
     return 0 ;

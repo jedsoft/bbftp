@@ -91,16 +91,16 @@ int bbftp_put(char *remotefilename,int  *errcode)
     int     status ;
     pid_t   pid ;
   
-    if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : put %s %s\n",BBftp_Curfilename,remotefilename) ;
+    if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, ">> COMMAND : put %s %s\n",BBftp_Curfilename,remotefilename) ;
     /*
     ** Check if file is correct 
     */
     if ( (retcode = bbftp_retrcheckfile(BBftp_Realfilename,logmessage,errcode)) < 0 ) {
-        printmessage(stderr,CASE_ERROR,*errcode,BBftp_Timestamp,"%s\n",logmessage);
+        printmessage(stderr,CASE_ERROR,*errcode, "%s\n",logmessage);
         bbftp_free_all_var() ;
         return  BB_RET_FT_NR ;
     } else if ( retcode > 0 ) {
-        printmessage(stderr,CASE_ERROR,*errcode,BBftp_Timestamp,"%s\n",logmessage);
+        printmessage(stderr,CASE_ERROR,*errcode, "%s\n",logmessage);
         bbftp_free_all_var() ;
         return BB_RET_ERROR ;
     }
@@ -117,7 +117,7 @@ int bbftp_put(char *remotefilename,int  *errcode)
         ** we are going to close the control socket and to 
         ** tell the calling program to restart a connection
         */
-        printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_STORE_V2");
+        printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_STORE_V2");
         *errcode = 64 ;
         bbftp_free_all_var() ;
         bbftp_close_control() ;
@@ -127,7 +127,7 @@ int bbftp_put(char *remotefilename,int  *errcode)
     /*
     ** Set up the parameters
     */
-    if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Accepted stream number = %d\n",BBftp_Requestedstreamnumber) ;
+    if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Accepted stream number = %d\n",BBftp_Requestedstreamnumber) ;
     msg_store_v2->transferoption = BBftp_Transferoption ;
     sprintf(msg_store_v2->lastaccess,"%s",BBftp_Lastaccess) ;
     sprintf(msg_store_v2->lastmodif,"%s",BBftp_Lastmodif) ;
@@ -152,7 +152,7 @@ int bbftp_put(char *remotefilename,int  *errcode)
         ** we are going to close the control socket and to 
         ** tell the calling program to restart a connection
         */
-        printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_STORE_V2 (data)");
+        printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_STORE_V2 (data)");
         *errcode = 64 ;
         bbftp_free_all_var() ;
         bbftp_close_control() ;
@@ -169,14 +169,14 @@ int bbftp_put(char *remotefilename,int  *errcode)
     msg->msglen =  strlen(remotefilename);
 #endif
     if ( writemessage(BBftp_Outcontrolsock,sendbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
-        printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_FILENAME");
+        printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_FILENAME");
         *errcode = 64 ;
         bbftp_free_all_var() ;
         bbftp_close_control() ;
         return BB_RET_CONN_BROKEN ; /* restart connection */
     }
     if ( writemessage(BBftp_Outcontrolsock,remotefilename,strlen(remotefilename),BBftp_Sendcontrolto,0) < 0 ) {
-        printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_FILENAME (filename)");
+        printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_FILENAME (filename)");
         *errcode = 64 ;
         bbftp_free_all_var() ;
         bbftp_close_control() ;
@@ -203,7 +203,7 @@ waitcontrol1:
             ** we have got an error so close the connection
             ** and restart
             */
-            printmessage(stderr,CASE_ERROR,66,BBftp_Timestamp,"Error select on control connection : %s\n",strerror(errno));
+            printmessage(stderr,CASE_ERROR,66, "Error select on control connection : %s\n",strerror(errno));
             *errcode = 66 ;
             bbftp_free_all_var() ;
             bbftp_close_control() ;
@@ -224,7 +224,7 @@ waitcontrol1:
         */
         msg = (struct message *)sendbuffer ;
         if ( readmessage(BBftp_Incontrolsock,sendbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,61,BBftp_Timestamp,"Error waiting %s message\n","MSG_OK (on MSG_STORE_V2)");
+            printmessage(stderr,CASE_ERROR,61, "Error waiting %s message\n","MSG_OK (on MSG_STORE_V2)");
             *errcode = 61 ;
             bbftp_free_all_var() ;
             bbftp_close_control() ;
@@ -242,14 +242,14 @@ waitcontrol1:
             msglen = msg->msglen ;
 #endif
             if ( (buffer = (char *) malloc(msglen+1) ) == NULL) {
-                printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","buffer 1 (bbftp_put)",strerror(errno)) ;
+                printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","buffer 1 (bbftp_put)",strerror(errno)) ;
                 *errcode = 35 ;
                 bbftp_free_all_var() ;
                 bbftp_close_control() ;
                 return BB_RET_CONN_BROKEN ;
             }
             if ( readmessage(BBftp_Incontrolsock,buffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
-                printmessage(stderr,CASE_ERROR,67,BBftp_Timestamp,"Error reading data for %s message\n","MSG_BAD (on MSG_STORE_V2)");
+                printmessage(stderr,CASE_ERROR,67, "Error reading data for %s message\n","MSG_BAD (on MSG_STORE_V2)");
                 *errcode = 67 ;
                 bbftp_free_all_var() ;
                 bbftp_close_control() ;
@@ -261,8 +261,8 @@ waitcontrol1:
                 }
             } else {
                 buffer[msglen] = '\0' ;
-                 printmessage(stderr,CASE_ERROR,100,BBftp_Timestamp,"%s\n",buffer) ;
-                if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< %s\n",buffer) ;
+                 printmessage(stderr,CASE_ERROR,100, "%s\n",buffer) ;
+                if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "<< %s\n",buffer) ;
                 free(buffer) ;
                 *errcode = 100 ;
                 if ( code == MSG_BAD ) {
@@ -288,14 +288,14 @@ waitcontrol1:
             msglen = msg->msglen ;
 #endif
             if ( (buffer = (char *) malloc(msglen+1) ) == NULL) {
-                printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","buffer 2 (bbftp_put)",strerror(errno)) ;
+                printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","buffer 2 (bbftp_put)",strerror(errno)) ;
                 *errcode = 35 ;
                 bbftp_free_all_var() ;
                 bbftp_close_control() ;
                 return BB_RET_CONN_BROKEN ;
             }
             if ( readmessage(BBftp_Incontrolsock,buffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
-                printmessage(stderr,CASE_ERROR,67,BBftp_Timestamp,"Error reading data for %s message\n","MSG_TRANS_OK_V2");
+                printmessage(stderr,CASE_ERROR,67, "Error reading data for %s message\n","MSG_TRANS_OK_V2");
                 *errcode = 67 ;
                 bbftp_free_all_var() ;
                 bbftp_close_control() ;
@@ -310,7 +310,7 @@ waitcontrol1:
                 BBftp_Requestedstreamnumber   = msg_store_v2->nbstream ;
 #endif
                 if ( (BBftp_Myports = (int *) malloc (BBftp_Requestedstreamnumber*sizeof(int)) ) == NULL ) {
-                    printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","ports buffer",strerror(errno)) ;
+                    printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","ports buffer",strerror(errno)) ;
                     *errcode = 35 ;
                     bbftp_free_all_var() ;
                     bbftp_close_control() ;
@@ -318,7 +318,7 @@ waitcontrol1:
                     return BB_RET_CONN_BROKEN ;
                 }
                 if ( readmessage(BBftp_Incontrolsock,(char *) BBftp_Myports,BBftp_Requestedstreamnumber*sizeof(int),BBftp_Recvcontrolto,0) < 0 ) {
-                    printmessage(stderr,CASE_ERROR,68,BBftp_Timestamp,"Error reading ports for %s message\n","MSG_TRANS_OK_V3");
+                    printmessage(stderr,CASE_ERROR,68, "Error reading ports for %s message\n","MSG_TRANS_OK_V3");
                     *errcode = 68 ;
                     bbftp_free_all_var() ;
                     bbftp_close_control() ;
@@ -330,7 +330,7 @@ waitcontrol1:
 #ifndef WORDS_BIGENDIAN
                         *portfree = ntohl(*portfree) ;
 #endif
-                        if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Reading port:%d\n",*portfree);
+                        if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Reading port:%d\n",*portfree);
                         portfree++ ;
                     }
 				}
@@ -345,7 +345,7 @@ waitcontrol1:
             msglen = msg->msglen ;
 #endif
             discardmessage(BBftp_Incontrolsock,msglen,BBftp_Recvcontrolto,0) ;
-            if ( BBftp_Verbose ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
+            if ( BBftp_Verbose ) printmessage(stdout,CASE_NORMAL,0, "<< OK\n") ;
             bbftp_free_all_var() ;
             return BB_RET_OK ;
         } else {
@@ -359,7 +359,7 @@ waitcontrol1:
 #else
             msglen = msg->msglen ;
 #endif
-            printmessage(stderr,CASE_ERROR,62,BBftp_Timestamp,"Unknown message (%d,%d) while waiting for %s message\n",code,msglen,"MSG_TRANS_OK_V2");
+            printmessage(stderr,CASE_ERROR,62, "Unknown message (%d,%d) while waiting for %s message\n",code,msglen,"MSG_TRANS_OK_V2");
             *errcode = 62 ;
             bbftp_free_all_var() ;
             bbftp_close_control() ;
@@ -378,7 +378,7 @@ waitcontrol1:
 #endif
     if ( (BBftp_Transferoption & TROPT_GZIP ) == TROPT_GZIP 
         && (msg_store_v2->transferoption & TROPT_GZIP) != TROPT_GZIP ) {
-        if (BBftp_Warning) printmessage(stderr,CASE_WARNING,27,BBftp_Timestamp,"The server cannot handle compression: option ignored\n");
+        if (BBftp_Warning) printmessage(stderr,CASE_WARNING,27, "The server cannot handle compression: option ignored\n");
         BBftp_Transferoption = BBftp_Transferoption & ~TROPT_GZIP ;
     }
     free(buffer) ;
@@ -387,7 +387,7 @@ waitcontrol1:
 	** Not used in passive mode but necessary to avoid freeing something NULL later
     */
     if ( (buffer = (char *) malloc (BBftp_Requestedstreamnumber*sizeof(int))) == NULL) {
-        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","buffer 3 (bbftp_put)",strerror(errno));
+        printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","buffer 3 (bbftp_put)",strerror(errno));
         *errcode = 35 ;
         msg = (struct message *)sendbuffer ;
         msg->code = MSG_ABORT ;
@@ -397,7 +397,7 @@ waitcontrol1:
         msg->msglen = 0;
 #endif
         if ( writemessage(BBftp_Outcontrolsock,sendbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_ABORT");
+            printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_ABORT");
             *errcode = 64 ;
             bbftp_free_all_var() ;
             bbftp_close_control() ;
@@ -410,7 +410,7 @@ waitcontrol1:
     ** We are reserving the memory for the children pid
     */
     if ( (BBftp_Mychildren = (int *) malloc (BBftp_Requestedstreamnumber*sizeof(int))) == NULL) {
-        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Mychildren (bbftp_get)",strerror(errno));
+        printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","BBftp_Mychildren (bbftp_get)",strerror(errno));
         *errcode = 35 ;
         msg = (struct message *)sendbuffer ;
         msg->code = MSG_ABORT ;
@@ -420,7 +420,7 @@ waitcontrol1:
         msg->msglen = 0;
 #endif
         if ( writemessage(BBftp_Outcontrolsock,sendbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_ABORT");
+            printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_ABORT");
             *errcode = 64 ;
             bbftp_free_all_var() ;
             bbftp_close_control() ;
@@ -442,7 +442,7 @@ waitcontrol1:
     ** We are reserving the memory for the readbuffer
     */
     if ( (BBftp_Readbuffer = (char *) malloc (BBftp_Buffersizeperstream*1024)) == NULL) {
-        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Readbuffer (bbftp_get)",strerror(errno));
+        printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","BBftp_Readbuffer (bbftp_get)",strerror(errno));
         *errcode = 35 ;
         msg = (struct message *)sendbuffer ;
         msg->code = MSG_ABORT ;
@@ -452,7 +452,7 @@ waitcontrol1:
         msg->msglen = 0;
 #endif
         if ( writemessage(BBftp_Outcontrolsock,sendbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_ABORT");
+            printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_ABORT");
             *errcode = 64 ;
             bbftp_free_all_var() ;
             bbftp_close_control() ;
@@ -470,7 +470,7 @@ waitcontrol1:
 #ifdef WITH_GZIP
     if ( (BBftp_Transferoption & TROPT_GZIP ) == TROPT_GZIP ) {
         if ( (BBftp_Compbuffer = (char *) malloc (BBftp_Buffersizeperstream*1024)) == NULL) {
-            printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Compbuffer (bbftp_get)",strerror(errno));
+            printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","BBftp_Compbuffer (bbftp_get)",strerror(errno));
             *errcode = 35 ;
             msg = (struct message *)sendbuffer ;
             msg->code = MSG_ABORT ;
@@ -480,7 +480,7 @@ waitcontrol1:
             msg->msglen = 0;
 #endif
             if ( writemessage(BBftp_Outcontrolsock,sendbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
-                printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_ABORT");
+                printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_ABORT");
                 *errcode = 64 ;
                 bbftp_free_all_var() ;
                 bbftp_close_control() ;
@@ -498,7 +498,7 @@ waitcontrol1:
     */
     if ( BBftp_Protocol == 2 ) { /* ACTIVE MODE */
       if ( (BBftp_Myports = (int *) malloc (BBftp_Requestedstreamnumber*sizeof(int)) ) == NULL ) {
-        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Myports (bbftp_get)",strerror(errno));
+        printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","BBftp_Myports (bbftp_get)",strerror(errno));
         *errcode = 35 ;
         msg = (struct message *)sendbuffer ;
         msg->code = MSG_ABORT ;
@@ -508,7 +508,7 @@ waitcontrol1:
         msg->msglen = 0;
 #endif
         if ( writemessage(BBftp_Outcontrolsock,sendbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_ABORT");
+            printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_ABORT");
             *errcode = 64 ;
             bbftp_free_all_var() ;
             bbftp_close_control() ;
@@ -521,7 +521,7 @@ waitcontrol1:
 	  }
 	}
     if ( (BBftp_Mysockets = (int *) malloc (BBftp_Requestedstreamnumber*sizeof(int)) ) == NULL ) {
-        printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","BBftp_Mysockets (bbftp_get)",strerror(errno));
+        printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","BBftp_Mysockets (bbftp_get)",strerror(errno));
         *errcode = 35 ;
         msg = (struct message *)sendbuffer ;
         msg->code = MSG_ABORT ;
@@ -531,7 +531,7 @@ waitcontrol1:
         msg->msglen = 0;
 #endif
         if ( writemessage(BBftp_Outcontrolsock,sendbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_ABORT");
+            printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_ABORT");
             *errcode = 64 ;
             bbftp_free_all_var() ;
             bbftp_close_control() ;
@@ -567,7 +567,7 @@ waitcontrol1:
         msg->msglen = 0;
 #endif
         if ( writemessage(BBftp_Outcontrolsock,sendbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_ABORT");
+            printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_ABORT");
             *errcode = 64 ;
             bbftp_free_all_var() ;
             bbftp_close_control() ;
@@ -591,7 +591,7 @@ waitcontrol1:
             if ( *mysockfree > 0 ) close(*mysockfree) ;
             mysockfree++ ;
         }
-        printmessage(stderr,CASE_ERROR,*errcode,BBftp_Timestamp,"%s\n",logmessage);
+        printmessage(stderr,CASE_ERROR,*errcode, "%s\n",logmessage);
         bbftp_free_all_var() ;
         free(buffer) ;
         return BB_RET_ERROR ;
@@ -625,7 +625,7 @@ waitcontrol1:
         ** we are going to close the control socket and to 
         ** tell the calling program to restart a connection
         */
-        printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_TRANS_START_V2");
+        printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_TRANS_START_V2");
         *errcode = 64 ;
         /*
         ** First kill all child
@@ -650,7 +650,7 @@ waitcontrol1:
       }
 
       if ( writemessage(BBftp_Outcontrolsock,buffer,BBftp_Requestedstreamnumber*sizeof(int),BBftp_Sendcontrolto,0) < 0) {
-        printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_TRANS_START_V2 (ports)");
+        printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_TRANS_START_V2 (ports)");
         *errcode = 64 ;
         /*
         ** First kill all child
@@ -676,7 +676,7 @@ waitcontrol1:
             if ( *mysockfree > 0 ) close(*mysockfree) ;
             mysockfree++ ;
         }
-        printmessage(stderr,CASE_ERROR,*errcode,BBftp_Timestamp,"%s\n",logmessage);
+        printmessage(stderr,CASE_ERROR,*errcode, "%s\n",logmessage);
         bbftp_free_all_var() ;
         free(buffer) ;
         return BB_RET_ERROR ;
@@ -710,7 +710,7 @@ waitcontrol1:
         ** we are going to close the control socket and to 
         ** tell the calling program to restart a connection
         */
-        printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_TRANS_START_V3");
+        printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_TRANS_START_V3");
         *errcode = 64 ;
         /*
         ** First kill all child
@@ -744,7 +744,7 @@ waitcontrol:
             ** we have got an error so close the connection
             ** and restart
             */
-            printmessage(stderr,CASE_ERROR,66,BBftp_Timestamp,"Error select on control connection : %s\n",strerror(errno) );
+            printmessage(stderr,CASE_ERROR,66, "Error select on control connection : %s\n",strerror(errno) );
             *errcode = 66 ;
             /*
             ** Kill all child 
@@ -802,7 +802,7 @@ waitcontrol:
         ** Second time without any child 
         ** Bad thing so abort 
         */
-        printmessage(stderr,CASE_ERROR,37,BBftp_Timestamp,"No more child\n");
+        printmessage(stderr,CASE_ERROR,37, "No more child\n");
         *errcode = 37 ;
         bbftp_free_all_var() ;
         bbftp_close_control() ;
@@ -812,7 +812,7 @@ waitcontrol:
         ** read the message
         */
         if ( readmessage(BBftp_Incontrolsock,sendbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,61,BBftp_Timestamp,"Error waiting %s message\n","MSG_OK (on MSG_TRANS_START_V2)");
+            printmessage(stderr,CASE_ERROR,61, "Error waiting %s message\n","MSG_OK (on MSG_TRANS_START_V2)");
             *errcode = 61 ;
             /*
             ** Kill all child 
@@ -833,9 +833,9 @@ waitcontrol:
 #else
             msglen = msg->msglen ;
 #endif
-            if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"BAD message length = %d\n",msglen) ;
+            if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0, "BAD message length = %d\n",msglen) ;
             if ( ( buffer = (char *) malloc (msglen+1) ) == NULL ) {
-                printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","buffer 4 (bbftp_get)",strerror(errno));
+                printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","buffer 4 (bbftp_get)",strerror(errno));
                 *errcode = 35 ;
                 pidfree = BBftp_Mychildren ;
                 for ( i=0 ; i<BBftp_Requestedstreamnumber ; i++) {
@@ -848,7 +848,7 @@ waitcontrol:
                 return BB_RET_CONN_BROKEN ; /* restart connection */
             }
             if ( readmessage(BBftp_Incontrolsock,buffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
-                printmessage(stderr,CASE_ERROR,67,BBftp_Timestamp,"Error reading data for %s message\n","MSG_BAD (on MSG_TRANS_START_V2)");
+                printmessage(stderr,CASE_ERROR,67, "Error reading data for %s message\n","MSG_BAD (on MSG_TRANS_START_V2)");
                 *errcode = 67 ;
                 /*
                 ** Kill all child 
@@ -864,8 +864,8 @@ waitcontrol:
                 */
                 bbftp_clean_child() ;
                 buffer[msglen] = '\0' ;
-                 printmessage(stderr,CASE_ERROR,100,BBftp_Timestamp,"%s\n",buffer) ;
-                if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< %s\n",buffer) ;
+                 printmessage(stderr,CASE_ERROR,100, "%s\n",buffer) ;
+                if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "<< %s\n",buffer) ;
                 bbftp_free_all_var() ;
                 free(buffer) ;
                 *errcode = 100 ;
@@ -882,7 +882,7 @@ waitcontrol:
             msglen = msg->msglen ;
 #endif
             discardmessage(BBftp_Incontrolsock,msglen,BBftp_Recvcontrolto,0) ;
-            if ( BBftp_Verbose ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
+            if ( BBftp_Verbose ) printmessage(stdout,CASE_NORMAL,0, "<< OK\n") ;
             (void) gettimeofday(&tend, (struct timezone *)0);
             tdiff.tv_sec = tend.tv_sec - tstart.tv_sec ;
             tdiff.tv_usec = tend.tv_usec - tstart.tv_usec;
@@ -891,10 +891,10 @@ waitcontrol:
 #define nz(x)   ((x) == 0 ? 1 : (x))
             bs = BBftp_Filesize / nz(s);
             if (!BBftp_Simulation_Mode) {
-                if ( BBftp_Verbose ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"%" LONG_LONG_FORMAT" bytes send in %.3g secs (%.3g Kbytes/sec or %.3g Mbits/s)\n", BBftp_Filesize, s, bs / 1024.0,(8.0*bs) / (1024.0 * 1024.0));
+                if ( BBftp_Verbose ) printmessage(stdout,CASE_NORMAL,0, "%" LONG_LONG_FORMAT" bytes send in %.3g secs (%.3g Kbytes/sec or %.3g Mbits/s)\n", BBftp_Filesize, s, bs / 1024.0,(8.0*bs) / (1024.0 * 1024.0));
             }
             if ( BBftp_Statoutput ) {
-                printmessage(stdout,CASE_NORMAL,0,0,"put %" LONG_LONG_FORMAT" %.3f %d %d %d %d %s\n"
+                printstdout("put %" LONG_LONG_FORMAT" %.3f %d %d %d %d %s\n"
                             , BBftp_Filesize, s, BBftp_Buffersizeperstream, BBftp_Sendwinsize, BBftp_Recvwinsize, BBftp_Requestedstreamnumber
                             , ((BBftp_Transferoption & TROPT_GZIP ) == TROPT_GZIP) ? "gzip" : "nogzip" );
             }
@@ -911,7 +911,7 @@ waitcontrol:
             msglen = msg->msglen ;
 #endif
             if ( ( buffer = (char *) malloc (msglen+1) ) == NULL ) {
-                printmessage(stderr,CASE_ERROR,35,BBftp_Timestamp,"Error allocating memory for %s : %s\n","buffer 5 (bbftp_get)",strerror(errno));
+                printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","buffer 5 (bbftp_get)",strerror(errno));
                 *errcode = 35 ;
                 bbftp_clean_child() ;
                 bbftp_free_all_var() ;
@@ -919,7 +919,7 @@ waitcontrol:
                 return BB_RET_CONN_BROKEN ; /* restart connection */
             }
             if ( readmessage(BBftp_Incontrolsock,buffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
-                printmessage(stderr,CASE_ERROR,67,BBftp_Timestamp,"Error reading data for %s message\n","MSG_INFO (on MSG_TRANS_START_V2)");
+                printmessage(stderr,CASE_ERROR,67, "Error reading data for %s message\n","MSG_INFO (on MSG_TRANS_START_V2)");
                 *errcode = 67 ;
                 /*
                 ** Kill all child 
@@ -931,7 +931,7 @@ waitcontrol:
                 return BB_RET_CONN_BROKEN ; /* restart connection */
             }
             buffer[msglen] = '\0' ;
-            if (BBftp_Warning) printmessage(stderr,CASE_WARNING,100,BBftp_Timestamp,"%s\n",buffer);
+            if (BBftp_Warning) printmessage(stderr,CASE_WARNING,100, "%s\n",buffer);
             free(buffer) ;
             goto waitcontrol ;
         } else {
@@ -940,7 +940,7 @@ waitcontrol:
             ** going wrong. close the control socket
             ** and restart
             */
-            printmessage(stderr,CASE_ERROR,62,BBftp_Timestamp,"Unknown message while waiting for %s message\n","MSG_OK (on MSG_TRANS_START_V2)");
+            printmessage(stderr,CASE_ERROR,62, "Unknown message while waiting for %s message\n","MSG_OK (on MSG_TRANS_START_V2)");
             *errcode = 62 ;
             /*
             ** Kill all child 

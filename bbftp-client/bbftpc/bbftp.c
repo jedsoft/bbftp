@@ -239,7 +239,7 @@ int localrfio;
 */
 int     BBftp_Sendwinsize     = 256 ;
 int     BBftp_Recvwinsize     = 256 ;
-int     Bbftp_Nbport = 1 ;
+int     BBftp_Nbport = 1 ;
 int		BBftp_Ackto			= ACKTO;
 int		BBftp_Recvcontrolto	= CONTROLSOCKTO;
 int		BBftp_Sendcontrolto	= SENDCONTROLTO;
@@ -275,11 +275,11 @@ char    *BBftp_Remotedir = NULL ;
 int     BBftp_Incontrolsock ;
 int     BBftp_Outcontrolsock ;
 /*
-** Bbftp_Myexitcode :
+** BBftp_Myexitcode :
 **      Contains the first error code that has to be return when program
 **      is ended
 */
-int     Bbftp_Myexitcode = SETTOZERO ;
+int     BBftp_Myexitcode = SETTOZERO ;
 char    *BBftp_Hostname   = NULL ;
 struct hostent  *BBftp_Hostent = NULL ;
 char    *BBftp_Username   = NULL ;
@@ -358,10 +358,10 @@ cmd_list *iterator = NULL;
 static void addCommand(char *lnewcmd) {
     cmd_list *newCommand = NULL;
     if ((newCommand  = (cmd_list *)malloc(sizeof(cmd_list))) == NULL) {
-           printmessage(stderr,CASE_FATAL_ERROR,23,BBftp_Timestamp,"Unable to malloc memory for command list : %s\n",strerror(errno)) ;
+           printmessage(stderr,CASE_FATAL_ERROR,23, "Unable to malloc memory for command list : %s\n",strerror(errno)) ;
     }
     if ((newCommand->cmd = (char *) malloc( strlen(lnewcmd) + 1)) == NULL) {
-	   printmessage(stderr,CASE_FATAL_ERROR,23,BBftp_Timestamp,"Unable to malloc memory for command : %s\n",strerror(errno)) ;
+	   printmessage(stderr,CASE_FATAL_ERROR,23, "Unable to malloc memory for command : %s\n",strerror(errno)) ;
     }
     strcpy(newCommand->cmd, lnewcmd);
     newCommand->next = NULL;
@@ -453,47 +453,47 @@ int main(int argc, char **argv)
     while ((j = getopt(argc, argv, OPTIONS)) != -1) {
         switch (j) {
             case 'v' :{
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"bbftp version %s\n",VERSION) ;
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Compiled with  :   default port %d\n",CONTROLPORT) ;
+                printmessage(stdout,CASE_NORMAL,0, "bbftp version %s\n",VERSION) ;
+                printmessage(stdout,CASE_NORMAL,0, "Compiled with  :   default port %d\n",CONTROLPORT) ;
 #ifdef PORT_RANGE
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   data ports range = %s \n", PORT_RANGE) ;
+                printmessage(stdout,CASE_NORMAL,0, "                   data ports range = %s \n", PORT_RANGE) ;
 #endif
 #ifdef WITH_GZIP
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   compression with Zlib-%s\n", zlibVersion()) ;
+                printmessage(stdout,CASE_NORMAL,0, "                   compression with Zlib-%s\n", zlibVersion()) ;
 #endif
 #ifdef WITH_SSL
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   encryption with %s \n",SSLeay_version(SSLEAY_VERSION)) ;
+                printmessage(stdout,CASE_NORMAL,0, "                   encryption with %s \n",SSLeay_version(SSLEAY_VERSION)) ;
 #endif
 #ifdef WITH_RFIO
 # ifdef CASTOR
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   CASTOR support (RFIO)\n") ;
+                printmessage(stdout,CASE_NORMAL,0, "                   CASTOR support (RFIO)\n") ;
 # else
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   HPSS support (RFIO)\n") ;
+                printmessage(stdout,CASE_NORMAL,0, "                   HPSS support (RFIO)\n") ;
 # endif
 #endif
 #ifdef WITH_RFIO64
 # ifdef CASTOR
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   CASTOR support (RFIO64)\n") ;
+                printmessage(stdout,CASE_NORMAL,0, "                   CASTOR support (RFIO64)\n") ;
 # else
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   HPSS support (RFIO64)\n") ;
+                printmessage(stdout,CASE_NORMAL,0, "                   HPSS support (RFIO64)\n") ;
 # endif
 #endif
 #ifdef AFS
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   AFS authentication \n") ;
+                printmessage(stdout,CASE_NORMAL,0, "                   AFS authentication \n") ;
 #endif
 #ifdef PRIVATE_AUTH
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   private authentication \n") ;
+                printmessage(stdout,CASE_NORMAL,0, "                   private authentication \n") ;
 #else
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   default ssh command = %s \n",SSHCMD) ;
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   default ssh remote command = %s \n",SSHREMOTECMD) ;
+                printmessage(stdout,CASE_NORMAL,0, "                   default ssh command = %s \n",SSHCMD) ;
+                printmessage(stdout,CASE_NORMAL,0, "                   default ssh remote command = %s \n",SSHREMOTECMD) ;
 # ifdef CERTIFICATE_AUTH
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   GSI authentication\n") ;
+                printmessage(stdout,CASE_NORMAL,0, "                   GSI authentication\n") ;
 # endif
 #endif
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   default number of tries = %d  \n",NBTRYMAX) ;
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   default sendwinsize = %d Kbytes\n",BBftp_Sendwinsize) ;
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   default recvwinsize = %d Kbytes\n",BBftp_Recvwinsize) ;
-                printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"                   default number of stream = %d \n",Bbftp_Nbport) ;
+                printmessage(stdout,CASE_NORMAL,0, "                   default number of tries = %d  \n",NBTRYMAX) ;
+                printmessage(stdout,CASE_NORMAL,0, "                   default sendwinsize = %d Kbytes\n",BBftp_Sendwinsize) ;
+                printmessage(stdout,CASE_NORMAL,0, "                   default recvwinsize = %d Kbytes\n",BBftp_Recvwinsize) ;
+                printmessage(stdout,CASE_NORMAL,0, "                   default number of stream = %d \n",BBftp_Nbport) ;
                 exit(0) ;
             }
         }
@@ -518,11 +518,11 @@ int main(int argc, char **argv)
 #else
         if ( (stderrfd = open(errorfile,O_CREAT|O_WRONLY|O_SYNC|O_TRUNC,0777)) < 0 ) {
 #endif
-     		printmessage(stderr,CASE_FATAL_ERROR,10,BBftp_Timestamp,"Error openning error file (%s) : %s\n",errorfile,strerror(errno)) ;
+     		printmessage(stderr,CASE_FATAL_ERROR,10, "Error openning error file (%s) : %s\n",errorfile,strerror(errno)) ;
         }
         close(STDERR_FILENO);
         if ( fcntl(stderrfd,F_DUPFD,STDERR_FILENO) != STDERR_FILENO ) {
-            printmessage(stderr,CASE_FATAL_ERROR,11,BBftp_Timestamp,"Error dup on error file (%s) : %s\n",errorfile,strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,11, "Error dup on error file (%s) : %s\n",errorfile,strerror(errno)) ;
         }
     }
 /*
@@ -544,11 +544,11 @@ int main(int argc, char **argv)
 #else
         if ( (stdoutfd = open(outputfile,O_CREAT|O_WRONLY|O_SYNC|O_TRUNC,0777)) < 0 ) {
 #endif
-     		printmessage(stderr,CASE_FATAL_ERROR,12,BBftp_Timestamp,"Error openning output file (%s) : %s\n",outputfile,strerror(errno)) ;
+     		printmessage(stderr,CASE_FATAL_ERROR,12, "Error openning output file (%s) : %s\n",outputfile,strerror(errno)) ;
         }
         close(STDOUT_FILENO);
         if ( fcntl(stdoutfd,F_DUPFD,STDOUT_FILENO) != STDOUT_FILENO ) {
-            printmessage(stderr,CASE_FATAL_ERROR,13,BBftp_Timestamp,"Error dup on output file (%s) : %s\n",outputfile,strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,13, "Error dup on output file (%s) : %s\n",outputfile,strerror(errno)) ;
         }
     }
 
@@ -572,7 +572,7 @@ int main(int argc, char **argv)
 #ifdef WITH_GZIP                
                 BBftp_Transferoption = BBftp_Transferoption | TROPT_GZIP ;
 #else
-                printmessage(stderr,CASE_FATAL_ERROR,7,BBftp_Timestamp,"option -c is not available: bbftp was built without compression utility\n") ;
+                printmessage(stderr,CASE_FATAL_ERROR,7, "option -c is not available: bbftp was built without compression utility\n") ;
 #endif                
                 break ;
             }
@@ -585,7 +585,7 @@ int main(int argc, char **argv)
                     if ((sscanf(optarg,"%d:%d",&i, &k) == 2) && (i < k)) {
                         BBftp_Pasvport_Min = i; BBftp_Pasvport_Max = k;
                     } else {
-                        printmessage(stderr,CASE_FATAL_ERROR,4,BBftp_Timestamp,"Invalid port range : %s\n",optarg) ;
+                        printmessage(stderr,CASE_FATAL_ERROR,4, "Invalid port range : %s\n",optarg) ;
                     }
                 } else {
 #ifdef PORT_RANGE
@@ -621,10 +621,10 @@ int main(int argc, char **argv)
             case 'i' :{
                 inputfile = optarg ;
                 if ( stat (inputfile,&statbuf) < 0 ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,7,BBftp_Timestamp,"Input file (%s) cannot be stated\n",inputfile) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,7, "Input file (%s) cannot be stated\n",inputfile) ;
                 }
                 if ( (resultfile = (char *) malloc (strlen(inputfile) + 5 )) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,1,BBftp_Timestamp,"Cannot malloc space for result file name\n") ;
+                    printmessage(stderr,CASE_FATAL_ERROR,1, "Cannot malloc space for result file name\n") ;
                 }
                 strcpy(resultfile,inputfile) ;
                 strcat(resultfile,".res") ;
@@ -637,7 +637,7 @@ int main(int argc, char **argv)
                 ** Check if file exists
                 */
                 if ( stat (BBftp_SSHidentityfile,&statbuf) < 0 ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,5,BBftp_Timestamp,"SSH identity file (%s) cannot be stated\n",BBftp_SSHidentityfile) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,5, "SSH identity file (%s) cannot be stated\n",BBftp_SSHidentityfile) ;
                 }
                 break ;
             }
@@ -669,15 +669,15 @@ int main(int argc, char **argv)
             case 'p' :{
                 retcode = sscanf(optarg,"%d",&alluse) ;
                 if ( retcode != 1 || alluse < 0) {
-                    printmessage(stderr,CASE_FATAL_ERROR,3,BBftp_Timestamp,"Number of streams must be numeric and > 0\n") ;
+                    printmessage(stderr,CASE_FATAL_ERROR,3, "Number of streams must be numeric and > 0\n") ;
                 }
-                Bbftp_Nbport = alluse ;
+                BBftp_Nbport = alluse ;
                 break ;
             }
             case 'r' :{
                 retcode = sscanf(optarg,"%d",&alluse) ;
                 if ( retcode != 1 || alluse <= 0) {
-                    printmessage(stderr,CASE_FATAL_ERROR,4,BBftp_Timestamp,"Number of tries must be numeric > 0\n") ;
+                    printmessage(stderr,CASE_FATAL_ERROR,4, "Number of tries must be numeric > 0\n") ;
                 }
                 BBftp_Globaltrymax = alluse ;
                 break ;
@@ -710,7 +710,7 @@ int main(int argc, char **argv)
             case 'w' :{
                 retcode = sscanf(optarg,"%d",&alluse) ;
                 if ( retcode != 1 || alluse <= 0) {
-                    printmessage(stderr,CASE_FATAL_ERROR,4,BBftp_Timestamp,"Control port must be numeric\n") ;
+                    printmessage(stderr,CASE_FATAL_ERROR,4, "Control port must be numeric\n") ;
                 }
                 BBftp_Newcontrolport = alluse ;
                 break ;
@@ -721,7 +721,7 @@ int main(int argc, char **argv)
             }
             default : {
                 Usage() ;
-                printmessage(stderr,CASE_FATAL_ERROR,6,BBftp_Timestamp,"Error on command line (unsupported option -%c)\n",optopt) ;
+                printmessage(stderr,CASE_FATAL_ERROR,6, "Error on command line (unsupported option -%c)\n",optopt) ;
             }
         }
     }
@@ -734,7 +734,7 @@ int main(int argc, char **argv)
         /*
         ** Starting badly if we are unable to malloc 5K
         */
-        printmessage(stderr,CASE_FATAL_ERROR,10,BBftp_Timestamp,"No memory for CASTOR : %s\n",strerror(errno)) ;
+        printmessage(stderr,CASE_FATAL_ERROR,10, "No memory for CASTOR : %s\n",strerror(errno)) ;
     }
 #endif
 
@@ -769,7 +769,7 @@ int main(int argc, char **argv)
             ** Malloc space and set the default
             */
             if ( (BBftp_SSHremotecmd = (char *) malloc (strlen(SSHREMOTECMD)+1) ) == NULL ) {
-                printmessage(stderr,CASE_FATAL_ERROR,8,BBftp_Timestamp,"Cannot malloc space for ssh remote cmd\n") ;
+                printmessage(stderr,CASE_FATAL_ERROR,8, "Cannot malloc space for ssh remote cmd\n") ;
             }
             strcpy(BBftp_SSHremotecmd,SSHREMOTECMD) ;
         } else {
@@ -779,7 +779,7 @@ int main(int argc, char **argv)
             */
             if ( strstr(BBftp_SSHremotecmd," -s") == NULL ) {
                 if ( ( tmpsshremotecmd = (char *) malloc (strlen(BBftp_SSHremotecmd) + 4) ) == NULL ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,8,BBftp_Timestamp,"Cannot malloc space for ssh remote cmd\n") ;
+                    printmessage(stderr,CASE_FATAL_ERROR,8, "Cannot malloc space for ssh remote cmd\n") ;
                 }
                 sprintf(tmpsshremotecmd,"%s -s",BBftp_SSHremotecmd) ;
                 BBftp_SSHremotecmd = tmpsshremotecmd ;
@@ -787,7 +787,7 @@ int main(int argc, char **argv)
         }
         if ( BBftp_SSHcmd == NULL ) {
             if ( (BBftp_SSHcmd = (char *) malloc (strlen(SSHCMD)+1) ) == NULL ) {
-                  printmessage(stderr,CASE_FATAL_ERROR,9,BBftp_Timestamp,"Cannot malloc space for ssh cmd\n") ;
+                  printmessage(stderr,CASE_FATAL_ERROR,9, "Cannot malloc space for ssh cmd\n") ;
             }
             strcpy(BBftp_SSHcmd,SSHCMD) ;
         }
@@ -802,17 +802,17 @@ int main(int argc, char **argv)
         ** look for the local user in order to find the .bbftprc file
         */
         if ( (mypasswd = getpwuid(getuid())) == NULL ) {
-            if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,6,BBftp_Timestamp,"Unable to get passwd entry, using %s\n", BBFTP_CONF) ;
+            if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,6, "Unable to get passwd entry, using %s\n", BBFTP_CONF) ;
             if ( (bbftprcfile = (char *) malloc (strlen(BBFTP_CONF)+1) ) != NULL ) {
 	      strcpy(bbftprcfile,BBFTP_CONF);
 	    }
         } else if ( mypasswd->pw_dir == NULL ) {
-            if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,7,BBftp_Timestamp,"No home directory, using %s\n", BBFTP_CONF) ;
+            if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,7, "No home directory, using %s\n", BBFTP_CONF) ;
             if ( (bbftprcfile = (char *) malloc (strlen(BBFTP_CONF)+1) ) != NULL ) {
 	      strcpy(bbftprcfile,BBFTP_CONF);
 	    }
         } else if ( (bbftprcfile = (char *) malloc (strlen(mypasswd->pw_dir)+10) ) == NULL ) {
-            if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,8,BBftp_Timestamp,"Error allocationg space for bbftprc file name, .bbftprc will not be used\n") ;
+            if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,8, "Error allocationg space for bbftprc file name, .bbftprc will not be used\n") ;
         } else {
             strcpy(bbftprcfile,mypasswd->pw_dir) ;
             strcat(bbftprcfile,"/.bbftprc") ;
@@ -831,17 +831,17 @@ int main(int argc, char **argv)
             ** Stat the file in order to get the length
             */
             if ( stat(bbftprcfile,&statbuf) < 0  ) {
-                if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,9,BBftp_Timestamp,"Error stating bbftprc file (%s)\n",bbftprcfile) ;
+                if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,9, "Error stating bbftprc file (%s)\n",bbftprcfile) ;
             } else if ( statbuf.st_size == 0 ) {
                 /*
                 ** do nothing 
                 */
             } else if ( (bbftprc = (char *) malloc (statbuf.st_size + 1 ) ) == NULL ) {
-                if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,10,BBftp_Timestamp,"Error allocation memory for bbftprc, .bbftprc will not be used\n") ;
+                if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,10, "Error allocation memory for bbftprc, .bbftprc will not be used\n") ;
             } else if ( ( fd  = open (bbftprcfile,O_RDONLY) )  < 0 ) {
-                if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,11,BBftp_Timestamp,"Error openning .bbftprc file (%s) : %s \n",bbftprcfile,strerror(errno)) ;
+                if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,11, "Error openning .bbftprc file (%s) : %s \n",bbftprcfile,strerror(errno)) ;
             } else if ( ( j = read( fd, bbftprc , statbuf.st_size )) != statbuf.st_size ) {
-                if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,12,BBftp_Timestamp,"Error reading .bbftprc file (%s)\n",bbftprcfile) ;
+                if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,12, "Error reading .bbftprc file (%s)\n",bbftprcfile) ;
             } else {
                 bbftprc[j] = '\0' ;
             }
@@ -878,7 +878,7 @@ int main(int argc, char **argv)
             if ( !strncmp(startcmd,"setbuffersize",13)) {
                 retcode = sscanf(startcmd,"setbuffersize %d",&alluse) ;
                 if ( retcode != 1 || alluse < 0 ) {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,5,BBftp_Timestamp,"Buffersize in bbftprc file must be numeric > 0\n") ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,5, "Buffersize in bbftprc file must be numeric > 0\n") ;
                 } else {
                     BBftp_Buffersizeperstream = alluse ;
                 }
@@ -886,7 +886,7 @@ int main(int argc, char **argv)
             } else if ( !strncmp(startcmd,"setlocalcos",11)) {
                 retcode = sscanf(startcmd,"setlocalcos %d",&alluse) ;
                 if ( retcode != 1 /*|| alluse < 0*/) {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,14,BBftp_Timestamp,"Local COS in bbftprc file must be numeric\n") ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,14, "Local COS in bbftprc file must be numeric\n") ;
                 } else {
                     BBftp_Localcos = alluse ;
                 }
@@ -894,14 +894,14 @@ int main(int argc, char **argv)
             } else if (!strncmp(startcmd,"setremotecos",12)) {
                 retcode = sscanf(startcmd,"setremotecos %d",&alluse) ;
                 if ( retcode != 1 /*|| alluse < 0*/) {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,15,BBftp_Timestamp,"Remote COS in bbftprc file must be numeric\n") ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,15, "Remote COS in bbftprc file must be numeric\n") ;
                 }else {
                     BBftp_Remotecos = alluse ;
                 }
             } else if (!strncmp(startcmd,"setlocalumask",13)) {
                 retcode = sscanf(startcmd,"setlocalumask %o",&ualluse) ;
                 if ( retcode != 1) {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,16,BBftp_Timestamp,"Local umask in bbftprc file must be octal numeric\n") ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,16, "Local umask in bbftprc file must be octal numeric\n") ;
                 } else {
                     BBftp_Localumask = ualluse ;
                     umask(BBftp_Localumask) ;
@@ -909,7 +909,7 @@ int main(int argc, char **argv)
             } else if (!strncmp(startcmd,"setremoteumask",14)) {
                 retcode = sscanf(startcmd,"setremoteumask %o",&ualluse) ;
                 if ( retcode != 1) {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,17,BBftp_Timestamp,"Remote umask in bbftprc file must be octal numeric\n") ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,17, "Remote umask in bbftprc file must be octal numeric\n") ;
                 }else {
                     BBftp_remoteumask = ualluse ;
                     umask(BBftp_Localumask) ;
@@ -917,49 +917,49 @@ int main(int argc, char **argv)
             } else if (!strncmp(startcmd,"setsendwinsize",14)) {
                 retcode = sscanf(startcmd,"setsendwinsize %d",&alluse) ;
                 if ( retcode != 1 || alluse < 0 ) {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,18,BBftp_Timestamp,"Send window size in bbftprc file must be numeric\n") ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,18, "Send window size in bbftprc file must be numeric\n") ;
                 } else {
                     BBftp_Sendwinsize = alluse ;
                 }
             } else if (!strncmp(startcmd,"setrecvwinsize",14)) {
                 retcode = sscanf(startcmd,"setrecvwinsize %d",&alluse) ;
                 if ( retcode != 1 || alluse < 0  ) {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,19,BBftp_Timestamp,"Receive window size in bbftprc file must be numeric\n") ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,19, "Receive window size in bbftprc file must be numeric\n") ;
                 }else {
                     BBftp_Recvwinsize = alluse ;
                 }
             } else if (!strncmp(startcmd,"setnbstream",11)) {
                 retcode = sscanf(startcmd,"setnbstream %d",&alluse) ;
                 if ( retcode != 1  || alluse <= 0 ) {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,19,BBftp_Timestamp,"Number of streams in bbftprc file must be numeric and > 0\n") ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,19, "Number of streams in bbftprc file must be numeric and > 0\n") ;
                 } else {
-                    Bbftp_Nbport = alluse ;
+                    BBftp_Nbport = alluse ;
                 }
             } else if (!strncmp(startcmd,"setackto",8)) {
                 retcode = sscanf(startcmd,"setackto %d",&alluse) ;
                 if ( retcode != 1  || alluse <= 0 ) {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,19,BBftp_Timestamp,"Acknowledge timeout must be numeric and > 0\n") ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,19, "Acknowledge timeout must be numeric and > 0\n") ;
                 } else {
                     BBftp_Ackto = alluse ;
                 }
             } else if (!strncmp(startcmd,"setrecvcontrolto",16)) {
                 retcode = sscanf(startcmd,"setrecvcontrolto %d",&alluse) ;
                 if ( retcode != 1  || alluse <= 0 ) {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,19,BBftp_Timestamp,"Input control timeout must be numeric and > 0\n") ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,19, "Input control timeout must be numeric and > 0\n") ;
                 } else {
                     BBftp_Recvcontrolto = alluse ;
                 }
             } else if (!strncmp(startcmd,"setsendcontrolto",16)) {
                 retcode = sscanf(startcmd,"setsendcontrolto %d",&alluse) ;
                 if ( retcode != 1  || alluse <= 0 ) {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,19,BBftp_Timestamp,"Output control timeout must be numeric and > 0\n") ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,19, "Output control timeout must be numeric and > 0\n") ;
                 } else {
                     BBftp_Sendcontrolto = alluse ;
                 }
             } else if (!strncmp(startcmd,"setdatato",9)) {
                 retcode = sscanf(startcmd,"setdatato %d",&alluse) ;
                 if ( retcode != 1  || alluse <= 0 ) {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,19,BBftp_Timestamp,"Data timeout must be numeric and > 0\n") ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,19, "Data timeout must be numeric and > 0\n") ;
                 } else {
                     BBftp_Datato = alluse ;
                 }
@@ -1001,7 +1001,7 @@ int main(int argc, char **argv)
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
                         BBftp_Transferoption = BBftp_Transferoption | TROPT_RFIO_O ;
 #else
-                        if (BBftp_Warning) printmessage(stderr,CASE_WARNING,20,BBftp_Timestamp,"Incorrect command : setoption localrfio (RFIO not supported)\n", "");
+                        if (BBftp_Warning) printmessage(stderr,CASE_WARNING,20, "%s", "Incorrect command : setoption localrfio (RFIO not supported)\n");
 #endif
                     }
                 } else if ( !strncmp(startcmd,"keepmode",8) ) {
@@ -1023,7 +1023,7 @@ int main(int argc, char **argv)
 #ifdef WITH_GZIP
                         BBftp_Transferoption = BBftp_Transferoption | TROPT_GZIP ;
 #else
-                        printmessage(stderr,CASE_FATAL_ERROR,7,BBftp_Timestamp,"gzip option is not available: bbftp was built without compression support\n") ;
+                        printmessage(stderr,CASE_FATAL_ERROR,7, "gzip option is not available: bbftp was built without compression support\n") ;
 #endif
                     }
                 } else if ( !strncmp(startcmd,"qbss",4) ) {
@@ -1033,10 +1033,10 @@ int main(int argc, char **argv)
                         BBftp_Transferoption = BBftp_Transferoption | TROPT_QBSS ;
                     }
                 } else {
-                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,20,BBftp_Timestamp,"Unkown option in .bbftprc file (%s)\n",startcmd) ;
+                    if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,20, "Unkown option in .bbftprc file (%s)\n",startcmd) ;
                 }
             } else {
-                if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,13,BBftp_Timestamp,"Unkown command in .bbftprc file (%s)\n",startcmd) ;
+                if ( BBftp_Warning ) printmessage(stderr,CASE_WARNING,13, "Unkown command in .bbftprc file (%s)\n",startcmd) ;
             }
             carret++ ;
         }
@@ -1045,14 +1045,14 @@ int main(int argc, char **argv)
 ** Check for input file or command line
 */
     if ( inputfile == NULL && bbftpcmd == NULL ) {
-        printmessage(stderr,CASE_FATAL_ERROR,20,BBftp_Timestamp,"Error on command line (-i or -e option are mandatory)\n") ;
+        printmessage(stderr,CASE_FATAL_ERROR,20, "Error on command line (-i or -e option are mandatory)\n") ;
     }
 /*
 ** Open the input file if needed
 */
     if ( inputfile != NULL ) {
         if ( (infd = open(inputfile,O_RDONLY)) < 0 ) {
-            printmessage(stderr,CASE_FATAL_ERROR,21,BBftp_Timestamp,"Error opening input file (%s) : %s\n",inputfile,strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,21, "Error opening input file (%s) : %s\n",inputfile,strerror(errno)) ;
         }
 #ifdef DARWIN
 		if ( (BBftp_Resfd = open(resultfile,O_CREAT|O_WRONLY|O_TRUNC,0777)) < 0 )
@@ -1060,7 +1060,7 @@ int main(int argc, char **argv)
         if ( (BBftp_Resfd = open(resultfile,O_CREAT|O_WRONLY|O_SYNC|O_TRUNC,0777)) < 0 )
 #endif
 	   {
-     		printmessage(stderr,CASE_FATAL_ERROR,22,BBftp_Timestamp,"Error opening result file (%s) : %s\n",resultfile,strerror(errno)) ;
+     		printmessage(stderr,CASE_FATAL_ERROR,22, "Error opening result file (%s) : %s\n",resultfile,strerror(errno)) ;
         }
         /*
         ** Now calc the max line of the input file in order to malloc 
@@ -1079,7 +1079,7 @@ int main(int argc, char **argv)
             }
         }
         if ( lengthread < 0 ) {
-            printmessage(stderr,CASE_FATAL_ERROR,24,BBftp_Timestamp,"Error reading input file (%s) : %s\n",inputfile,strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,24, "Error reading input file (%s) : %s\n",inputfile,strerror(errno)) ;
         } else if ( lengthread == 0 ) {
             if ( uj > maxlen ) {
                 maxlen = uj  ;
@@ -1090,11 +1090,11 @@ int main(int argc, char **argv)
         */
         lseek(infd,0,SEEK_SET) ;
         if ( (buffercmd = (char *) malloc (maxlen+2) ) == NULL ) {
-            printmessage(stderr,CASE_FATAL_ERROR,23,BBftp_Timestamp,"Unable to malloc memory for command : %s\n",strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,23, "Unable to malloc memory for command : %s\n",strerror(errno)) ;
         }
     } else {
         if ( (buffercmd = (char *) malloc (strlen(bbftpcmd)+1)) == NULL ) {
-             printmessage(stderr,CASE_FATAL_ERROR,23,BBftp_Timestamp,"Unable to malloc memory for command : %s\n",strerror(errno)) ;
+             printmessage(stderr,CASE_FATAL_ERROR,23, "Unable to malloc memory for command : %s\n",strerror(errno)) ;
          }
     }
 
@@ -1121,7 +1121,7 @@ int main(int argc, char **argv)
                     }
                 }
                 if ( lengthread < 0 ) {
-                    printmessage(stderr,CASE_FATAL_ERROR,24,BBftp_Timestamp,"Error reading input file (%s) : %s\n",inputfile,strerror(errno)) ;
+                    printmessage(stderr,CASE_FATAL_ERROR,24, "Error reading input file (%s) : %s\n",inputfile,strerror(errno)) ;
                 } else if ( lengthread == 0 ) {
                     if ( j == 0 ) {
                         retcode = 1 ;
@@ -1163,14 +1163,14 @@ int main(int argc, char **argv)
 		    }
 		    addCommand(newcmd);
             } else {
-		    printmessage(stderr,CASE_FATAL_ERROR,24,BBftp_Timestamp,"Unable to parse command  : %s\n",buffercmd) ;
+		    printmessage(stderr,CASE_FATAL_ERROR,24, "Unable to parse command  : %s\n",buffercmd) ;
             }
 	}
 	commandList = first;
     }
     if (BBftp_Hostname == NULL || strlen(BBftp_Hostname) == 0) {
         Usage() ;
-        printmessage(stderr,CASE_FATAL_ERROR,14,BBftp_Timestamp,"No hostname on command line\n") ;
+        printmessage(stderr,CASE_FATAL_ERROR,14, "No hostname on command line\n") ;
     }    
 /*
 ** Check if hostname is in numeric format 
@@ -1185,7 +1185,7 @@ int main(int argc, char **argv)
         } else if ( isdigit(BBftp_Hostname[uj]) ) {
         } else if ( BBftp_Hostname[uj] == '.' ) {
         } else {
-            printmessage(stderr,CASE_FATAL_ERROR,15,BBftp_Timestamp,"Invalid hostname (%s)\n",BBftp_Hostname) ;
+            printmessage(stderr,CASE_FATAL_ERROR,15, "Invalid hostname (%s)\n",BBftp_Hostname) ;
         }
     }
     if ( hosttype == 0 ) {
@@ -1195,18 +1195,18 @@ int main(int argc, char **argv)
         BBftp_His_Ctladdr.sin_addr.s_addr = 0 ;
         BBftp_His_Ctladdr.sin_addr.s_addr = inet_addr(BBftp_Hostname) ;
         if (BBftp_His_Ctladdr.sin_addr.s_addr == INADDR_NONE ) {
-            printmessage(stderr,CASE_FATAL_ERROR,16,BBftp_Timestamp,"Invalid IP address (%s)\n",BBftp_Hostname) ;
+            printmessage(stderr,CASE_FATAL_ERROR,16, "Invalid IP address (%s)\n",BBftp_Hostname) ;
         }
         calchostname = (char *)inet_ntoa(BBftp_His_Ctladdr.sin_addr) ;
         if ( strcmp(BBftp_Hostname,calchostname) ) {
-            printmessage(stderr,CASE_FATAL_ERROR,16,BBftp_Timestamp,"Invalid IP address (%s)\n",BBftp_Hostname) ;
+            printmessage(stderr,CASE_FATAL_ERROR,16, "Invalid IP address (%s)\n",BBftp_Hostname) ;
         }
     } else {
        /*
        ** Alpha format 
        */
         if ( (BBftp_Hostent = gethostbyname((char *)BBftp_Hostname) ) == NULL ) {
-            printmessage(stderr,CASE_FATAL_ERROR,17,BBftp_Timestamp,"BBftp_Hostname no found (%s)\n",BBftp_Hostname) ;
+            printmessage(stderr,CASE_FATAL_ERROR,17, "BBftp_Hostname no found (%s)\n",BBftp_Hostname) ;
         } else {
             if (BBftp_Hostent->h_length > (int)sizeof(BBftp_His_Ctladdr.sin_addr)) {
                 BBftp_Hostent->h_length = sizeof(BBftp_His_Ctladdr.sin_addr);
@@ -1221,67 +1221,67 @@ int main(int argc, char **argv)
 #ifdef CERTIFICATE_AUTH
         if (BBftp_Use_SSH) {
 /*            Usage() ;
-            printmessage(stderr,CASE_FATAL_ERROR,18,BBftp_Timestamp,"No username given\n") ;*/
+            printmessage(stderr,CASE_FATAL_ERROR,18, "No username given\n") ;*/
         } else {
             usecert = SETTOONE;
         }
 #else        
 	if (!BBftp_Use_SSH) {
             Usage() ;
-            printmessage(stderr,CASE_FATAL_ERROR,18,BBftp_Timestamp,"No username given\n") ;
+            printmessage(stderr,CASE_FATAL_ERROR,18, "No username given\n") ;
 	}
 #endif
     }
     if ( BBftp_Debug ) {
         if (BBftp_Simulation_Mode) {
-            printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"** SIMULATION MODE: No data written **\n") ;
+            printmessage(stdout,CASE_NORMAL,0, "** SIMULATION MODE: No data written **\n") ;
         }
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Starting parameters -----------------\n") ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"number of tries   = %d\n",BBftp_Globaltrymax) ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"number of streams = %d\n",Bbftp_Nbport) ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"localumask        = %03o\n",BBftp_Localumask) ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"remoteumask       = %03o\n",BBftp_remoteumask) ;
+        printmessage(stdout,CASE_NORMAL,0, "Starting parameters -----------------\n") ;
+        printmessage(stdout,CASE_NORMAL,0, "number of tries   = %d\n",BBftp_Globaltrymax) ;
+        printmessage(stdout,CASE_NORMAL,0, "number of streams = %d\n",BBftp_Nbport) ;
+        printmessage(stdout,CASE_NORMAL,0, "localumask        = %03o\n",BBftp_Localumask) ;
+        printmessage(stdout,CASE_NORMAL,0, "remoteumask       = %03o\n",BBftp_remoteumask) ;
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"localcos          = %d\n",BBftp_Localcos) ;
+        printmessage(stdout,CASE_NORMAL,0, "localcos          = %d\n",BBftp_Localcos) ;
 #endif
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"remotecos         = %d\n",BBftp_Remotecos) ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"buffersize        = %d KB\n",BBftp_Buffersizeperstream) ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"sendwinsize       = %d KB\n",BBftp_Sendwinsize) ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"recvwinsize       = %d KB\n",BBftp_Recvwinsize) ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"ackto			   = %d s\n",BBftp_Ackto) ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"recvcontrolto     = %d s\n",BBftp_Recvcontrolto) ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"sendcontrolto     = %d s\n",BBftp_Sendcontrolto) ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"datato     = %d s\n",BBftp_Datato) ;
-		printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"option %s\n", ((BBftp_Transferoption & TROPT_DIR ) == TROPT_DIR) ? "createdir" : "nocreatedir") ;
-		printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"option %s\n", ((BBftp_Transferoption & TROPT_TMP ) == TROPT_TMP) ? "tmpfile" : "notmpfile") ;
-		printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"option %s\n", ((BBftp_Transferoption & TROPT_RFIO ) == TROPT_RFIO) ? "remoterfio" : "noremoterfio") ;
+        printmessage(stdout,CASE_NORMAL,0, "remotecos         = %d\n",BBftp_Remotecos) ;
+        printmessage(stdout,CASE_NORMAL,0, "buffersize        = %d KB\n",BBftp_Buffersizeperstream) ;
+        printmessage(stdout,CASE_NORMAL,0, "sendwinsize       = %d KB\n",BBftp_Sendwinsize) ;
+        printmessage(stdout,CASE_NORMAL,0, "recvwinsize       = %d KB\n",BBftp_Recvwinsize) ;
+        printmessage(stdout,CASE_NORMAL,0, "ackto			   = %d s\n",BBftp_Ackto) ;
+        printmessage(stdout,CASE_NORMAL,0, "recvcontrolto     = %d s\n",BBftp_Recvcontrolto) ;
+        printmessage(stdout,CASE_NORMAL,0, "sendcontrolto     = %d s\n",BBftp_Sendcontrolto) ;
+        printmessage(stdout,CASE_NORMAL,0, "datato     = %d s\n",BBftp_Datato) ;
+		printmessage(stdout,CASE_NORMAL,0, "option %s\n", ((BBftp_Transferoption & TROPT_DIR ) == TROPT_DIR) ? "createdir" : "nocreatedir") ;
+		printmessage(stdout,CASE_NORMAL,0, "option %s\n", ((BBftp_Transferoption & TROPT_TMP ) == TROPT_TMP) ? "tmpfile" : "notmpfile") ;
+		printmessage(stdout,CASE_NORMAL,0, "option %s\n", ((BBftp_Transferoption & TROPT_RFIO ) == TROPT_RFIO) ? "remoterfio" : "noremoterfio") ;
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
-		printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"option %s\n", ((BBftp_Transferoption & TROPT_RFIO_O ) == TROPT_RFIO_O) ? "localrfio" : "nolocalrfio") ;
+		printmessage(stdout,CASE_NORMAL,0, "option %s\n", ((BBftp_Transferoption & TROPT_RFIO_O ) == TROPT_RFIO_O) ? "localrfio" : "nolocalrfio") ;
 #endif
-		printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"option %s\n", ((BBftp_Transferoption & TROPT_MODE ) == TROPT_MODE) ? "keepmode" : "nokeepmode") ;
-		printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"option %s\n", ((BBftp_Transferoption & TROPT_ACC ) == TROPT_ACC) ? "keepaccess" : "nokeepaccess") ;
+		printmessage(stdout,CASE_NORMAL,0, "option %s\n", ((BBftp_Transferoption & TROPT_MODE ) == TROPT_MODE) ? "keepmode" : "nokeepmode") ;
+		printmessage(stdout,CASE_NORMAL,0, "option %s\n", ((BBftp_Transferoption & TROPT_ACC ) == TROPT_ACC) ? "keepaccess" : "nokeepaccess") ;
 #ifdef WITH_GZIP
-		printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"option %s\n", ((BBftp_Transferoption & TROPT_GZIP ) == TROPT_GZIP) ? "gzip" : "nogzip") ;
+		printmessage(stdout,CASE_NORMAL,0, "option %s\n", ((BBftp_Transferoption & TROPT_GZIP ) == TROPT_GZIP) ? "gzip" : "nogzip") ;
 #endif        
-		printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"option %s\n", ((BBftp_Transferoption & TROPT_QBSS ) == TROPT_QBSS) ? "qbss" : "noqbss") ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"-------------------------------------\n") ;
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Connection mode ---------------------\n") ;
+		printmessage(stdout,CASE_NORMAL,0, "option %s\n", ((BBftp_Transferoption & TROPT_QBSS ) == TROPT_QBSS) ? "qbss" : "noqbss") ;
+        printmessage(stdout,CASE_NORMAL,0, "-------------------------------------\n") ;
+        printmessage(stdout,CASE_NORMAL,0, "Connection mode ---------------------\n") ;
         if ( usecert ) {
 /*			if ( BBftp_Username == NULL ) {*/
-				printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Using certificate authentication\n") ;
+				printmessage(stdout,CASE_NORMAL,0, "Using certificate authentication\n") ;
 /*			} else {
-				printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Using standard bbftp mode\n") ;
+				printmessage(stdout,CASE_NORMAL,0, "Using standard bbftp mode\n") ;
 			}*/
         } else if ( useprivate ) {
-            printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Using private authentication\n") ;
+            printmessage(stdout,CASE_NORMAL,0, "Using private authentication\n") ;
         } else if ( BBftp_Use_SSH) {
-            printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Using ssh mode\n") ;
-            printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"     ssh command        = %s \n",BBftp_SSHcmd) ;
-            printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"     ssh remote command = %s \n",BBftp_SSHremotecmd) ;
+            printmessage(stdout,CASE_NORMAL,0, "Using ssh mode\n") ;
+            printmessage(stdout,CASE_NORMAL,0, "     ssh command        = %s \n",BBftp_SSHcmd) ;
+            printmessage(stdout,CASE_NORMAL,0, "     ssh remote command = %s \n",BBftp_SSHremotecmd) ;
         } else {
-            printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Using standard bbftp mode\n",BBftp_Localumask) ;
+            printmessage(stdout,CASE_NORMAL,0, "Using standard bbftp mode (0%o)\n",BBftp_Localumask) ;
         }
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"-------------------------------------\n") ;
+        printmessage(stdout,CASE_NORMAL,0, "-------------------------------------\n") ;
    }
 
 /*
@@ -1289,7 +1289,7 @@ int main(int argc, char **argv)
 */
 #ifdef PRIVATE_AUTH
     if ( bbftp_private_getargs(logmessage) < 0 ) {
-        printmessage(stderr,CASE_FATAL_ERROR,19,BBftp_Timestamp,"Error while private authentication : %s\n",logmessage) ;
+        printmessage(stderr,CASE_FATAL_ERROR,19, "Error while private authentication : %s\n",logmessage) ;
     }     
 #else
     if ((!BBftp_Use_SSH && !usecert)/* || (usecert && BBftp_Username)*/) {
@@ -1297,10 +1297,10 @@ int main(int argc, char **argv)
         char *reasonString, passwordBuffer[1024] ;
         long code ;
         if ( (code = ka_UserReadPassword("Password: ", passwordBuffer, sizeof(passwordBuffer), &reasonString)) ) {
-            printmessage(stderr,CASE_FATAL_ERROR,19,BBftp_Timestamp,"Error while entering password\n") ;
+            printmessage(stderr,CASE_FATAL_ERROR,19, "Error while entering password\n") ;
         }
         if ( ( BBftp_Password = (char *) malloc (strlen(passwordBuffer) + 1) ) == NULL ) {
-            printmessage(stderr,CASE_FATAL_ERROR,54,BBftp_Timestamp,"Unable to store password : malloc failed (%s)\n",strerror(errno)) ;
+            printmessage(stderr,CASE_FATAL_ERROR,54, "Unable to store password : malloc failed (%s)\n",strerror(errno)) ;
             return -1 ;
         }
         strcpy(BBftp_Password, passwordBuffer);
@@ -1308,10 +1308,10 @@ int main(int argc, char **argv)
 #  ifdef USE_GETPASSPHRASE
         BBftp_Password = (char *) getpassphrase("Password: ") ;
         if ( strlen(BBftp_Password) == 0 ) {
-            printmessage(stderr,CASE_FATAL_ERROR,19,BBftp_Timestamp,"Password is mandatory\n") ;
+            printmessage(stderr,CASE_FATAL_ERROR,19, "Password is mandatory\n") ;
         }
 #  else
-        printmessage(stdout,CASE_NORMAL,0,0,"Password: ") ;
+        printstdout("%s", "Password: ") ;
         BBftp_Password = (char *) getpass("") ;
 #  endif /* USE_GETPASSPHRASE */
 # endif /* AFS */
@@ -1322,10 +1322,10 @@ int main(int argc, char **argv)
 */
     if ( background ) {
         retcode = fork() ; 
-        if ( retcode < 0 ) printmessage(stderr,CASE_FATAL_ERROR,31,BBftp_Timestamp,"Error forking while setting in background\n") ;
+        if ( retcode < 0 ) printmessage(stderr,CASE_FATAL_ERROR,31, "Error forking while setting in background\n") ;
         if ( retcode > 0 ) exit(0) ;
         setsid() ;
-        if ( BBftp_Verbose ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Starting under pid %d\n",getpid());
+        if ( BBftp_Verbose ) printmessage(stdout,CASE_NORMAL,0, "Starting under pid %d\n",getpid());
     }
 
 /*
@@ -1351,7 +1351,7 @@ int main(int argc, char **argv)
                 }
             }
             if ( lengthread < 0 ) {
-                printmessage(stderr,CASE_FATAL_ERROR,24,BBftp_Timestamp,"Error reading input file (%s) : %s\n",inputfile,strerror(errno)) ;
+                printmessage(stderr,CASE_FATAL_ERROR,24, "Error reading input file (%s) : %s\n",inputfile,strerror(errno)) ;
             } else if ( lengthread == 0 ) {
                 if ( j == 0 ) {
                     retcode = 1 ;
@@ -1387,10 +1387,10 @@ int main(int argc, char **argv)
 */
 
     if ( BBftp_Debug )
-        printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Connecting to server ----------------\n",BBftp_Localumask) ;
+        printmessage(stdout,CASE_NORMAL,0, "%s", "Connecting to server ----------------\n") ;
     reconnecttoserver() ;
     if ( BBftp_Debug )
-         printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Connecting end ---------------------\n",BBftp_Localumask) ;
+         printmessage(stdout,CASE_NORMAL,0, "%s", "Connecting end ---------------------\n");
    
 /*
 ** Start the infinite loop
@@ -1404,14 +1404,14 @@ int main(int argc, char **argv)
                 write(BBftp_Resfd,literator->cmd,strlen(literator->cmd)) ;
                 write(BBftp_Resfd," OK\n",4) ;
             } else {
-                if (!BBftp_Verbose && !BBftp_Statoutput) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"%s OK\n",literator->cmd);
+                if (!BBftp_Verbose && !BBftp_Statoutput) printmessage(stdout,CASE_NORMAL,0, "%s OK\n",literator->cmd);
             }
         } else {
             if ( inputfile != NULL ) {
                 write(BBftp_Resfd,literator->cmd,strlen(literator->cmd)) ;
                 write(BBftp_Resfd," FAILED\n",8) ;
             } else {
-                if (!BBftp_Verbose && !BBftp_Statoutput) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"%s FAILED\n",literator->cmd);
+                if (!BBftp_Verbose && !BBftp_Statoutput) printmessage(stdout,CASE_NORMAL,0, "%s FAILED\n",literator->cmd);
             }
         }
 	 literator = literator->next;
@@ -1431,5 +1431,5 @@ int main(int argc, char **argv)
     writemessage(BBftp_Outcontrolsock,minbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) ;
     sleep(1) ;
     bbftp_close_control() ;
-    exit(Bbftp_Myexitcode) ;
+    exit(BBftp_Myexitcode) ;
 }

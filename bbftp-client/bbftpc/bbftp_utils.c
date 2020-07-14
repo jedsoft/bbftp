@@ -88,62 +88,6 @@ my64_t ntohll(my64_t v) {
 #define htonll ntohll
 #endif
 
-void printmessage(FILE *strm , int flag, int errcode, int tok, char *fmt, ...) 
-{
-    va_list ap;
-    time_t  logtime ;
-    char    clogtime[50] ;
-    
-    va_start(ap,fmt);
-    
-    /*
-    ** If BBftp_Timestamp start to print the time
-    */
-    if (tok) {
-        /*
-        ** Get time
-        */
-        if ( time(&logtime) == -1 ) {
-            strcpy(clogtime,"") ;
-        } else {
-            if ( strftime(clogtime,sizeof(clogtime),"%a %b %d %H:%M:%S (%Z)",localtime(&logtime)) == 0 )    {
-                strcpy(clogtime,"") ;
-            }
-        }
-        /*
-        ** And print it
-        */
-        if ( strlen(clogtime) > 0 ) {
-            (void) fprintf(strm,"%s : ",clogtime) ;
-        }
-    }
-    /*
-    ** Check if it is an error
-    */
-    if ( flag == CASE_ERROR || flag == CASE_FATAL_ERROR ) {
-        /*
-        ** It is an error
-        */
-        (void) fprintf(strm,"BBFTP-ERROR-%05d : ",errcode) ;
-    } else if ( flag == CASE_WARNING ) {
-        /*
-        ** It is a warning
-        */
-        (void) fprintf(strm,"BBFTP-WARNING-%05d : ",errcode) ;
-    }
-    /*
-    ** And print the requested string 
-    */
-    (void) vfprintf(strm, fmt, ap);
-    fflush(strm) ;
-    if ( flag == CASE_FATAL_ERROR ) {
-        /*
-        ** exit in case of error
-        */
-        exit(errcode) ;
-    }
-    va_end(ap);
-}
 
 void Usage() 
 {

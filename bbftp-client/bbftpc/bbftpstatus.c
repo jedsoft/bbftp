@@ -84,11 +84,11 @@ struct sockaddr_in BBftp_My_Ctladdr ;
 int     BBftp_Incontrolsock ;
 int     BBftp_Outcontrolsock ;
 /*
-** Bbftp_Myexitcode :
+** BBftp_Myexitcode :
 **      Contains the first error code that has to be return when program
 **      is ended
 */
-int     Bbftp_Myexitcode = SETTOZERO ;
+int     BBftp_Myexitcode = SETTOZERO ;
 char    *BBftp_Hostname   = NULL ;
 struct hostent  *BBftp_Hostent = NULL ;
 char    *BBftp_Username   = NULL ;
@@ -103,7 +103,7 @@ int	BBftp_Debug ;
 int		BBftp_Recvcontrolto	= CONTROLSOCKTO;
 int		BBftp_Sendcontrolto	= SENDCONTROLTO;
 
-void printmessage(FILE *strm , int flag, int errcode, int tok, char *fmt, ...) 
+static void _printmessage(FILE *strm , int flag, int errcode, char *fmt, ...) 
 {
     va_list ap;
     time_t  logtime ;
@@ -114,7 +114,7 @@ void printmessage(FILE *strm , int flag, int errcode, int tok, char *fmt, ...)
     /*
     ** If BBftp_Timestamp start to print the time
     */
-    if (tok) {
+    if (BBftp_Timestamp) {
         /*
         ** Get time
         */
@@ -318,7 +318,7 @@ int main (int argc, char **argv)
     BBftp_His_Ctladdr.sin_family = AF_INET;
     BBftp_His_Ctladdr.sin_port = htons(BBftp_Newcontrolport);
     if ( (tmpctrlsock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP )) < 0 ) {
-        printmessage(stderr,CASE_ERROR,51,BBftp_Timestamp, "Cannot create control socket : %s\n",strerror(errno));
+        _printmessage(stderr,CASE_ERROR,51,  "Cannot create control socket : %s\n",strerror(errno));
         return -1 ;
     }
     /*
@@ -327,7 +327,7 @@ int main (int argc, char **argv)
     addrlen = sizeof(BBftp_His_Ctladdr) ;
     if ( connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,52,BBftp_Timestamp, "Cannot connect to control socket: %s\n",strerror(errno));
+        _printmessage(stderr,CASE_ERROR,52,  "Cannot connect to control socket: %s\n",strerror(errno));
         return -1 ;
     }
     /*
@@ -336,29 +336,29 @@ int main (int argc, char **argv)
     addrlen = sizeof(BBftp_My_Ctladdr) ;
     if (getsockname(tmpctrlsock,(struct sockaddr*) &BBftp_My_Ctladdr, &addrlen) < 0) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,53,BBftp_Timestamp,"Error getsockname on control socket: %s\n",strerror(errno)) ;
+        _printmessage(stderr,CASE_ERROR,53, "Error getsockname on control socket: %s\n",strerror(errno)) ;
         return -1 ;
     }
     /*
     ** Connection is correct get the encryption
     */
 
-	if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Connection established\n") ;
+	if (BBftp_Debug) _printmessage(stdout,CASE_NORMAL,0, "Connection established\n") ;
     /*
     **    Read the encryption supported
     */
     if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,54,BBftp_Timestamp,"Error reading encryption message\n") ;
+        _printmessage(stderr,CASE_ERROR,54, "Error reading encryption message\n") ;
         return -1 ;
     }
     msg = (struct message *) minbuffer ;
     if ( msg->code != MSG_CRYPT) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,55,BBftp_Timestamp,"No encryption message \n") ;
+        _printmessage(stderr,CASE_ERROR,55, "No encryption message \n") ;
         return -1 ;
     }
-	if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Received message 1\n") ;
+	if (BBftp_Debug) _printmessage(stdout,CASE_NORMAL,0, "Received message 1\n") ;
 #ifndef WORDS_BIGENDIAN
     msglen = ntohl(msg->msglen) ;
 #else
@@ -366,16 +366,16 @@ int main (int argc, char **argv)
 #endif
     if ( ( readbuffer = (char *) malloc (msglen + 1) ) == NULL ) {
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,54,BBftp_Timestamp,"Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
+        _printmessage(stderr,CASE_ERROR,54, "Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
         return -1 ;
     }
     if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
         free(readbuffer) ;
         close(tmpctrlsock) ;
-        printmessage(stderr,CASE_ERROR,56,BBftp_Timestamp,"Error reading encrypted message : %s\n","type") ;
+        _printmessage(stderr,CASE_ERROR,56, "Error reading encrypted message : %s\n","type") ;
         return -1 ;
     }
-	if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Received message 2\n") ;
+	if (BBftp_Debug) _printmessage(stdout,CASE_NORMAL,0, "Received message 2\n") ;
     msg = (struct message *)minbuffer ;
     msg->code = MSG_SERVER_STATUS ;
 #ifndef WORDS_BIGENDIAN
@@ -393,7 +393,7 @@ int main (int argc, char **argv)
         close(tmpctrlsock) ;
         return -1 ;
     }
-	if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Sent message \n") ;
+	if (BBftp_Debug) _printmessage(stdout,CASE_NORMAL,0, "Sent message \n") ;
     /*
     ** Now we are going to wait for the message on the control 
     ** connection
@@ -425,7 +425,7 @@ int main (int argc, char **argv)
                 return -1 ;
             } 
             buffer[msglen] = '\0' ;
-            printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"%s\n", buffer) ;
+            _printmessage(stdout,CASE_NORMAL,0, "%s\n", buffer) ;
             free(buffer) ;
             close(tmpctrlsock) ;
             return 0 ;

@@ -79,7 +79,7 @@ int sendproto()
     int     msglen ;
   
 
-    if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Sending protocol request\n") ;
+    if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Sending protocol request\n") ;
     /* 
     ** Now send the control message : First part
     */
@@ -92,10 +92,10 @@ int sendproto()
         ** we are going to close the control socket and to 
         ** tell the calling program to restart a connection
         */
-        printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_PROT");
+        printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_PROT");
         return -1 ; /* restart connection */
     }
-    if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"Sent message %x\n", msg->code) ;
+    if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Sent message %x\n", msg->code) ;
     /*
     ** Now we are going to wait for the message on the control 
     ** connection
@@ -115,7 +115,7 @@ waitcontrol:
             ** we have got an error so close the connection
             ** and restart
             */
-            printmessage(stderr,CASE_ERROR,66,BBftp_Timestamp,"Error select on control connection : %s\n",strerror(errno));
+            printmessage(stderr,CASE_ERROR,66, "Error select on control connection : %s\n",strerror(errno));
             return -1 ;
         } else {
             /*
@@ -137,7 +137,7 @@ waitcontrol:
         ** read the message
         */
         if ( readmessage(BBftp_Incontrolsock,buffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
-            printmessage(stderr,CASE_ERROR,61,BBftp_Timestamp,"Error waiting %s message\n","MSG_PROT_ANS");
+            printmessage(stderr,CASE_ERROR,61, "Error waiting %s message\n","MSG_PROT_ANS");
             return -1 ;
         }
         msg = (struct message *)buffer ;
@@ -146,7 +146,7 @@ waitcontrol:
             /*
             ** The server does not understand protocol 
             */
-            printmessage(stderr,CASE_FATAL_ERROR,101,BBftp_Timestamp,"Incompatible deamon and client (remote protocol version (%d,%d), local (%d,%d))\n",1,1,BBftp_Protocolmin,BBftp_Protocolmax);
+            printmessage(stderr,CASE_FATAL_ERROR,101, "Incompatible deamon and client (remote protocol version (%d,%d), local (%d,%d))\n",1,1,BBftp_Protocolmin,BBftp_Protocolmax);
             
         } else if (msg->code == MSG_PROT_ANS ) {
             /*
@@ -158,11 +158,11 @@ waitcontrol:
             msglen = msg->msglen ;
 #endif
             if ( msglen != 8 ) {
-                printmessage(stderr,CASE_ERROR,63,BBftp_Timestamp,"Unexpected message length while waiting for %s message\n","MSG_PROT_ANS");
+                printmessage(stderr,CASE_ERROR,63, "Unexpected message length while waiting for %s message\n","MSG_PROT_ANS");
                  return -1 ;
             }
             if ( readmessage(BBftp_Incontrolsock,buffer,msglen,BBftp_Recvcontrolto,0) < 0) {
-                printmessage(stderr,CASE_ERROR,67,BBftp_Timestamp,"Error reading data for %s message\n","MSG_PROT_ANS");
+                printmessage(stderr,CASE_ERROR,67, "Error reading data for %s message\n","MSG_PROT_ANS");
                 return -1 ;
             }
 #ifndef WORDS_BIGENDIAN
@@ -179,7 +179,7 @@ waitcontrol:
                 msg->code = MSG_BAD_NO_RETRY ;
                 msg->msglen = 0 ;
                 writemessage(BBftp_Outcontrolsock,buffer,MINMESSLEN,BBftp_Recvcontrolto,0); 
-                printmessage(stderr,CASE_FATAL_ERROR,101,BBftp_Timestamp,"Incompatible deamon and client (remote protocol version (%d,%d), local (%d,%d))\n",remoteprotomin,remoteprotomax,BBftp_Protocolmin,BBftp_Protocolmax);
+                printmessage(stderr,CASE_FATAL_ERROR,101, "Incompatible deamon and client (remote protocol version (%d,%d), local (%d,%d))\n",remoteprotomin,remoteprotomax,BBftp_Protocolmin,BBftp_Protocolmax);
                
             } else if (remoteprotomax <= BBftp_Protocolmax ) {
                 BBftp_Protocol = remoteprotomax ;
@@ -193,7 +193,7 @@ waitcontrol:
             msg->msglen = 4 ;
 #endif
             if ( writemessage(BBftp_Outcontrolsock,buffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ){
-                printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_PROT_ANS");
+                printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_PROT_ANS");
                 return -1 ; /* restart connection */
             }
 #ifndef WORDS_BIGENDIAN
@@ -202,7 +202,7 @@ waitcontrol:
             msg->code = BBftp_Protocol ;
 #endif
             if ( writemessage(BBftp_Outcontrolsock,buffer,4,BBftp_Recvcontrolto,0) < 0 ){
-                printmessage(stderr,CASE_ERROR,64,BBftp_Timestamp,"Error sending %s message\n","MSG_PROT_ANS");
+                printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_PROT_ANS");
                 return -1 ; /* restart connection */
             }
             return 0 ;
@@ -212,7 +212,7 @@ waitcontrol:
             ** going wrong. close the control socket
             ** and restart
             */
-            printmessage(stderr,CASE_ERROR,62,BBftp_Timestamp,"Unknown message while waiting for %s message\n","MSG_PROT_ANS");
+            printmessage(stderr,CASE_ERROR,62, "Unknown message while waiting for %s message\n","MSG_PROT_ANS");
             return -1 ;
         }
     }

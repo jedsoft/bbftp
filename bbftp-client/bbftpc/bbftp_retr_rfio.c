@@ -576,10 +576,10 @@ int bbftp_retrcheckfile_rfio(char *filename,char *logmessage,int *errcode)
     tmpnbport = BBftp_Filesize/(BBftp_Buffersizeperstream*1024) ;
     if ( tmpnbport == 0 ) {
         BBftp_Requestedstreamnumber = 1 ;
-    } else if ( tmpnbport < Bbftp_Nbport ) {
+    } else if ( tmpnbport < BBftp_Nbport ) {
         BBftp_Requestedstreamnumber = tmpnbport ;
     } else {
-        BBftp_Requestedstreamnumber = Bbftp_Nbport ;
+        BBftp_Requestedstreamnumber = BBftp_Nbport ;
     }
     return 0 ;   
 }

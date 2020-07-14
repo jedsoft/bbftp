@@ -92,21 +92,21 @@ int writemessage(int sock,char *buffer,int msglen,int to,int fromchild)
             ** Select error
             */
             if (BBftp_Debug ) 
-                printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"%sWrite message : Select error : MSG (%d,%d)\n",ent,msglen,nbsent) ;
+                printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Select error : MSG (%d,%d)\n",ent,msglen,nbsent) ;
             return -1 ;
         } else if ( retcode == 0 ) {
             if (BBftp_Debug ) 
-                printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"%sWrite message : Time Out : MSG (%d,%d)\n",ent,msglen,nbsent) ;
+                printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Time Out : MSG (%d,%d)\n",ent,msglen,nbsent) ;
             return -1 ;
         } else {
             msgsend = write(sock,&buffer[nbsent],msgsize-nbsent) ;
             if ( msgsend < 0 ) {
                 if (BBftp_Debug ) 
-                    printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"%sWrite message : Send error %d(%s) : MSG (%d,%d)\n",ent,errno,strerror(errno),msglen,nbsent) ;
+                    printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Send error %d(%s) : MSG (%d,%d)\n",ent,errno,strerror(errno),msglen,nbsent) ;
                 return -1 ;
             } else if (msgsend  == 0 ) {
                 if (BBftp_Debug ) 
-                    printmessage(stderr,CASE_NORMAL,0,BBftp_Timestamp,"%sWrite message : Connection breaks : MSG (%d,%d)\n",ent,msglen,nbsent) ;
+                    printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Connection breaks : MSG (%d,%d)\n",ent,msglen,nbsent) ;
                 return -1 ;
             } else {
                 nbsent = nbsent + msgsend ;

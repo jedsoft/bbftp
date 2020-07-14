@@ -47,7 +47,7 @@ int bbftp_dir(char *remotefile, int  *errcode)
     int     filelistlen ;
     char    *tmpfile = NULL, *tmpchar;
 
-    if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,">> COMMAND : dir %s \n",remotefile) ;
+    if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, ">> COMMAND : dir %s \n",remotefile) ;
 
     filelistlen = 0 ;
     if ( (tmpremotefile = (char *) malloc (strlen(remotefile)+3)) == NULL ) {
@@ -57,15 +57,15 @@ int bbftp_dir(char *remotefile, int  *errcode)
     strcat(tmpremotefile, "/*");
    if ( (retcode = bbftp_list(tmpremotefile,&filelist,&filelistlen,errcode) ) != BB_RET_OK)
      {
-        if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< FAILED\n") ;
+        if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "<< FAILED\n") ;
 	goto free_and_return;
      }
     if ( BBftp_Statoutput ) {
-        printmessage(stdout,CASE_NORMAL,0,0,"dir %s\n", remotefile) ;
+        printstdout("dir %s\n", remotefile) ;
     }
    if ( filelistlen == 0 )
      {
-        if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
+        if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "<< OK\n") ;
 	retcode = BB_RET_OK;
 	goto free_and_return;
      }
@@ -85,11 +85,11 @@ int bbftp_dir(char *remotefile, int  *errcode)
         tmpchar = tmpfile + strlen(tmpfile) + 1 ;
         filelistlen = filelistlen - strlen(tmpfile) - 1 - strlen(tmpchar) - 1;
         if ( BBftp_Statoutput ) {
-            printmessage(stdout,CASE_NORMAL,0,0,"%s %s\n", tmpchar, tmpfile) ;
+            printstdout("%s %s\n", tmpchar, tmpfile) ;
         }
         tmpfile = tmpchar + strlen(tmpchar) + 1 ;
     }
-   if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0,BBftp_Timestamp,"<< OK\n") ;
+   if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "<< OK\n") ;
 
    retcode = BB_RET_OK ;
    /* drop */
