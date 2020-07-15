@@ -58,11 +58,10 @@
 #include <client.h>
 #include <client_proto.h>
 
-int writemessage(int sock,char *buffer,int msglen,int to,int fromchild) 
+int writemessage(int sock,char *buffer,int msglen,int to,int fromchild)
 {
     int     retcode ;
     char    ent[40] ;
-    int     nfds ;
     fd_set  selectmask ; /* Select mask */
     struct timeval    wait_timer;
 
@@ -80,38 +79,47 @@ int writemessage(int sock,char *buffer,int msglen,int to,int fromchild)
 /*
 ** start the writing loop
 */
-    while ( nbsent < msgsize ) {
-        nfds = sysconf(_SC_OPEN_MAX) ;
-       (void) nfds;
+   while ( nbsent < msgsize )
+     {
+	/* int nfds = sysconf(_SC_OPEN_MAX) ;   (void) nfds; */
         FD_ZERO(&selectmask) ;
         FD_SET(sock,&selectmask) ;
         wait_timer.tv_sec  = to ;
         wait_timer.tv_usec = 0 ;
-        if ( (retcode = select(FD_SETSIZE,0,&selectmask,0,&wait_timer) ) == -1 ) {
-            /*
-            ** Select error
-            */
-            if (BBftp_Debug ) 
-                printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Select error : MSG (%d,%d)\n",ent,msglen,nbsent) ;
-            return -1 ;
-        } else if ( retcode == 0 ) {
-            if (BBftp_Debug ) 
-                printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Time Out : MSG (%d,%d)\n",ent,msglen,nbsent) ;
-            return -1 ;
-        } else {
-            msgsend = write(sock,&buffer[nbsent],msgsize-nbsent) ;
-            if ( msgsend < 0 ) {
-                if (BBftp_Debug ) 
-                    printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Send error %d(%s) : MSG (%d,%d)\n",ent,errno,strerror(errno),msglen,nbsent) ;
-                return -1 ;
-            } else if (msgsend  == 0 ) {
-                if (BBftp_Debug ) 
-                    printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Connection breaks : MSG (%d,%d)\n",ent,msglen,nbsent) ;
-                return -1 ;
-            } else {
-                nbsent = nbsent + msgsend ;
-            }
-        }
-    }
+        while (-1 == (retcode = select(FD_SETSIZE,0,&selectmask,0,&wait_timer)))
+	  {
+	     if (errno == EINTR) continue;
+	     /*
+	      ** Select error
+	      */
+	     if (BBftp_Debug ) 
+	       printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Select error : MSG (%d,%d)\n",ent,msglen,nbsent) ;
+	     return -1 ;
+	  }
+
+	if ( retcode == 0 )
+	  {
+	     if (BBftp_Debug )
+	       printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Time Out : MSG (%d,%d)\n",ent,msglen,nbsent) ;
+	     return -1 ;
+	  }
+
+	while (-1 == (msgsend = write(sock,&buffer[nbsent],msgsize-nbsent)))
+	  {
+	     if (errno == EINTR) continue;
+
+	     if (BBftp_Debug )
+	       printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Send error %d(%s) : MSG (%d,%d)\n",ent,errno,strerror(errno),msglen,nbsent) ;
+	     return -1 ;
+	  }
+
+	if (msgsend == 0)
+	  {
+	     if (BBftp_Debug )
+	       printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Connection breaks : MSG (%d,%d)\n",ent,msglen,nbsent) ;
+	     return -1 ;
+	  }
+	nbsent = nbsent + msgsend ;
+     }
     return(0) ;
 }
