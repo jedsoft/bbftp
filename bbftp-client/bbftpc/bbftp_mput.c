@@ -55,7 +55,7 @@ int bbftp_mput(char *localfile, char *lremotedir, int  *errcode)
     int     retcode ;
     int     nbtry ;
     char    *remotefilename = NULL ;
-    char    *tmpfile, *tmpchar, *slash ;
+    char    *tempfile, *tmpchar, *slash ;
 
     if ( BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, ">> COMMAND : mput %s %s\n",localfile,lremotedir) ;
 
@@ -67,7 +67,7 @@ int bbftp_mput(char *localfile, char *lremotedir, int  *errcode)
         if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "<< OK\n") ;
         return BB_RET_OK ;
     }
-    tmpfile = filelist ;
+    tempfile = filelist ;
     tmpchar = NULL ;
     while (filelistlen > 0 ) {
         /*
@@ -79,18 +79,18 @@ int bbftp_mput(char *localfile, char *lremotedir, int  *errcode)
         **                          'd' if it is a directory
         **                          'f' if it is a regular file
         */
-        tmpchar = tmpfile + strlen(tmpfile) + 1 ;
-        filelistlen = filelistlen - strlen(tmpfile) - 1 - strlen(tmpchar) - 1;
+        tmpchar = tempfile + strlen(tempfile) + 1 ;
+        filelistlen = filelistlen - strlen(tempfile) - 1 - strlen(tmpchar) - 1;
         if ( tmpchar[1] == 'u' ) {
-            tmpfile = tmpchar + strlen(tmpchar) + 1 ;
+            tempfile = tmpchar + strlen(tmpchar) + 1 ;
         } else if ( tmpchar[1] == 'd') {
-            tmpfile = tmpchar + strlen(tmpchar) + 1 ;
+            tempfile = tmpchar + strlen(tmpchar) + 1 ;
         } else {
             /*
             ** Find the last slash in local file
             */
-            slash = tmpfile + strlen(tmpfile) ;
-            while ( *slash != '/' && slash != tmpfile ) slash-- ;
+            slash = tempfile + strlen(tempfile) ;
+            while ( *slash != '/' && slash != tempfile ) slash-- ;
             if ( *slash == '/' ) slash++ ;
             for ( nbtry = 1 ; nbtry <= BBftp_Globaltrymax ; nbtry++ ) {
                 /*
@@ -107,14 +107,14 @@ int bbftp_mput(char *localfile, char *lremotedir, int  *errcode)
                 /*
                 ** malloc space for BBftp_Curfilename and BBftp_Realfilename
                 */
-                if ( (BBftp_Curfilename = (char *) malloc (strlen(tmpfile)+1)) == NULL ) {
+                if ( (BBftp_Curfilename = (char *) malloc (strlen(tempfile)+1)) == NULL ) {
                     printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","BBftp_Curfilename",strerror(errno)) ;
                     *errcode = 35 ;
                     free(remotefilename) ;
                     free(filelist) ;
                     return BB_RET_ERROR ;
                 }
-                if ( (BBftp_Realfilename = (char *) malloc (strlen(tmpfile)+1)) == NULL ) {
+                if ( (BBftp_Realfilename = (char *) malloc (strlen(tempfile)+1)) == NULL ) {
                     printmessage(stderr,CASE_ERROR,35, "Error allocating memory for %s : %s\n","BBftp_Realfilename",strerror(errno)) ;
                     *errcode = 35 ;
                     free(remotefilename) ;
@@ -123,8 +123,8 @@ int bbftp_mput(char *localfile, char *lremotedir, int  *errcode)
                     BBftp_Curfilename=NULL ;
                     return BB_RET_ERROR ;
                 }
-                sprintf(BBftp_Curfilename,"%s",tmpfile) ;
-                sprintf(BBftp_Realfilename,"%s",tmpfile) ;
+                sprintf(BBftp_Curfilename,"%s",tempfile) ;
+                sprintf(BBftp_Realfilename,"%s",tempfile) ;
                 /*
                 ** check if the last try was not disconnected
                 */
@@ -175,13 +175,13 @@ int bbftp_mput(char *localfile, char *lremotedir, int  *errcode)
                 }
             }
 	   if (retcode == BB_RET_OK)
-	     (void) bbftp_res_printf ("put %s %s/%s OK\n",tmpfile,lremotedir,slash);
+	     (void) bbftp_res_printf ("put %s %s/%s OK\n",tempfile,lremotedir,slash);
 	   else
 	     {
                 BBftp_Myexitcode = *errcode ;
-		(void) bbftp_res_printf ("put %s %s/%s FAILED\n",tmpfile,lremotedir,slash);
+		(void) bbftp_res_printf ("put %s %s/%s FAILED\n",tempfile,lremotedir,slash);
 	     }
-	   tmpfile = tmpchar + strlen(tmpchar) + 1 ;
+	   tempfile = tmpchar + strlen(tmpchar) + 1 ;
         }
     }
     if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "<< OK\n") ;
