@@ -206,46 +206,15 @@ int bbftp_mget(char *remotefile,char *localdir, int  *errcode)
                     }
                 }
             }
-            if ( retcode != BB_RET_OK && nbtry == BBftp_Globaltrymax+1) {
+
+	   if (retcode == BB_RET_OK)
+	     (void) bbftp_res_printf ("get %s %s/%s OK\n",tmpfile,localdir,slash);
+	   else
+	     {
                 BBftp_Myexitcode = *errcode ;
-                if ( BBftp_Resfd < 0 ) {
-                    if (!BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "get %s %s/%s FAILED\n",tmpfile,localdir,slash)        ;
-                } else {
-                    write(BBftp_Resfd,"get ",4) ;
-                    write(BBftp_Resfd,tmpfile,strlen(tmpfile)) ;
-                    write(BBftp_Resfd," ",1) ;
-                    write(BBftp_Resfd,localdir,strlen(localdir)) ;                
-                    write(BBftp_Resfd,"/",1) ;
-                    write(BBftp_Resfd,slash,strlen(slash)) ;                
-                    write(BBftp_Resfd," FAILED\n",8) ;
-                }
-            } else if ( retcode == BB_RET_OK) {        
-                if ( BBftp_Resfd < 0 ) {
-                    if (!BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "get %s %s/%s OK\n",tmpfile,localdir,slash)        ;
-                } else {
-                    write(BBftp_Resfd,"get ",4) ;
-                    write(BBftp_Resfd,tmpfile,strlen(tmpfile)) ;
-                    write(BBftp_Resfd," ",1) ;
-                    write(BBftp_Resfd,localdir,strlen(localdir)) ;                
-                    write(BBftp_Resfd,"/",1) ;
-                    write(BBftp_Resfd,slash,strlen(slash)) ;                
-                    write(BBftp_Resfd," OK\n",4) ;
-                }    
-            } else {
-                BBftp_Myexitcode = *errcode ;
-                if ( BBftp_Resfd < 0 ) {
-                    if (!BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "get %s %s/%s FAILED\n",tmpfile,localdir,slash)        ;
-                } else {
-                    write(BBftp_Resfd,"get ",4) ;
-                    write(BBftp_Resfd,tmpfile,strlen(tmpfile)) ;
-                    write(BBftp_Resfd," ",1) ;
-                    write(BBftp_Resfd,localdir,strlen(localdir)) ;                
-                    write(BBftp_Resfd,"/",1) ;
-                    write(BBftp_Resfd,slash,strlen(slash)) ;                
-                    write(BBftp_Resfd," FAILED\n",8) ;
-                }
-            } 
-            tmpfile = tmpchar + strlen(tmpchar) + 1 ;
+	       (void) bbftp_res_printf ("get %s %s/%s FAILED\n",tmpfile,localdir,slash);
+            }
+	   tmpfile = tmpchar + strlen(tmpchar) + 1 ;
         }
     }
     if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "<< OK\n") ;

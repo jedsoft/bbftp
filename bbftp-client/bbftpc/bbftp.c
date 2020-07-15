@@ -69,6 +69,8 @@
 
 #include <getopt.h>
 
+#include "_bbftp.h"
+
 #include <client.h>
 #include <client_proto.h>
 #include <bbftp_turl.h>
@@ -331,7 +333,6 @@ int     *BBftp_Myports        = NULL ;
 int     *BBftp_Mysockets      = NULL ;
 char    *BBftp_Readbuffer     = NULL ;
 char    *BBftp_Compbuffer     = NULL ; 
-int     BBftp_Resfd = -1 ;
 /*
 ** Simulation mode (option -n)
 */
@@ -514,10 +515,11 @@ int main(int argc, char **argv)
     }
     if ( errorfile != NULL ) {
 #ifdef DARWIN
-		if ( (stderrfd = open(errorfile,O_CREAT|O_WRONLY|O_TRUNC,0777)) < 0 ) {
+		if ( (stderrfd = open(errorfile,O_CREAT|O_WRONLY|O_TRUNC,0777)) < 0 )
 #else
-        if ( (stderrfd = open(errorfile,O_CREAT|O_WRONLY|O_SYNC|O_TRUNC,0777)) < 0 ) {
+        if ( (stderrfd = open(errorfile,O_CREAT|O_WRONLY|O_SYNC|O_TRUNC,0777)) < 0 )
 #endif
+	   {
      		printmessage(stderr,CASE_FATAL_ERROR,10, "Error openning error file (%s) : %s\n",errorfile,strerror(errno)) ;
         }
         close(STDERR_FILENO);
@@ -540,10 +542,11 @@ int main(int argc, char **argv)
     }
     if ( outputfile != NULL ) {
 #ifdef DARWIN
-		if ( (stdoutfd = open(outputfile,O_CREAT|O_WRONLY|O_TRUNC,0777)) < 0 ) {
+       if ( (stdoutfd = open(outputfile,O_CREAT|O_WRONLY|O_TRUNC,0777)) < 0 )
 #else
-        if ( (stdoutfd = open(outputfile,O_CREAT|O_WRONLY|O_SYNC|O_TRUNC,0777)) < 0 ) {
+        if ( (stdoutfd = open(outputfile,O_CREAT|O_WRONLY|O_SYNC|O_TRUNC,0777)) < 0 )
 #endif
+	   {
      		printmessage(stderr,CASE_FATAL_ERROR,12, "Error openning output file (%s) : %s\n",outputfile,strerror(errno)) ;
         }
         close(STDOUT_FILENO);
@@ -1054,14 +1057,10 @@ int main(int argc, char **argv)
         if ( (infd = open(inputfile,O_RDONLY)) < 0 ) {
             printmessage(stderr,CASE_FATAL_ERROR,21, "Error opening input file (%s) : %s\n",inputfile,strerror(errno)) ;
         }
-#ifdef DARWIN
-		if ( (BBftp_Resfd = open(resultfile,O_CREAT|O_WRONLY|O_TRUNC,0777)) < 0 )
-#else
-        if ( (BBftp_Resfd = open(resultfile,O_CREAT|O_WRONLY|O_SYNC|O_TRUNC,0777)) < 0 )
-#endif
-	   {
-     		printmessage(stderr,CASE_FATAL_ERROR,22, "Error opening result file (%s) : %s\n",resultfile,strerror(errno)) ;
-        }
+       if (-1 == bbftp_res_open (resultfile))
+	 {
+	    printmessage(stderr,CASE_FATAL_ERROR,22, "Error opening result file (%s) : %s\n",resultfile,strerror(errno)) ;
+	 }
         /*
         ** Now calc the max line of the input file in order to malloc 
         ** the buffer
@@ -1395,31 +1394,23 @@ int main(int argc, char **argv)
 /*
 ** Start the infinite loop
 */
-    {
+   {
       cmd_list *literator;
       literator = commandList;
-      while (literator != NULL) {
-        if ( treatcommand(literator->cmd) == 0 ) {
-            if ( inputfile != NULL ) {
-                write(BBftp_Resfd,literator->cmd,strlen(literator->cmd)) ;
-                write(BBftp_Resfd," OK\n",4) ;
-            } else {
-                if (!BBftp_Verbose && !BBftp_Statoutput) printmessage(stdout,CASE_NORMAL,0, "%s OK\n",literator->cmd);
-            }
-        } else {
-            if ( inputfile != NULL ) {
-                write(BBftp_Resfd,literator->cmd,strlen(literator->cmd)) ;
-                write(BBftp_Resfd," FAILED\n",8) ;
-            } else {
-                if (!BBftp_Verbose && !BBftp_Statoutput) printmessage(stdout,CASE_NORMAL,0, "%s FAILED\n",literator->cmd);
-            }
-        }
-	 literator = literator->next;
-      }
-    }
+      while (literator != NULL)
+	{
+	   char *passfail = "OK";
+
+	   if (0 != treatcommand(literator->cmd))
+	     passfail = "FAILED";
+
+	   (void) bbftp_res_printf ("%s %s\n", literator->cmd, passfail);
+	   literator = literator->next;
+	}
+   }
     if ( inputfile != NULL ) {
         close(infd) ;
-        close(BBftp_Resfd) ;
+       bbftp_res_close ();
     }
     msg = (struct message *)minbuffer ;
     msg->code = MSG_CLOSE_CONN ;

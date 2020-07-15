@@ -11,6 +11,11 @@ extern int bbftp_stat(char *filename,int *errcode);
 extern int bbftp_statfs(char *filename,int  *errcode);
 extern int bbftp_dir(char *remotefile, int  *errcode);
 
+extern int bbftp_res_open (const char *file);
+extern void bbftp_res_close (void);
+extern int bbftp_res_write (const char *str);
+extern int bbftp_res_printf (const char *fmt, ...);
+
 #ifndef HAVE_NTOHLL
 extern my64_t ntohll (my64_t v);
 #endif
@@ -56,7 +61,6 @@ extern int		BBftp_Recvwinsize ;
 extern int		BBftp_Remotecos ;
 extern int		BBftp_remoteumask ;
 extern int		BBftp_Requestedstreamnumber ;
-extern int		BBftp_Resfd ;
 extern int		BBftp_Sendcontrolto;
 extern int		BBftp_Sendwinsize ;
 extern int		BBftp_Simulation_Mode ;

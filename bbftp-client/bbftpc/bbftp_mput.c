@@ -174,46 +174,14 @@ int bbftp_mput(char *localfile, char *lremotedir, int  *errcode)
                     }
                 }
             }
-            if ( retcode != BB_RET_OK && nbtry == BBftp_Globaltrymax+1) {
+	   if (retcode == BB_RET_OK)
+	     (void) bbftp_res_printf ("put %s %s/%s OK\n",tmpfile,lremotedir,slash);
+	   else
+	     {
                 BBftp_Myexitcode = *errcode ;
-                if ( BBftp_Resfd < 0 ) {
-                    if (!BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "put %s %s/%s FAILED\n",tmpfile,lremotedir,slash)        ;
-                } else {
-                    write(BBftp_Resfd,"put ",4) ;
-                    write(BBftp_Resfd,tmpfile,strlen(tmpfile)) ;
-                    write(BBftp_Resfd," ",1) ;
-                    write(BBftp_Resfd,lremotedir,strlen(lremotedir)) ;                
-                    write(BBftp_Resfd,"/",1) ;
-                    write(BBftp_Resfd,slash,strlen(slash)) ;                
-                    write(BBftp_Resfd," FAILED\n",8) ;
-                }
-            } else if ( retcode == BB_RET_OK) {        
-                if ( BBftp_Resfd < 0 ) {
-                    if (!BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "put %s %s/%s OK\n",tmpfile,lremotedir,slash)        ;
-                } else {
-                    write(BBftp_Resfd,"put ",4) ;
-                    write(BBftp_Resfd,tmpfile,strlen(tmpfile)) ;
-                    write(BBftp_Resfd," ",1) ;
-                    write(BBftp_Resfd,lremotedir,strlen(lremotedir)) ;                
-                    write(BBftp_Resfd,"/",1) ;
-                    write(BBftp_Resfd,slash,strlen(slash)) ;                
-                    write(BBftp_Resfd," OK\n",4) ;
-                }    
-            } else {
-                BBftp_Myexitcode = *errcode ;
-                if ( BBftp_Resfd < 0 ) {
-                    if (!BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "put %s %s/%s FAILED\n",tmpfile,lremotedir,slash)        ;
-                } else {
-                    write(BBftp_Resfd,"put ",4) ;
-                    write(BBftp_Resfd,tmpfile,strlen(tmpfile)) ;
-                    write(BBftp_Resfd," ",1) ;
-                    write(BBftp_Resfd,lremotedir,strlen(lremotedir)) ;                
-                    write(BBftp_Resfd,"/",1) ;
-                    write(BBftp_Resfd,slash,strlen(slash)) ;                
-                    write(BBftp_Resfd," FAILED\n",8) ;
-                }
-            } 
-            tmpfile = tmpchar + strlen(tmpchar) + 1 ;
+		(void) bbftp_res_printf ("put %s %s/%s FAILED\n",tmpfile,lremotedir,slash);
+	     }
+	   tmpfile = tmpchar + strlen(tmpchar) + 1 ;
         }
     }
     if (BBftp_Verbose) printmessage(stdout,CASE_NORMAL,0, "<< OK\n") ;
