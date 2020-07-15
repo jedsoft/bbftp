@@ -204,14 +204,15 @@ int bbftp_retrlistdir(char *pattern,char **filelist,int *filelistlen,char *logme
     errno = 0 ;
     first_item = NULL ;
 #ifdef STANDART_FILE_CALL
-    while ( (dp = readdir(curdir) ) != NULL) {
+    while ( (dp = readdir(curdir) ) != NULL)
 #else
-#ifdef STANDART_READDIR_CALL 
-    while ( (dp = readdir(curdir) ) != NULL) {
-#else
-    while ( (dp = readdir64(curdir) ) != NULL) {
+# ifdef STANDART_READDIR_CALL 
+    while ( (dp = readdir(curdir) ) != NULL)
+# else
+       while ( (dp = readdir64(curdir) ) != NULL)
+# endif
 #endif
-#endif
+	 {
         if ( fnmatch(pointer, dp->d_name,0) == 0) {
             numberoffile++ ;
             lengthtosend = lengthtosend +  strlen(dirpath) + strlen(dp->d_name) + 1 + 3 ;
@@ -258,10 +259,11 @@ int bbftp_retrlistdir(char *pattern,char **filelist,int *filelistlen,char *logme
             }
             sprintf(current_item->filename,"%s%s",dirpath,dp->d_name) ;
 #ifdef STANDART_FILE_CALL
-            if ( lstat(current_item->filename,&statbuf) < 0 ) {
+            if ( lstat(current_item->filename,&statbuf) < 0 )
 #else
-            if ( lstat64(current_item->filename,&statbuf) < 0 ) {
+            if ( lstat64(current_item->filename,&statbuf) < 0 )
 #endif
+	       {
                 sprintf(logmessage,"Error lstating file %s",current_item->filename) ;
                 *errcode = 89 ;
                 current_item = first_item ;
@@ -278,10 +280,11 @@ int bbftp_retrlistdir(char *pattern,char **filelist,int *filelistlen,char *logme
             if ( (statbuf.st_mode & S_IFLNK) == S_IFLNK) {
                 current_item->filechar[0] = 'l' ;
 #ifdef STANDART_FILE_CALL
-                if ( stat(current_item->filename,&statbuf) < 0 ) {
+                if ( stat(current_item->filename,&statbuf) < 0 )
 #else
-                if ( stat64(current_item->filename,&statbuf) < 0 ) {
+                if ( stat64(current_item->filename,&statbuf) < 0 )
 #endif
+		   {
                     /*
                     ** That means that the link refer to an unexisting file
                     */
@@ -416,10 +419,11 @@ int bbftp_retrcheckdir(char *filename,char *logmessage,int *errcode)
 #endif
 
 #ifdef STANDART_FILE_CALL
-    if ( stat(filename,&statbuf) < 0 ) {
+    if ( stat(filename,&statbuf) < 0 )
 #else
-    if ( stat64(filename,&statbuf) < 0 ) {
+    if ( stat64(filename,&statbuf) < 0 )
 #endif
+       {
         /*
         ** It may be normal to get an error if the dir
         ** does not exist but some error code must lead
@@ -495,10 +499,11 @@ int bbftp_retrcheckfile(char *filename,char *logmessage,int *errcode)
 #endif
 
 #ifdef STANDART_FILE_CALL
-    if ( stat(filename,&statbuf) < 0 ) {
+    if ( stat(filename,&statbuf) < 0 )
 #else
-    if ( stat64(filename,&statbuf) < 0 ) {
+    if ( stat64(filename,&statbuf) < 0 )
 #endif
+       {
         /*
         ** It may be normal to get an error if the file
         ** does not exist but some error code must lead
@@ -572,7 +577,7 @@ int bbftp_retrcheckfile(char *filename,char *logmessage,int *errcode)
 **                                                                             *
 *******************************************************************************/
  
-int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode) 
+int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
 {
 #ifdef STANDART_FILE_CALL
     off_t       nbperchild ;
