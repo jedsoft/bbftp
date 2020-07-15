@@ -2,7 +2,7 @@
 # Makefile for bbftp
 #
 
-STDOBJS = bbftp.o bbftp_msg.o \
+STDOBJS = bbftp.o bbftp_msg.o bbftp_cmds.o \
 		bbftp_cd.o\
 		bbftp_get.o\
 		bbftp_lcd.o\
@@ -25,7 +25,6 @@ STDOBJS = bbftp.o bbftp_msg.o \
 		getdatasock.o\
 		readmessage.o\
 		sendproto.o\
-		treatcommand.o\
 		bbftp_turl.o\
 		writemessage.o\
 		setsignals.o
