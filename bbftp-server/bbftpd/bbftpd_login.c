@@ -139,6 +139,8 @@ static struct pam_conv PAM_conversation =
 };
 #endif
 
+static int Wait_For_GDB = 0;
+
 int loginsequence(void) {
     
     int        retcode ;
@@ -163,6 +165,12 @@ int loginsequence(void) {
 #ifdef USE_PAM
     pam_handle_t *pamh=NULL;
 #endif
+
+   while (Wait_For_GDB)
+     {
+	sleep (1);
+     }
+
     sprintf(logmessage,"bbftpd version %s",VERSION) ;
     /*
     ** Read the crypt type
@@ -230,8 +238,9 @@ int loginsequence(void) {
         if ( (strcmp(uspass->pw_passwd,"x") == 0) || 
              (strcmp(uspass->pw_passwd,"X") == 0) ) {
 #ifdef SHADOW_PASSWORD
+	   errno = 0;
             if ( (sunpass = getspnam(username)) == NULL ) {
-                syslog(BBFTPD_ERR,"Unknown user %s",username) ;
+	       syslog (BBFTPD_ERR, "getspnam failed for usename %s: %s", username, strerror(errno));
                 /*
                 ** We send ka_UserAuthenticate error msg
                 */
@@ -313,9 +322,11 @@ int loginsequence(void) {
     if ( (strcmp(uspass->pw_passwd,"x") == 0) || 
          (strcmp(uspass->pw_passwd,"X") == 0)) {
 #ifdef SHADOW_PASSWORD
+       errno = 0;
             if ( (sunpass = getspnam(username)) == NULL ) {
-                syslog(BBFTPD_ERR,"Unknown user %s",username) ;
-                strcat(logmessage," : Unknown user") ;
+	       syslog (BBFTPD_ERR, "getspnam failed for usename %s: %s", username, strerror(errno));
+                strcat(logmessage," : Unknown user :") ;
+                strcat(logmessage, strerror(errno)) ;
                 reply(MSG_BAD_NO_RETRY,logmessage) ;
                 return -1 ;
             }
