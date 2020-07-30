@@ -90,6 +90,8 @@
 #define TCPWINSIZE	256000
 #endif
 
+#include <stddef.h>
+
 /* UTILS
  */
 #define FREE(X) if(X != NULL) { free(X), X=NULL;}
