@@ -1,5 +1,5 @@
 #
-# Makefile for bbftpd deamon 
+# Makefile for bbftpd deamon
 #
 
 STDOBJS = 	bbftpd.o\
@@ -40,7 +40,7 @@ HEAD =  ./bbftpd.h \
 		../includes/daemon_proto.h \
 		../includes/status.h \
 		../includes/structures.h\
-		../includes/version.h 
+		../includes/version.h
 
 PROG = bbftpd
 
