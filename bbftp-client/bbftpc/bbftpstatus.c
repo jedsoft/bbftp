@@ -325,7 +325,10 @@ int main (int argc, char **argv)
     ** Connect to the server
     */
     addrlen = sizeof(BBftp_His_Ctladdr) ;
-    if ( connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
+    while (-1 == connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen)) {
+
+       if (errno == EINTR) continue;
+
         close(tmpctrlsock) ;
         _printmessage(stderr,CASE_ERROR,52,  "Cannot connect to control socket: %s\n",strerror(errno));
         return -1 ;

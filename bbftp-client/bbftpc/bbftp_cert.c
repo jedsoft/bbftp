@@ -106,7 +106,8 @@ int bbftp_cert_connect(void)
     ** Connect to the server
     */
     addrlen = sizeof(BBftp_His_Ctladdr) ;
-    if ( connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
+    while ( connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
+       if (errno == EINTR) continue;
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,52,  "Cannot connect to control socket: %s\n",strerror(errno));
         return -1 ;

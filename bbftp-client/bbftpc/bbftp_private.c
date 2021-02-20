@@ -120,7 +120,8 @@ int bbftp_private_connect (void)
     ** Connect to the server
     */
     addrlen = sizeof(BBftp_His_Ctladdr) ;
-    if ( connect(prv_ctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
+    while ( connect(prv_ctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
+       if (errno == EINTR) continue;
         close(prv_ctrlsock) ;
         printmessage(stderr,CASE_ERROR,52,  "Cannot connect to control socket: %s\n",strerror(errno));
         return -1 ;

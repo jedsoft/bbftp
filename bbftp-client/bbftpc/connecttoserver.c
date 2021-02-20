@@ -388,7 +388,10 @@ int connectviassh()
            BBftp_His_Ctladdr.sin_family = AF_INET ;
            BBftp_His_Ctladdr.sin_port = htons(msg->code);
            addrlen = sizeof(BBftp_His_Ctladdr) ;
-           if ( connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
+           while (-1 == connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen)) {
+
+	      if (errno == EINTR) continue;
+
                if ( BBftp_Hostent ) {
                   if ( BBftp_Hostent->h_addr_list[1] ) {
                       close(tmpctrlsock) ;
@@ -504,7 +507,8 @@ int connectviapassword(void)
     ** Connect to the server
     */
     addrlen = sizeof(BBftp_His_Ctladdr) ;
-    if ( connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
+    while ( connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen) < 0 ) {
+       if (errno == EINTR) continue;
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,52,  "Cannot connect to control socket: %s\n",strerror(errno));
         return -1 ;

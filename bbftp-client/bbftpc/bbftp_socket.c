@@ -76,7 +76,6 @@ int bbftp_createdatasock(int portnumber/*,char *logmessage*/)
 #else
     socklen_t        addrlen ;
 #endif
-    int    retcode ;
 
     /* Declaring the variables need to change the value of the TOS */
     int tos_value, tos_len;
@@ -157,8 +156,9 @@ int bbftp_createdatasock(int portnumber/*,char *logmessage*/)
     data_source.sin_addr = BBftp_His_Ctladdr.sin_addr;
     data_source.sin_port = htons(portnumber);
     addrlen = sizeof(data_source) ;
-    retcode = connect(sock,(struct sockaddr *) &data_source,addrlen) ;
-    if ( retcode < 0 ) {
+
+    if (-1 == connect(sock,(struct sockaddr *) &data_source,addrlen))
+     {
         close(sock) ;
         printmessage(stderr,CASE_ERROR,96, "Cannot connect to data socket on port %d: %s\n",portnumber,strerror(errno));
         if ( errno == EINTR || errno == ETIMEDOUT ) {
