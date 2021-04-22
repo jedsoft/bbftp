@@ -106,7 +106,7 @@ private define make_big_file (file, size)
 
 private variable BBftp_Common_Argv, BBftp_Remote_Host;
 private variable Memcheck
-  = ["valgrind", "--tool=memcheck", "--leak-check=yes", "--error-limit=no", "--num-callers=25"];
+  = ["valgrind", "--tool=memcheck", "--leak-check=yes", "--error-limit=no", "--num-callers=25", "--track-origins=yes"];
 private variable Use_Memcheck = 0;
 private variable Bigfile_Name = "bbftp_bigfile.dat";
 private variable Bigfile_Size = 3000000019UL;   %  prime number
@@ -116,6 +116,8 @@ private define run_bbftp (testargv)
 {
    variable argv = [BBftp_Common_Argv, testargv, BBftp_Remote_Host];
    if (Use_Memcheck) argv = [Memcheck, argv];
+   %argv = ["strace", "-f", "-o", "/tmp/bb.log", argv];
+   %argv = ["gdb", "--args", argv];
    return run_pgm (argv;; __qualifiers);
 }
 
@@ -141,6 +143,28 @@ private define test_script ()
       "get $bigfile1 $bigfile2\n"$,
       "stat $bigfile1\n"$,
       "rm $bigfile1\n"$,
+      "mput ../bbftp-server/bbftpd/*.c /tmp/xxx/\n",
+%      "mget xxx/*.c yyy/\n",
+      "setbuffersize 512\n",
+      % "setlocalcos 044\n",
+      "setlocalumask 022\n",
+      "setnbstream 4\n",
+      "setremotecos 0777\n",
+      "setremoteumask 022\n",
+      "setrecvwinsize 1024\n",
+      "setsendwinsize 1024\n",
+      "setrecvcontrolto 100\n",
+      "setsendcontrolto 100\n",
+      "setackto 100\n",
+      "setdatato 100\n",
+      "setoption createdir\n",
+      "setoption tmpfile\n",
+      "setoption remoterfio\n",
+      % "setoption localrfio\n",
+      "setoption keepmode\n",
+      "setoption keepaccess\n",
+      "setoption gzip\n",
+      "setoption qbss\n",
      ];
 
    % Make the test script, which bbftp calls a control file
@@ -251,7 +275,7 @@ define slsh_main ()
      bbftp_exec = path_concat (testdir, "../bbftp-client/bbftpc/bbftp"),
      bbftpd_pgm = path_concat (remote_dir, "bbftpd");
 
-   BBftp_Common_Argv = [bbftp_exec, "-r", "1", "-m", "-E", bbftpd_pgm,
+   BBftp_Common_Argv = [bbftp_exec, "-r", "1", "-E", bbftpd_pgm, "-p", "2", "-V",
 			"-I", rsa_id_file, "-u", remote_user];
    BBftp_Remote_Host = remote_host;
 
