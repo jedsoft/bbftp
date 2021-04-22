@@ -1,0 +1,17 @@
+To build and install software, run the following commands:
+
+   make config
+   make build
+   make install
+
+By default, it will be installed under /usr/local.  To configure the
+software with a different prefix, or other configuration options, use
+a variation of
+
+   make CONFIGOPTS="--prefix=/usr/local" config
+
+If you have slsh installed, the software can be tested prior to
+installing by running
+
+   make check
+

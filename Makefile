@@ -1,8 +1,10 @@
-CONFIGOPTS = --prefix=/tmp/root
+CONFIGOPTS = --prefix=/usr/local
 BBFTPC_ENV_OPTS =
 BBFTPD_ENV_OPTS = CFLAGS="$$CFLAGS -Bstatic"
 #
-all:
+usage:
+	@cat INSTALL
+build:
 	cd bbftp-client/bbftpc && $(MAKE)
 	cd bbftp-server/bbftpd && $(MAKE)
 config:

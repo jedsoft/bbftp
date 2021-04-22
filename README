@@ -1,0 +1,24 @@
+The code here is based upon version 3.2.1 of the bbftp software that
+was downloaded from <http://software.in2p3.fr/bbftp/>.  The original
+software was written by Gilles Farrache at IN2P3 and released under
+the GNU General Public License.
+
+Version 3.2.1 was released in early 2013.  As such, it will no longer
+compile with recent versions of the OpenSSL library.  I made the
+necessary modifications to version 3.2.1 of bbftp client to enable it
+to work with OpenSSL 1.1.0.  I made several attempts to contact the
+authors at bbftp@in2p3.fr with my patches.  So far I received no
+responses.
+
+I testing the code with valgrind and discovered a number of leaks and
+various access errors.  In the process of correcting these, I made
+many other changes to the code in an effort to clean it up to compile
+without warnings with my standard set of compiler flags.  As a result,
+the current version of the code here is very different from the
+original source code.
+
+The test code is in the tests subdirectory.  In order to use it, you
+will need to have slsh installed.  See <https://jedsoft.org/slang/>.
+
+John E. Davis
+<jed@jedsoft.org>
