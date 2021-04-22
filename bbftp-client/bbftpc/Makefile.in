@@ -85,11 +85,15 @@ ${STATUS_PROG} :${STATUS_OBJS}
 	${CC} -o $@ ${STATUS_OBJS} ${LDFLAGS} ${LIBS} 
 
 clean:
-	rm -f ${OBJS} ${STATUS_OBJS} ${PROG} ${STATUS_PROG} *~
+	rm -f ${OBJS} ${STATUS_OBJS} $(PROG) $(STATUS_PROG)
 	rm -rf obj.@host@
-	rm -f config.cache
+	rm -f ../includes/*~ *~
 	- cd ../gfw && make clean
-
+distclean: clean
+	rm -f bbftp.h
+	rm -rf autom4te.cache
+	rm -f config.cache config.log config.status
+	rm -f Makefile
 install:${PROG} ${STATUS_PROG}
 	mkdir -p ${prefix}
 	mkdir -p ${bindir}

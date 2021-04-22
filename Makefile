@@ -1,11 +1,13 @@
 CONFIGOPTS = --prefix=/tmp/root
+BBFTPC_ENV_OPTS =
+BBFTPD_ENV_OPTS = CFLAGS="$$CFLAGS -Bstatic"
 #
 all:
 	cd bbftp-client/bbftpc && $(MAKE)
 	cd bbftp-server/bbftpd && $(MAKE)
 config:
 	cd bbftp-client/bbftpc && ./configure $(CONFIGOPTS)
-	cd bbftp-server/bbftpd && ./configure $(CONFIGOPTS)
+	cd bbftp-server/bbftpd && $(BBFTPD_ENV_OPTS) ./configure $(CONFIGOPTS)
 install:
 	cd bbftp-client/bbftpc && $(MAKE) install
 	cd bbftp-server/bbftpd && $(MAKE) install
@@ -13,7 +15,8 @@ clean:
 	cd bbftp-client/bbftpc && $(MAKE) clean
 	cd bbftp-server/bbftpd && $(MAKE) clean
 	cd tests && $(MAKE) clean
-distclean:
+	rm -f *~
+distclean: clean
 	cd bbftp-client/bbftpc && $(MAKE) distclean
 	cd bbftp-server/bbftpd && $(MAKE) distclean
 	cd tests && $(MAKE) distclean

@@ -70,12 +70,16 @@ ${PROG} : ${OBJS} ${GFWLIB}
 	${CC} -o $@ ${OBJS} ${LDFLAGS} ${GFWLIB} ${LIBS}
 
 clean:
-	rm -f *.o
+	rm -f *.o $(PROG)
 	rm -rf obj.@host@
-	rm -f config.cache
-	rm -f config.log
+	rm -f ../includes/*~ *~
 	- cd ../gfw && make clean
-
+distclean: clean
+	rm -f bbftpd.h
+	rm -rf autom4te.cache
+	rm -f config.cache config.log config.status
+	rm -f startup
+	rm -f Makefile
 install:${PROG}
 	mkdir -p ${prefix}
 	mkdir -p ${bindir}
