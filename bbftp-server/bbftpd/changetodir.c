@@ -42,7 +42,7 @@
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <stdio.h>
-#include <syslog.h>
+/* #include <syslog.h> */
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -70,7 +70,7 @@ int changetodir (int code, int msglen) {
         ** In order to avoid buffer overflow we reject message to
         ** big
         */
-        syslog(BBFTPD_ERR,"Message to big in changetodir (%d,%lu)",msglen,MAXMESSLEN) ;
+        bbftpd_syslog(BBFTPD_ERR,"Message to big in changetodir (%d,%lu)",msglen,MAXMESSLEN) ;
         reply(MSG_BAD_NO_RETRY,"Directory too long") ;
         return -1 ;
     }
@@ -88,7 +88,7 @@ int changetodir (int code, int msglen) {
     */
     receive_buffer[msglen] = '\0' ;
     if ( code == MSG_CHDIR ) {
-        syslog(BBFTPD_DEBUG,"Changing directory to %s",receive_buffer) ;
+        bbftpd_syslog(BBFTPD_DEBUG,"Changing directory to %s",receive_buffer) ;
     }
     /*
     ** We change the directory
@@ -100,7 +100,7 @@ int changetodir (int code, int msglen) {
         */
         savederrno = errno ;
         sprintf(logmessage,"Error changing directory %s : %s ",receive_buffer,strerror(errno)) ;
-        syslog(BBFTPD_ERR,"Error changing directory %s : %s",receive_buffer,strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error changing directory %s : %s",receive_buffer,strerror(errno)) ;
         /*
         ** We tell the client not to retry in the following case (even in waiting
         ** WAITRETRYTIME the problem will not be solved) :

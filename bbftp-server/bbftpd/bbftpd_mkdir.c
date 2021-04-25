@@ -36,7 +36,7 @@
 
 
 #include <stdio.h>
-#include <syslog.h>
+/* #include <syslog.h> */
 #include <utime.h>
 #include <stdlib.h>
 
@@ -47,8 +47,9 @@
 #include <netinet/in.h>
 #include <structures.h>
 
-extern int transferoption ;
-extern	int	recvcontrolto ;
+#include "_bbftpd.h"
+/* extern int transferoption ; */
+/* extern	int	recvcontrolto ; */
 
 int bbftpd_mkdir(int sock,int msglen) 
 {
@@ -60,12 +61,12 @@ int bbftpd_mkdir(int sock,int msglen)
     int     retcode ;
 
     if ( (buffer = (char *) malloc (msglen+1) ) == NULL ) {
-        syslog(BBFTPD_ERR,"Unable to malloc space for directory name (%d)",msglen) ;
+        bbftpd_syslog(BBFTPD_ERR,"Unable to malloc space for directory name (%d)",msglen) ;
         reply(MSG_BAD,"Unable to malloc space for directory name") ;
         return 0 ;
     }
     if ( (logmessage = (char *) malloc (msglen+1024) ) == NULL ) {
-        syslog(BBFTPD_ERR,"Unable to malloc space for logmessage ") ;
+        bbftpd_syslog(BBFTPD_ERR,"Unable to malloc space for logmessage ") ;
         reply(MSG_BAD,"Unable to malloc space for logmessage") ;
         FREE(buffer) ;
         return 0 ;
@@ -77,7 +78,7 @@ int bbftpd_mkdir(int sock,int msglen)
         /*
         ** Error ...
         */
-        syslog(BBFTPD_ERR,"Error reading directory name") ;
+        bbftpd_syslog(BBFTPD_ERR,"Error reading directory name") ;
         FREE(buffer) ;
         FREE(logmessage) ;
         return -1 ;

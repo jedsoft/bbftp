@@ -30,7 +30,7 @@
 *****************************************************************************/
 #include <errno.h>
 #include <signal.h>
-#include <syslog.h>
+/* #include <syslog.h> */
 
 int set_father_signals() {
     struct    sigaction    sga ;
@@ -39,63 +39,63 @@ int set_father_signals() {
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0   ;
     if ( sigaction(SIGABRT,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGABRT : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGABRT : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGALRM,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGALRM : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGALRM : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGHUP,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGHUP : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGHUP : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGINT,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGINT : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGINT : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGPIPE,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGPIPE : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGPIPE : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGQUIT,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGQUIT : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGQUIT : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGTERM,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGTERM : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGTERM : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGUSR1,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGUSR1 : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGUSR1 : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGUSR2,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGUSR2 : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGUSR2 : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGCHLD,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGCHLD : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGCHLD : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGTSTP,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGTSTP : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGTSTP : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGPOLL,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGPOLL : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGPOLL : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGPROF,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGPROF : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGPROF : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGURG,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGURG : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGURG : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGVTALRM,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGVTALRM : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGVTALRM : %s",strerror(errno)) ;
         return(-1) ;
     }
     return 0 ;

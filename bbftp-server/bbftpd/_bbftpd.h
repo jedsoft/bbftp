@@ -160,4 +160,13 @@ extern char lastaccess[9] ;
 extern char lastmodif[9] ;
 extern int  filemode ;
 
+extern int newcontrolport;
+extern int checkstdinto;
+extern int protocolmin;
+extern int protocolmax;
+
+extern void bbftpd_syslog_open (const char *ident, int option, int facility);
+extern void bbftpd_syslog (int priority, const char *format, ...);
+extern void bbftpd_syslog_close (void);
+
 #endif

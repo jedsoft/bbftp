@@ -64,7 +64,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <signal.h>
-#include <syslog.h>
+/* #include <syslog.h> */
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
@@ -156,7 +156,7 @@ int sendafile(int code) {
 
     strcpy(currentfilename,"") ;
     if ( (retcode = readmessage(msgsock,receive_buffer,STORMESSLEN,recvcontrolto) ) < 0 ) {
-        syslog(BBFTPD_ERR,"Error receiving file char") ;
+        bbftpd_syslog(BBFTPD_ERR,"Error receiving file char") ;
         return retcode ;
     }
     msg_store = (struct mess_store *) receive_buffer ;
@@ -169,10 +169,10 @@ int sendafile(int code) {
 #endif
     if ( code == MSG_RETR ) {
         compressiontype = NOCOMPRESSION ;
-        syslog(BBFTPD_DEBUG,"Retreiving file %s with %d children",readfilename,msg_store->nbport) ;
+        bbftpd_syslog(BBFTPD_DEBUG,"Retreiving file %s with %d children",readfilename,msg_store->nbport) ;
     } else {
         compressiontype = COMPRESSION ;
-        syslog(BBFTPD_DEBUG,"Retreiving file %s with %d children in compressed mode",readfilename,msg_store->nbport) ;
+        bbftpd_syslog(BBFTPD_DEBUG,"Retreiving file %s with %d children in compressed mode",readfilename,msg_store->nbport) ;
     }
     /*
     ** WARNING ----------
@@ -201,7 +201,7 @@ int sendafile(int code) {
         */
         savederrno = errno ;
         sprintf(logmessage,"Error stating file %s : %s ",readfilename,strerror(savederrno)) ;
-        syslog(BBFTPD_ERR,"Error stating file %s : %s ",readfilename,strerror(savederrno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error stating file %s : %s ",readfilename,strerror(savederrno)) ;
         if ( savederrno == EACCES ||
             savederrno == ELOOP ||
             savederrno == ENAMETOOLONG ||
@@ -218,7 +218,7 @@ int sendafile(int code) {
         ** The file exists so check if it is a directory
         */
         if ( (statbuf.st_mode & S_IFDIR) == S_IFDIR) {
-            syslog(BBFTPD_ERR,"file %s is a directory",readfilename) ;
+            bbftpd_syslog(BBFTPD_ERR,"file %s is a directory",readfilename) ;
             sprintf(logmessage,"File %s is a directory",readfilename) ;
             reply(MSG_BAD_NO_RETRY,logmessage) ;
             return 0 ;
@@ -238,7 +238,7 @@ int sendafile(int code) {
         ** on errno
         */
         savederrno = errno ;
-        syslog(BBFTPD_ERR,"Error opening local file %s : %s",readfilename,strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error opening local file %s : %s",readfilename,strerror(errno)) ;
         sprintf(logmessage,"Error opening local file %s : %s ",readfilename,strerror(errno)) ;
         /*
         ** We tell the client not to retry in the following case (even in waiting
@@ -271,7 +271,7 @@ int sendafile(int code) {
         ** abnormal
         */
         close(fd) ;
-        syslog(BBFTPD_ERR,"Error seeking local file %s : %s",readfilename,strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error seeking local file %s : %s",readfilename,strerror(errno)) ;
         sprintf(logmessage,"Error seeking local file %s : %s ",readfilename,strerror(errno)) ;
         reply(MSG_BAD,logmessage) ;
         return 0 ;
@@ -296,7 +296,7 @@ int sendafile(int code) {
         ** Something wrong in sending message
         ** tell calling to close the connection
         */
-        syslog(BBFTPD_ERR,"Error sending RETROK part 1") ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sending RETROK part 1") ;
         return -1 ;
     }
     msg_retr_ok = (struct mess_retr_ok *) send_buffer ;
@@ -310,7 +310,7 @@ int sendafile(int code) {
         ** Something wrong in sending message
         ** tell calling to close the connection
         */
-        syslog(BBFTPD_ERR,"Error sending RETROK part 2") ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sending RETROK part 2") ;
         return -1 ;
     }
     /*
@@ -321,7 +321,7 @@ int sendafile(int code) {
         ** Something wrong in receiving message
         ** tell calling to close the connection
         */
-        syslog(BBFTPD_ERR,"Error receiving RETRSTART") ;
+        bbftpd_syslog(BBFTPD_ERR,"Error receiving RETRSTART") ;
         return -1 ;
     }
     msg = (struct message *) receive_buffer_sup ;
@@ -330,13 +330,13 @@ int sendafile(int code) {
         ** In this case the client will not close the connection
         ** so do the same
         */
-        syslog(BBFTPD_ERR,"Receive ABORT message") ;
+        bbftpd_syslog(BBFTPD_ERR,"Receive ABORT message") ;
         return 0 ;
     } else if ( msg->code == MSG_CREATE_ZERO ) {
-        syslog(BBFTPD_INFO,"Send zero length file") ;
+        bbftpd_syslog(BBFTPD_INFO,"Send zero length file") ;
         return 0 ;
     } else if ( msg->code != MSG_RETR_START ) {
-        syslog(BBFTPD_ERR,"Receive Unknown message code while waiting RETRSTART %d",msg->code) ;
+        bbftpd_syslog(BBFTPD_ERR,"Receive Unknown message code while waiting RETRSTART %d",msg->code) ;
         return -1 ;
     }
     /*
@@ -399,7 +399,7 @@ int sendafile(int code) {
                 wait_timer.tv_usec = 0 ;
                 select(nfds,0,0,0,&wait_timer) ;
             }
-            syslog(BBFTPD_DEBUG,"Child Starting") ;
+            bbftpd_syslog(BBFTPD_DEBUG,"Child Starting") ;
             /*
             ** Close all unnecessary stuff
             */
@@ -418,7 +418,7 @@ int sendafile(int code) {
                 ** on errno
                 */
                 i = errno ;
-                syslog(BBFTPD_ERR,"Error opening local file %s : %s",readfilename,strerror(errno)) ;
+                bbftpd_syslog(BBFTPD_ERR,"Error opening local file %s : %s",readfilename,strerror(errno)) ;
                 close(sendsock) ;
                 exit(i) ;
             }
@@ -429,7 +429,7 @@ int sendafile(int code) {
 #endif
                 i = errno ;
                 close(fd) ;
-                syslog(BBFTPD_ERR,"Error seeking file : %s",strerror(errno)) ;
+                bbftpd_syslog(BBFTPD_ERR,"Error seeking file : %s",strerror(errno)) ;
                 close(sendsock) ;
                 exit(i)  ;
             }
@@ -483,7 +483,7 @@ int sendafile(int code) {
                         */
                         if ( writemessage(sendsock,send_buffer,COMPMESSLEN,datato) < 0 ) {
                             i = ETIMEDOUT ;
-                            syslog(BBFTPD_ERR,"Error sending header data") ;
+                            bbftpd_syslog(BBFTPD_ERR,"Error sending header data") ;
                             close(sendsock) ;
                             exit(i) ;
                         }
@@ -509,12 +509,12 @@ int sendafile(int code) {
                             ** Select error
                             */
                             i = errno ;
-                            syslog(BBFTPD_ERR,"Error select while sending : %s",strerror(errno)) ;
+                            bbftpd_syslog(BBFTPD_ERR,"Error select while sending : %s",strerror(errno)) ;
                             close(fd) ;
                             close(sendsock) ;
                             exit(i) ;
                         } else if ( retcode == 0 ) {
-                            syslog(BBFTPD_ERR,"Time out while sending") ;
+                            bbftpd_syslog(BBFTPD_ERR,"Time out while sending") ;
                             close(fd) ;
                             i=ETIMEDOUT ;
                             close(sendsock) ;
@@ -523,12 +523,12 @@ int sendafile(int code) {
                             retcode = send(sendsock,&lreadbuffer[nbsent],lentosend,0) ;
                             if ( retcode < 0 ) {
                                 i = errno ;
-                                syslog(BBFTPD_ERR,"Error while sending %s",strerror(i)) ;
+                                bbftpd_syslog(BBFTPD_ERR,"Error while sending %s",strerror(i)) ;
                                 close(sendsock) ;
                                 exit(i) ;
                             } else if ( retcode == 0 ) {
                                 i = ECONNRESET ;
-                                syslog(BBFTPD_ERR,"Connexion breaks") ;
+                                bbftpd_syslog(BBFTPD_ERR,"Connexion breaks") ;
                                 close(fd) ;
                                 close(sendsock) ;
                                 exit(i) ;
@@ -539,7 +539,7 @@ int sendafile(int code) {
                     }
                 } else {
                     i = errno ;
-                    syslog(BBFTPD_ERR,"Child Error reading : %s",strerror(errno)) ;
+                    bbftpd_syslog(BBFTPD_ERR,"Child Error reading : %s",strerror(errno)) ;
                     close(sendsock) ;
                     exit(i) ;
                 }
@@ -548,18 +548,18 @@ int sendafile(int code) {
             ** All data has been sent so wait for the acknoledge
             */
             if ( readmessage(sendsock,receive_buffer,MINMESSLEN,ackto) < 0 ) {
-                syslog(BBFTPD_ERR,"Error waiting ACK") ;
+                bbftpd_syslog(BBFTPD_ERR,"Error waiting ACK") ;
                 close(sendsock) ;
                 exit(ETIMEDOUT) ;
             }
             msg = (struct message *) receive_buffer ;
             if ( msg->code != MSG_ACK) {
-                syslog(BBFTPD_ERR,"Error unknown messge while waiting ACK %d",msg->code) ;
+                bbftpd_syslog(BBFTPD_ERR,"Error unknown messge while waiting ACK %d",msg->code) ;
                 close(sendsock) ;
                 exit(1) ;
             }
             toprint64 = nbtosend ;
-            syslog(BBFTPD_DEBUG,"Child send %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
+            bbftpd_syslog(BBFTPD_DEBUG,"Child send %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
             close(sendsock) ;
             exit(0) ;
         } else {
@@ -570,7 +570,7 @@ int sendafile(int code) {
                 /*
                 ** Fork failed ...
                 */
-                syslog(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
+                bbftpd_syslog(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
                 sprintf(logmessage,"fork failed : %s ",strerror(errno)) ;
                 if ( childendinerror == 0 ) {
                     childendinerror = 1 ;
@@ -579,7 +579,7 @@ int sendafile(int code) {
                 clean_child() ;
                 return 0 ;
             } else {
-                syslog(BBFTPD_DEBUG,"Started child pid %d",retcode) ;
+                bbftpd_syslog(BBFTPD_DEBUG,"Started child pid %d",retcode) ;
                 pid_child[i-1] = retcode ;
                 close(sendsock) ;
             }

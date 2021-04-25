@@ -34,7 +34,7 @@
 #endif
 
 #include <stdio.h>
-#include <syslog.h>
+/* #include <syslog.h> */
 #include <malloc.h>
 #include <utime.h>
 #include <errno.h>
@@ -86,12 +86,12 @@ int bbftpd_statfs(int sock,int msglen)
 # endif
 
     if ( (buffer = (char *) malloc (msglen+1) ) == NULL ) {
-        syslog(BBFTPD_ERR,"Unable to malloc space for dir name (%d)",msglen) ;
+        bbftpd_syslog(BBFTPD_ERR,"Unable to malloc space for dir name (%d)",msglen) ;
         reply(MSG_BAD,"Unable to malloc space for file name") ;
         return 0 ;
     }
     if ( (logmessage = (char *) malloc (msglen+1024) ) == NULL ) {
-        syslog(BBFTPD_ERR,"Unable to malloc space for logmessage ") ;
+        bbftpd_syslog(BBFTPD_ERR,"Unable to malloc space for logmessage ") ;
         reply(MSG_BAD,"Unable to malloc space for logmessage") ;
         FREE(buffer) ;
         return 0 ;
@@ -103,7 +103,7 @@ int bbftpd_statfs(int sock,int msglen)
         /*
         ** Error ...
         */
-        syslog(BBFTPD_ERR,"Error reading dir name") ;
+        bbftpd_syslog(BBFTPD_ERR,"Error reading dir name") ;
         FREE(buffer) ;
         FREE(logmessage) ;
         return -1 ;

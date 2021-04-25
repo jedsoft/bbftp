@@ -41,7 +41,7 @@
 #include <glob.h>
 #include <netinet/in.h>
 #include <stdio.h>
-#include <syslog.h>
+/* #include <syslog.h> */
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -80,7 +80,7 @@ int sendlist (int code, int msglen) {
         ** In order to avoid buffer overflow we reject message to
         ** big
         */
-        syslog(BBFTPD_ERR,"Message to big in sendlist (%d,%lu)",msglen,MAXMESSLEN) ;
+        bbftpd_syslog(BBFTPD_ERR,"Message to big in sendlist (%d,%lu)",msglen,MAXMESSLEN) ;
         reply(MSG_BAD_NO_RETRY,"String too long") ;
         return -1 ;
     }
@@ -98,7 +98,7 @@ int sendlist (int code, int msglen) {
     */
     receive_buffer[msglen] = '\0' ;
     if ( code == MSG_LIST ) {
-        syslog(BBFTPD_DEBUG,"Getting file list %s",receive_buffer) ;
+        bbftpd_syslog(BBFTPD_DEBUG,"Getting file list %s",receive_buffer) ;
     }
     /*
     ** We get the filelist
@@ -113,7 +113,7 @@ int sendlist (int code, int msglen) {
             msg->code = MSG_LIST_REPL ;
             msg->msglen = 0 ;
             if ( writemessage(msgsock,send_buffer,MINMESSLEN,recvcontrolto) < 0 ) {
-                syslog(BBFTPD_ERR,"Error sending LISTREPL part 1") ;
+                bbftpd_syslog(BBFTPD_ERR,"Error sending LISTREPL part 1") ;
                 return -1 ;
             }
             return 0 ;
@@ -141,7 +141,7 @@ int sendlist (int code, int msglen) {
         msg->msglen = ntohl(msg->msglen) ;
 #endif
         if ( writemessage(msgsock,send_buffer,MINMESSLEN,recvcontrolto) < 0 ) {
-            syslog(BBFTPD_ERR,"Error sending LISTREPL part 1") ;
+            bbftpd_syslog(BBFTPD_ERR,"Error sending LISTREPL part 1") ;
             return -1 ;
         }
         /*
@@ -150,7 +150,7 @@ int sendlist (int code, int msglen) {
         for (i = 0 ; i < pg.gl_pathc ; i++ ) {
             tmpfile = pg.gl_pathv[i] ;
             if ( writemessage(msgsock,tmpfile,strlen(tmpfile)+1,recvcontrolto) < 0 ) {
-                syslog(BBFTPD_ERR,"Error sending LISTREPL filename %s",tmpfile) ;
+                bbftpd_syslog(BBFTPD_ERR,"Error sending LISTREPL filename %s",tmpfile) ;
                 return -1 ;
             }
         }

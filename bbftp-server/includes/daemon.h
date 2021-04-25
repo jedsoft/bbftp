@@ -40,6 +40,8 @@
  
 *****************************************************************************/
 
+#include <syslog.h>
+
 /* RETRSTARTTO :
 **		Define the time out to wait a retreive start message on the control socket.
 **		Expressed in second, usual value 100.

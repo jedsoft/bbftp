@@ -53,7 +53,7 @@
 *****************************************************************************/
 #include <sys/time.h>
 #include <netinet/in.h>
-#include <syslog.h>
+/* #include <syslog.h> */
 
 #include <bbftpd.h>
 #include <common.h>
@@ -92,7 +92,7 @@ int readcontrol(int msgcode,int msglen) {
                 case MSG_STORE_C :
 #else
                 case MSG_STORE_C : {
-                    syslog(BBFTPD_ERR,"Compression is not available on this server") ;
+                    bbftpd_syslog(BBFTPD_ERR,"Compression is not available on this server") ;
                     retcode = discardmessage(msgsock,msglen,recvcontrolto) ;
                     reply(MSG_BAD_NO_RETRY,"Compression is not available on this server") ;
                     return retcode ;
@@ -108,7 +108,7 @@ int readcontrol(int msgcode,int msglen) {
                 case MSG_RETR_C :
 #else
                 case MSG_RETR_C : {
-                    syslog(BBFTPD_ERR,"Compression is not available on this server") ;
+                    bbftpd_syslog(BBFTPD_ERR,"Compression is not available on this server") ;
                     retcode = discardmessage(msgsock,msglen,recvcontrolto) ;
                     reply(MSG_BAD_NO_RETRY,"Compression is not available on this server") ;
                     return retcode ;
@@ -123,7 +123,7 @@ int readcontrol(int msgcode,int msglen) {
                 case MSG_RETR_RFIO_C :
 #else
                 case MSG_RETR_RFIO_C : {
-                    syslog(BBFTPD_ERR,"Compression is not available on this server") ;
+                    bbftpd_syslog(BBFTPD_ERR,"Compression is not available on this server") ;
                     retcode = discardmessage(msgsock,msglen,recvcontrolto) ;
                     reply(MSG_BAD_NO_RETRY,"Compression is not available on this server") ;
                     return retcode ;
@@ -134,7 +134,7 @@ int readcontrol(int msgcode,int msglen) {
                     retcode = sendafilerfio(msgcode) ;
                     return retcode ;
 #else
-                    syslog(BBFTPD_ERR,"Retreive RFIO not supported") ;
+                    bbftpd_syslog(BBFTPD_ERR,"Retreive RFIO not supported") ;
                     reply(MSG_BAD_NO_RETRY,"Retreive RFIO not supported") ;
                     return 0 ;
 #endif
@@ -154,7 +154,7 @@ int readcontrol(int msgcode,int msglen) {
                     return retcode ;
                 }
                 default : {
-                    syslog(BBFTPD_ERR,"Unkown message in logged state %d ",msgcode) ;
+                    bbftpd_syslog(BBFTPD_ERR,"Unkown message in logged state %d ",msgcode) ;
                     retcode = discardmessage(msgsock,msglen,recvcontrolto) ;
                     reply(MSG_BAD_NO_RETRY,"Unkown message in logged state") ;
                     return retcode ;
@@ -162,7 +162,7 @@ int readcontrol(int msgcode,int msglen) {
             }
         }
         default :
-            syslog(BBFTPD_ERR,"Receive message in state %d",state) ;
+            bbftpd_syslog(BBFTPD_ERR,"Receive message in state %d",state) ;
             return -1 ;
     }
 }

@@ -29,7 +29,7 @@
 #include <errno.h>
 #include <netinet/in.h>
 #include <stdio.h>
-#include <syslog.h>
+/* #include <syslog.h> */
 #include <sys/socket.h>
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
@@ -100,7 +100,7 @@ int bbftpd_private_receive_connection(int msglen)
     ** First allocate the buffer
     */
     if ( (receive_buffer = (char *) malloc (msglen+1)) == NULL ) {
-        syslog(BBFTPD_ERR,"Error allocation memory for receive_buffer (bbftpd_private_receive_connection) ") ;
+        bbftpd_syslog(BBFTPD_ERR,"Error allocation memory for receive_buffer (bbftpd_private_receive_connection) ") ;
         strcat(logmessage," : Error allocation memory for receive_buffer") ;
         reply(MSG_BAD,logmessage) ;
         return -1 ;
@@ -125,7 +125,7 @@ int bbftpd_private_receive_connection(int msglen)
         pubexponent = pubkey + lenkey ;
         if ( (hisrsa = RSA_new()) == NULL) {
             FREE(receive_buffer) ;
-            syslog(BBFTPD_ERR,"Error RSA_new (bbftpd_private_receive_connection) ") ;
+            bbftpd_syslog(BBFTPD_ERR,"Error RSA_new (bbftpd_private_receive_connection) ") ;
             strcat(logmessage," : RSA Error") ;
             reply(MSG_BAD,logmessage) ;
             return -1 ;
@@ -135,14 +135,14 @@ int bbftpd_private_receive_connection(int msglen)
         */
         if ( (hisrsa->n = BN_new()) == NULL) {
             FREE(receive_buffer) ;
-            syslog(BBFTPD_ERR,"Error BN_new (bbftpd_private_receive_connection) ") ;
+            bbftpd_syslog(BBFTPD_ERR,"Error BN_new (bbftpd_private_receive_connection) ") ;
             strcat(logmessage," : RSA Error") ;
             reply(MSG_BAD,logmessage) ;
             return -1 ;
         }
         if ( (hisrsa->e = BN_new()) == NULL) { 
             FREE(receive_buffer) ;
-            syslog(BBFTPD_ERR,"Error BN_new (bbftpd_private_receive_connection) ") ;
+            bbftpd_syslog(BBFTPD_ERR,"Error BN_new (bbftpd_private_receive_connection) ") ;
             strcat(logmessage," : RSA Error") ;
             reply(MSG_BAD,logmessage) ;
             return -1 ;
@@ -152,20 +152,20 @@ int bbftpd_private_receive_connection(int msglen)
         */
         if ( BN_mpi2bn(pubkey,lenkey,hisrsa->n) == NULL ) {
             FREE(receive_buffer) ;
-            syslog(BBFTPD_ERR,"Error BN_mpi2bn (bbftpd_private_receive_connection) ") ;
+            bbftpd_syslog(BBFTPD_ERR,"Error BN_mpi2bn (bbftpd_private_receive_connection) ") ;
             strcat(logmessage," : RSA Error") ;
             reply(MSG_BAD,logmessage) ;
             return -1 ;
         }
         if ( BN_mpi2bn(pubexponent,lenexpo,hisrsa->e) == NULL ) {
             FREE(receive_buffer) ;
-            syslog(BBFTPD_ERR,"Error BN_mpi2bn (bbftpd_private_receive_connection) ") ;
+            bbftpd_syslog(BBFTPD_ERR,"Error BN_mpi2bn (bbftpd_private_receive_connection) ") ;
             strcat(logmessage," : RSA Error") ;
             reply(MSG_BAD,logmessage) ;
             return -1 ;
         }
     } else {
-        syslog(BBFTPD_ERR,"Unkwown encryption %d",msg_sec->crtype) ;
+        bbftpd_syslog(BBFTPD_ERR,"Unkwown encryption %d",msg_sec->crtype) ;
         strcat(logmessage," : Unknown encryption") ;
         reply(MSG_BAD,logmessage) ;
         return -1 ;
@@ -174,7 +174,7 @@ int bbftpd_private_receive_connection(int msglen)
     ** Now give hand to user routine
     */
     if ( bbftpd_private_auth(logmessage) < 0 ) {
-        syslog(BBFTPD_ERR,"bbftpd_private_auth failed : %s",logmessage) ;
+        bbftpd_syslog(BBFTPD_ERR,"bbftpd_private_auth failed : %s",logmessage) ;
         reply(MSG_BAD,logmessage) ;
         return -1 ;
     }

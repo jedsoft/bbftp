@@ -137,7 +137,7 @@
 int        be_daemon = 0 ;
 /*
 ** daemonchar:
-**      String used to initialize openlog
+**      String used to initialize bbftpd_openlog
 */
 char        daemonchar[50] ;
 /*
@@ -424,7 +424,7 @@ int main (int argc, char **argv)
     int     alluse ;
     
     sprintf(daemonchar,"bbftpd v%s",VERSION) ;
-    openlog(daemonchar, LOG_PID | LOG_NDELAY, BBFTPD_FACILITY);
+    bbftpd_syslog_open(daemonchar, LOG_PID | LOG_NDELAY, BBFTPD_FACILITY);
     /*
     ** Set the log mask to BBFTPD_EMERG (0) 
     */
@@ -535,14 +535,14 @@ int main (int argc, char **argv)
             }
         }
     }
-    syslog(BBFTPD_DEBUG,"Starting bbftpd") ;
+    bbftpd_syslog(BBFTPD_DEBUG,"Starting bbftpd") ;
     opterr = 0 ;
     optind = 1 ;
     while ((j = getopt(argc, argv, OPTIONS)) != -1) {
         switch (j) {
             case 'b' :{
                 if ( be_daemon != 0 ) {
-                    syslog(BBFTPD_ERR,"-b and -s options are incompatibles") ;
+                    bbftpd_syslog(BBFTPD_ERR,"-b and -s options are incompatibles") ;
                     exit(1) ;
                 }
                 be_daemon = 2 ;
@@ -557,7 +557,7 @@ int main (int argc, char **argv)
                 if ((sscanf(optarg,"%d:%d",&i, &k) == 2) && (i < k)) {
                   pasvport_min = i; pasvport_max = k;
                 } else {
-                  syslog(BBFTPD_ERR,"Invalid port range : %s",optarg) ;
+                  bbftpd_syslog(BBFTPD_ERR,"Invalid port range : %s",optarg) ;
                   fprintf(stderr,"Invalid port range : %s\n",optarg) ;
                   exit(1) ;
                 }
@@ -578,11 +578,11 @@ int main (int argc, char **argv)
             }
             case 's' :{
                 if ( be_daemon != 0 ) {
-                    syslog(BBFTPD_ERR,"-b and -s options are incompatibles") ;
+                    bbftpd_syslog(BBFTPD_ERR,"-b and -s options are incompatibles") ;
                     exit(1) ;
                 }
 #ifdef PRIVATE_AUTH
-                syslog(BBFTPD_ERR,"-s option cannot be used with private authentication") ;
+                bbftpd_syslog(BBFTPD_ERR,"-s option cannot be used with private authentication") ;
                 exit(1) ;                
 #endif
                 be_daemon = 1 ;
@@ -624,22 +624,22 @@ int main (int argc, char **argv)
         */
 	if ( getuid() == 0) {
             if ( (bbftpdrcfile = (char *) malloc (strlen(BBFTPD_CONF)+1 )) == NULL ) {
-                syslog(BBFTPD_ERR, "Error allocationg space for config file name.\n") ;
+                bbftpd_syslog(BBFTPD_ERR, "Error allocationg space for config file name.\n") ;
 	    } else {
 		strcpy(bbftpdrcfile,BBFTPD_CONF);
 	    }
 	} else if ( (mypasswd = getpwuid(getuid())) == NULL ) {
-            syslog(BBFTPD_WARNING, "Unable to get passwd entry, using %s\n", BBFTPD_CONF) ;
+            bbftpd_syslog(BBFTPD_WARNING, "Unable to get passwd entry, using %s\n", BBFTPD_CONF) ;
             if ( (bbftpdrcfile = (char *) malloc (strlen(BBFTPD_CONF)+1) ) != NULL ) {
 	      strcpy(bbftpdrcfile,BBFTPD_CONF);
 	    }
         } else if ( mypasswd->pw_dir == NULL ) {
-            syslog(BBFTPD_WARNING, "No home directory, using %s\n", BBFTPD_CONF) ;
+            bbftpd_syslog(BBFTPD_WARNING, "No home directory, using %s\n", BBFTPD_CONF) ;
             if ( (bbftpdrcfile = (char *) malloc (strlen(BBFTPD_CONF)+1) ) != NULL ) {
 	      strcpy(bbftpdrcfile,BBFTPD_CONF);
 	    }
         } else if ( (bbftpdrcfile = (char *) malloc (strlen(mypasswd->pw_dir)+11) ) == NULL ) {
-            syslog(BBFTPD_ERR, "Error allocationg space for bbftpdrc file name, .bbftpdrc will not be used\n") ;
+            bbftpd_syslog(BBFTPD_ERR, "Error allocationg space for bbftpdrc file name, .bbftpdrc will not be used\n") ;
         } else {
             strcpy(bbftpdrcfile,mypasswd->pw_dir) ;
             strcat(bbftpdrcfile,"/.bbftpdrc") ;
@@ -659,18 +659,18 @@ int main (int argc, char **argv)
             */
             if ( stat(bbftpdrcfile,&statbuf) < 0  ) {
                 /*
-		  syslog(BBFTPD_WARNING, "Error stating bbftpdrc file (%s)\n",bbftpdrcfile) ;
+		  bbftpd_syslog(BBFTPD_WARNING, "Error stating bbftpdrc file (%s)\n",bbftpdrcfile) ;
 		 */
             } else if ( statbuf.st_size == 0 ) {
                 /*
                 ** do nothing 
                 */
             } else if ( (bbftpdrc = (char *) malloc (statbuf.st_size + 1 ) ) == NULL ) {
-                syslog(BBFTPD_ERR, "Error allocation memory for bbftpdrc, .bbftpdrc will not be used\n") ;
+                bbftpd_syslog(BBFTPD_ERR, "Error allocation memory for bbftpdrc, .bbftpdrc will not be used\n") ;
             } else if ( ( fd  = open (bbftpdrcfile,O_RDONLY) )  < 0 ) {
-                syslog(BBFTPD_ERR, "Error openning .bbftpdrc file (%s) : %s \n",bbftpdrcfile,strerror(errno)) ;
+                bbftpd_syslog(BBFTPD_ERR, "Error openning .bbftpdrc file (%s) : %s \n",bbftpdrcfile,strerror(errno)) ;
             } else if ( ( j = read( fd, bbftpdrc , statbuf.st_size )) != statbuf.st_size ) {
-                syslog(BBFTPD_ERR, "Error reading .bbftpdrc file (%s)\n",bbftpdrcfile) ;
+                bbftpd_syslog(BBFTPD_ERR, "Error reading .bbftpdrc file (%s)\n",bbftpdrcfile) ;
             } else {
                 bbftpdrc[j] = '\0' ;
             }
@@ -702,35 +702,35 @@ int main (int argc, char **argv)
             if (!strncmp(startcmd,"setackto",8)) {
                 retcode = sscanf(startcmd,"setackto %d",&alluse) ;
                 if ( retcode != 1  || alluse <= 0 ) {
-                    syslog(BBFTPD_WARNING, "Acknowledge timeout must be numeric and > 0\n") ;
+                    bbftpd_syslog(BBFTPD_WARNING, "Acknowledge timeout must be numeric and > 0\n") ;
                 } else {
                     ackto = alluse ;
                 }
             } else if (!strncmp(startcmd,"setrecvcontrolto",16)) {
                 retcode = sscanf(startcmd,"setrecvcontrolto %d",&alluse) ;
                 if ( retcode != 1  || alluse <= 0 ) {
-                    syslog(BBFTPD_WARNING, "Input control timeout must be numeric and > 0\n") ;
+                    bbftpd_syslog(BBFTPD_WARNING, "Input control timeout must be numeric and > 0\n") ;
                 } else {
                     recvcontrolto = alluse ;
                 }
             } else if (!strncmp(startcmd,"setsendcontrolto",16)) {
                 retcode = sscanf(startcmd,"setsendcontrolto %d",&alluse) ;
                 if ( retcode != 1  || alluse <= 0 ) {
-                    syslog(BBFTPD_WARNING, "Output control timeout must be numeric and > 0\n") ;
+                    bbftpd_syslog(BBFTPD_WARNING, "Output control timeout must be numeric and > 0\n") ;
                 } else {
                     sendcontrolto = alluse ;
                 }
             } else if (!strncmp(startcmd,"setdatato",9)) {
                 retcode = sscanf(startcmd,"setdatato %d",&alluse) ;
                 if ( retcode != 1  || alluse <= 0 ) {
-                    syslog(BBFTPD_WARNING, "Data timeout must be numeric and > 0\n") ;
+                    bbftpd_syslog(BBFTPD_WARNING, "Data timeout must be numeric and > 0\n") ;
                 } else {
                     datato = alluse ;
                 }
             } else if (!strncmp(startcmd,"setcheckstdinto",15)) {
                 retcode = sscanf(startcmd,"setcheckstdinto %d",&alluse) ;
                 if ( retcode != 1  || alluse <= 0 ) {
-                    syslog(BBFTPD_WARNING, "Check input timeout must be numeric and > 0\n") ;
+                    bbftpd_syslog(BBFTPD_WARNING, "Check input timeout must be numeric and > 0\n") ;
                 } else {
                     checkstdinto = alluse ;
                 }
@@ -754,7 +754,7 @@ int main (int argc, char **argv)
                     }
                 }
             } else {
-                syslog(BBFTPD_WARNING, "Unkown command in .bbftpdrc file (%s)\n",startcmd) ;
+                bbftpd_syslog(BBFTPD_WARNING, "Unkown command in .bbftpdrc file (%s)\n",startcmd) ;
             }
             carret++ ;
         }
@@ -767,7 +767,7 @@ int main (int argc, char **argv)
         /*
         ** Starting badly if we are unable to malloc 5K
         */
-        syslog(BBFTPD_ERR,"No memory for CASTOR : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"No memory for CASTOR : %s",strerror(errno)) ;
         fprintf(stderr,"No memory for CASTOR : %s\n",strerror(errno)) ;
         exit(1) ;
     }
@@ -789,7 +789,7 @@ int main (int argc, char **argv)
             gfw_msgs_list *messages = NULL;
             gfw_status_to_strings(maj_stat, min_stat, &messages) ;
             while (messages != NULL) {
-                syslog(BBFTPD_ERR,"gfw_acquire_cred: %s", messages->msg) ;
+                bbftpd_syslog(BBFTPD_ERR,"gfw_acquire_cred: %s", messages->msg) ;
                 if (be_daemon == 2) fprintf(stderr,"Acquire credentials: %s\n", messages->msg) ;
                 messages = messages->next;
             }
@@ -830,7 +830,7 @@ int main (int argc, char **argv)
         */
         struct passwd *result ;
         if ( (result = getpwuid(getuid())) == NULL ) {
-            syslog(BBFTPD_WARNING,"Error getting username") ;
+            bbftpd_syslog(BBFTPD_WARNING,"Error getting username") ;
             sprintf(currentusername,"UID %d",getuid()) ;
         } else {
             strcpy(currentusername,result->pw_name) ;
@@ -847,7 +847,7 @@ int main (int argc, char **argv)
         ** and wait for a connection...
         */
         checkfromwhere() ;
-        syslog(BBFTPD_INFO,"bbftpd started by : %s from %s",currentusername,inet_ntoa(his_addr.sin_addr)) ;
+        bbftpd_syslog(BBFTPD_INFO,"bbftpd started by : %s from %s",currentusername,inet_ntoa(his_addr.sin_addr)) ;
     } else {
         char    buffrand[NBITSINKEY] ;
         struct timeval tp ;
@@ -888,15 +888,15 @@ int main (int argc, char **argv)
         /* Get the remote address */
         addrlen = sizeof(his_addr);
         if (getpeername(incontrolsock, (struct sockaddr *) &his_addr, &addrlen) < 0) {
-            syslog(BBFTPD_ERR, "getpeername (%s): %s", argv[0],strerror(errno));
+            bbftpd_syslog(BBFTPD_ERR, "getpeername (%s): %s", argv[0],strerror(errno));
             exit(1);
         }
         addrlen = sizeof(ctrl_addr);
         if (getsockname(incontrolsock, (struct sockaddr *) &ctrl_addr, &addrlen) < 0) {
-            syslog(BBFTPD_ERR, "getsockname (%s): %s", argv[0],strerror(errno));
+            bbftpd_syslog(BBFTPD_ERR, "getsockname (%s): %s", argv[0],strerror(errno));
             exit(1);
         }
-        syslog(BBFTPD_INFO,"Getting new bbftp connexion from : %s",inet_ntoa(his_addr.sin_addr)) ;
+        bbftpd_syslog(BBFTPD_INFO,"Getting new bbftp connexion from : %s",inet_ntoa(his_addr.sin_addr)) ;
         /*
         ** Send the encryption supported 
         */
@@ -912,14 +912,14 @@ login:
         wait_timer.tv_sec  = 10 ;
         wait_timer.tv_usec = 0 ;
         if ( (retcode = select(nfds,&selectmask,0,0,&wait_timer) ) == -1 ) {
-            syslog(BBFTPD_ERR,"Select error : %s",strerror(errno)) ;
+            bbftpd_syslog(BBFTPD_ERR,"Select error : %s",strerror(errno)) ;
             exit(1) ;
         } else if ( retcode == 0 ) {
-            syslog(BBFTPD_ERR,"Time OUT ") ;
+            bbftpd_syslog(BBFTPD_ERR,"Time OUT ") ;
             exit(1) ;
         } else {
             if ( (retcode = readmessage(incontrolsock,buffer,MINMESSLEN,recvcontrolto)) < 0 ) {
-                syslog(BBFTPD_ERR,"Error reading MSG_LOG ") ;
+                bbftpd_syslog(BBFTPD_ERR,"Error reading MSG_LOG ") ;
                 exit(1) ;
             }
             msg = (struct message *) buffer ;
@@ -1003,7 +1003,7 @@ login:
                 int retval;
                 if (accept_pass_only) {
                     sprintf(logmessage, "The server only accepts USER/PASS");
-                    syslog(BBFTPD_ERR,"%s",logmessage) ;
+                    bbftpd_syslog(BBFTPD_ERR,"%s",logmessage) ;
                     reply(MSG_BAD_NO_RETRY,logmessage);
                     exit(1);
                 }
@@ -1025,7 +1025,7 @@ login:
             } else if ( msg->code == MSG_LOG ) {
                 if (accept_certs_only) {
                     sprintf(logmessage, "The server only accepts certificates");
-                    syslog(BBFTPD_ERR,"%s",logmessage) ;
+                    bbftpd_syslog(BBFTPD_ERR,"%s",logmessage) ;
                     reply(MSG_BAD_NO_RETRY,logmessage);
                 } else {
                     /*
@@ -1059,7 +1059,7 @@ login:
                     goto login;
 		}
             } else {
-                syslog(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
+                bbftpd_syslog(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
                 reply(MSG_BAD,"Unkown message in connected state") ;
                 exit(1) ;
             }
@@ -1093,7 +1093,7 @@ login:
                 reply(MSG_OK,logmessage);
                 goto login;
             } else {
-                syslog(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
+                bbftpd_syslog(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
                 reply(MSG_BAD,"Unkown message in connected state") ;
                 exit(1) ;
             }
@@ -1109,7 +1109,7 @@ login:
                 sprintf(logmessage,"bbftpd version %s : OK",VERSION) ;
                 reply(MSG_OK,logmessage) ;
             } else {
-                syslog(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
+                bbftpd_syslog(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
                 reply(MSG_BAD,"Unkown message in connected state") ;
                 exit(1) ;
             }
@@ -1127,14 +1127,14 @@ login:
     wait_timer.tv_sec  = 10 ;
     wait_timer.tv_usec = 0 ;
     if ( (retcode = select(nfds,&selectmask,0,0,&wait_timer) ) == -1 ) {
-        syslog(BBFTPD_ERR,"Select error in S_PROTWAIT state : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Select error in S_PROTWAIT state : %s",strerror(errno)) ;
         exit(1) ;
     } else if ( retcode == 0 ) {
-        syslog(BBFTPD_ERR,"Time OUT in S_PROTWAIT state") ;
+        bbftpd_syslog(BBFTPD_ERR,"Time OUT in S_PROTWAIT state") ;
         exit(1) ;
     } else {
         if ( (retcode = readmessage(incontrolsock,buffer,MINMESSLEN,recvcontrolto)) < 0 ) {
-            syslog(BBFTPD_ERR,"Error reading in S_PROTWAIT state") ;
+            bbftpd_syslog(BBFTPD_ERR,"Error reading in S_PROTWAIT state") ;
             exit(1) ;
         }
         msg = (struct message *) buffer ;
@@ -1146,7 +1146,7 @@ login:
                 exit_clean() ;
                 exit(1) ;
             }
-            syslog(BBFTPD_INFO,"Using bbftp protocol version %d",protocolversion) ;
+            bbftpd_syslog(BBFTPD_INFO,"Using bbftp protocol version %d",protocolversion) ;
             state = S_LOGGED ;
             /*
             ** Initialize the variables
@@ -1160,7 +1160,7 @@ login:
             ** This is a bbftp v1 client 
             */
             protocolversion = 1 ;
-            syslog(BBFTPD_INFO,"Using bbftp protocol version 1") ;
+            bbftpd_syslog(BBFTPD_INFO,"Using bbftp protocol version 1") ;
             state = S_LOGGED ;
             /*
             ** So set up the v1 handlers
@@ -1186,7 +1186,7 @@ login:
     }
     if ( protocolversion == 1 ) goto loopv1 ;
     if ( protocolversion == 2 || protocolversion == 3) goto loopv2 ;
-    syslog(BBFTPD_ERR,"Unknown protocol version %d",protocolversion) ;
+    bbftpd_syslog(BBFTPD_ERR,"Unknown protocol version %d",protocolversion) ;
     exit(1) ;
 /*
 ** Loop for the v2 protocol (also available for v3)
@@ -1245,10 +1245,10 @@ loopv2:
         }
         if ( (retcode = select(nfds,&selectmask,0,0,(wait_timer.tv_sec == 0) ? NULL : &wait_timer) ) == -1 ) {
             if ( errno != EINTR ) {
-                syslog(BBFTPD_ERR,"Select error : %s",strerror(errno)) ;
+                bbftpd_syslog(BBFTPD_ERR,"Select error : %s",strerror(errno)) ;
             }
         } else if ( retcode == 0 ) {
-            syslog(BBFTPD_ERR,"Time OUT ") ;
+            bbftpd_syslog(BBFTPD_ERR,"Time OUT ") ;
             if ( state == S_WAITING_STORE_START ) {
                 bbftpd_storeunlink(realfilename) ;
             }
@@ -1311,10 +1311,10 @@ loopv1:
         }
         if ( (retcode = select(nfds,&selectmask,0,0,(wait_timer.tv_sec == 0) ? NULL : &wait_timer) ) == -1 ) {
             if ( errno != EINTR ) {
-                syslog(BBFTPD_ERR,"Select error : %s",strerror(errno)) ;
+                bbftpd_syslog(BBFTPD_ERR,"Select error : %s",strerror(errno)) ;
             }
         } else if ( retcode == 0 ) {
-            syslog(BBFTPD_ERR,"Time OUT ") ;
+            bbftpd_syslog(BBFTPD_ERR,"Time OUT ") ;
             clean_child() ;
             exit_clean() ;
             exit(0) ;
@@ -1348,7 +1348,7 @@ void clean_child (void)
             killdone = 1 ;
             for ( i=0 ; i<MAXPORT ; i++) {
                 if ( pid_child[i] != 0 ) {
-                    syslog(BBFTPD_DEBUG,"Killing child %d",pid_child[i]) ;
+                    bbftpd_syslog(BBFTPD_DEBUG,"Killing child %d",pid_child[i]) ;
                     kill(pid_child[i],SIGKILL) ;
                 }
             }
@@ -1361,7 +1361,7 @@ void clean_child (void)
             pidfree = mychildren ;
             for ( i=0 ; i<nbpidchild ; i++) {
                 if ( *pidfree != 0 ) {
-                    syslog(BBFTPD_DEBUG,"Killing child %d",*pidfree) ;
+                    bbftpd_syslog(BBFTPD_DEBUG,"Killing child %d",*pidfree) ;
                     kill(*pidfree,SIGKILL) ;
                 }
                 pidfree++ ;
@@ -1384,7 +1384,7 @@ void exit_clean()
         case S_WAITING_STORE_START :
         case S_SENDING:
         case S_RECEIVING : {
-            syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+            bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
             return ;
         }
         default :{

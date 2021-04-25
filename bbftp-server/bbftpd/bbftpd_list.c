@@ -41,7 +41,7 @@
 #include <errno.h>
 #include <fnmatch.h>
 #include <netinet/in.h>
-#include <syslog.h>
+/* #include <syslog.h> */
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <utime.h>
@@ -53,10 +53,11 @@
 #include <status.h>
 #include <structures.h>
 
-extern int  transferoption ;
-extern int  outcontrolsock ;
-extern	int	recvcontrolto ;
-extern	int	sendcontrolto ;
+#include "_bbftpd.h"
+/* extern int  transferoption ; */
+/* extern int  outcontrolsock ; */
+/* extern	int	recvcontrolto ; */
+/* extern	int	sendcontrolto ; */
 
 int bbftpd_list(char *pattern,char *logmessage) 
 {
@@ -83,14 +84,14 @@ int bbftpd_list(char *pattern,char *logmessage)
         msg->msglen = filelistlen ;
 #endif
         if ( writemessage(outcontrolsock,send_buffer,MINMESSLEN,recvcontrolto) < 0 ) {
-            syslog(BBFTPD_ERR,"Error sending LISTREPL_V2 part 1") ;
+            bbftpd_syslog(BBFTPD_ERR,"Error sending LISTREPL_V2 part 1") ;
             FREE(filelist) ;
             return -1 ;
         }
         if (filelistlen != 0 ) {
             if ( writemessage(outcontrolsock,filelist,filelistlen,recvcontrolto) < 0 ) {
                 FREE(filelist) ;
-                syslog(BBFTPD_ERR,"Error sending filelist") ;
+                bbftpd_syslog(BBFTPD_ERR,"Error sending filelist") ;
                 return -1 ;
             }
             FREE(filelist) ;

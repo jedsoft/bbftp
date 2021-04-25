@@ -65,7 +65,9 @@
 #include <status.h>
 #include <structures.h>
 
+#include "_bbftpd.h"
 
+#if 0
 /*
 ** For V1 and V2 Protocol
 */
@@ -90,6 +92,7 @@ extern int  castfd ;
 extern struct  timeval  tstart;
 extern my64_t  filesize ;
 extern  char            currentusername[MAXLEN] ;
+#endif
 
 int bbftpd_checkendchild(int status)
 {
@@ -156,7 +159,7 @@ void bbftpd_sigchld(int sig)
                 if ( (retcode = bbftpd_checkendchild(status)) != 0 ) {
                     if ( childendinerror == 0 ) {
                         childendinerror = 1 ;
-                        syslog(BBFTPD_ERR,"Child pid %d ends in error status %d",pid,retcode) ;
+                        bbftpd_syslog(BBFTPD_ERR,"Child pid %d ends in error status %d",pid,retcode) ;
                         if ( (unlinkfile == 1) || (unlinkfile == 2) ) {
                             bbftpd_storeunlink(realfilename) ;
                         }
@@ -172,7 +175,7 @@ void bbftpd_sigchld(int sig)
                             reply(MSG_BAD,logmessage) ;
                         }
                     } else {
-                        syslog(BBFTPD_ERR,"Child pid %d ends in error",pid) ;
+                        bbftpd_syslog(BBFTPD_ERR,"Child pid %d ends in error",pid) ;
                     }
                 }
                 *pidfree = 0 ;
@@ -190,7 +193,7 @@ void bbftpd_sigchld(int sig)
         if ((unlinkfile == 1 || unlinkfile == 2 || unlinkfile == 4)) {
             goon = 0 ;
             if ( bbftpd_storeclosecastfile(realfilename,logmessage) < 0 ) {
-                syslog(BBFTPD_ERR,"%s",logmessage) ;
+                bbftpd_syslog(BBFTPD_ERR,"%s",logmessage) ;
                 bbftpd_storeunlink(realfilename) ;
                 reply(MSG_BAD,logmessage) ;
                 goon = 1 ;
@@ -200,7 +203,7 @@ void bbftpd_sigchld(int sig)
                 sscanf(lastaccess,"%08lx", &ul); ftime.actime = ul;
                 sscanf(lastmodif,"%08lx", &ul); ftime.modtime = ul;
                 if ( bbftpd_storeutime(realfilename,&ftime,logmessage) < 0 ) {
-                    syslog(BBFTPD_ERR, "%s", logmessage) ;
+                    bbftpd_syslog(BBFTPD_ERR, "%s", logmessage) ;
                     bbftpd_storeunlink(realfilename) ;
                     reply(MSG_BAD,logmessage) ;
                     goon = 1 ;
@@ -208,7 +211,7 @@ void bbftpd_sigchld(int sig)
            }
            if ( (goon == 0 ) && ((transferoption & TROPT_MODE ) == TROPT_MODE) ) {
                 if ( bbftpd_storechmod(realfilename,filemode,logmessage) < 0 ) {
-                    syslog(BBFTPD_ERR, "%s", logmessage) ;
+                    bbftpd_syslog(BBFTPD_ERR, "%s", logmessage) ;
                     bbftpd_storeunlink(realfilename) ;
                     reply(MSG_BAD,logmessage) ;
                     goon = 1 ;
@@ -216,7 +219,7 @@ void bbftpd_sigchld(int sig)
             }
             if ( (goon == 0 ) && ((transferoption & TROPT_TMP ) == TROPT_TMP ) ) {
                 if ( bbftpd_storerename(realfilename,curfilename,logmessage) < 0 ) {
-                    syslog(BBFTPD_ERR, "%s", logmessage) ;
+                    bbftpd_syslog(BBFTPD_ERR, "%s", logmessage) ;
                     bbftpd_storeunlink(realfilename) ;
                     reply(MSG_BAD,logmessage) ;
                     goon = 1 ;
@@ -238,7 +241,7 @@ void bbftpd_sigchld(int sig)
  #define nz(x)   ((x) == 0 ? 1 : (x))
                 bs = filesize / nz(s);
                 sprintf(logmessage,"PUT %s %s %" LONG_LONG_FORMAT" %.3g %.3g %.3g", currentusername, curfilename, filesize, s, bs / 1024.0,(8.0*bs) / (1024.0 * 1024.0));
-                syslog(BBFTPD_NOTICE, "%s", logmessage);
+                bbftpd_syslog(BBFTPD_NOTICE, "%s", logmessage);
             }
             free_all_var() ;
         } else {
@@ -255,7 +258,7 @@ void bbftpd_sigchld(int sig)
        	        s = tdiff.tv_sec + (tdiff.tv_usec / 1000000.);
                 bs = filesize / nz(s);
                 sprintf(logmessage,"GET %s %s %" LONG_LONG_FORMAT" %.3g %.3g %.3g", currentusername, curfilename, filesize, s, bs / 1024.0,(8.0*bs) / (1024.0 * 1024.0));
-                syslog(BBFTPD_NOTICE, "%s", logmessage);
+                bbftpd_syslog(BBFTPD_NOTICE, "%s", logmessage);
             }
             free_all_var() ;
         }
@@ -304,28 +307,28 @@ int bbftpd_setsignals()
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0   ;
     if ( sigaction(SIGPIPE,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGPIPE : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGPIPE : %s",strerror(errno)) ;
         return(-1) ;
     }
     sga.sa_handler = bbftpd_sigchld ;
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0  ;
     if ( sigaction(SIGCHLD,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGCHLD : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGCHLD : %s",strerror(errno)) ;
         return(-1) ;
     }
     sga.sa_handler = bbftpd_sighup ;
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0  ;
     if ( sigaction(SIGHUP,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGHUP : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGHUP : %s",strerror(errno)) ;
         return(-1) ;
     }
     sga.sa_handler = bbftpd_sigterm ;
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0  ;
     if ( sigaction(SIGTERM,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGTERM : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGTERM : %s",strerror(errno)) ;
         return(-1) ;
     }
     return 0 ;
@@ -337,70 +340,70 @@ int bbftpd_blockallsignals() {
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0   ;
     if ( sigaction(SIGABRT,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGABRT : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGABRT : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGALRM,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGALRM : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGALRM : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGHUP,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGHUP : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGHUP : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGINT,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGINT : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGINT : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGPIPE,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGPIPE : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGPIPE : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGQUIT,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGQUIT : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGQUIT : %s",strerror(errno)) ;
         return(-1) ;
     }
 /*
 **    if ( sigaction(SIGTERM,&sga,0) < 0 ) {
-**        syslog(BBFTPD_ERR,"Error sigaction SIGTERM : %s",strerror(errno)) ;
+**        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGTERM : %s",strerror(errno)) ;
 **        return(-1) ;
 **    }
 */
     if ( sigaction(SIGUSR1,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGUSR1 : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGUSR1 : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGUSR2,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGUSR2 : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGUSR2 : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGCHLD,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGCHLD : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGCHLD : %s",strerror(errno)) ;
         return(-1) ;
     }
     if ( sigaction(SIGTSTP,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGTSTP : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGTSTP : %s",strerror(errno)) ;
         return(-1) ;
     }
 #ifndef DARWIN
     if ( sigaction(SIGPOLL,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGPOLL : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGPOLL : %s",strerror(errno)) ;
         return(-1) ;
     }
 #endif
 #ifdef SIGPROF		/* BUG porting */
     if ( sigaction(SIGPROF,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGPROF : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGPROF : %s",strerror(errno)) ;
         return(-1) ;
     }
 #endif
     if ( sigaction(SIGURG,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGURG : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGURG : %s",strerror(errno)) ;
         return(-1) ;
     }
 #ifdef SIGVTALRM	/* BUG porting */
     if ( sigaction(SIGVTALRM,&sga,0) < 0 ) {
-        syslog(BBFTPD_ERR,"Error sigaction SIGVTALRM : %s",strerror(errno)) ;
+        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGVTALRM : %s",strerror(errno)) ;
         return(-1) ;
     }
 #endif

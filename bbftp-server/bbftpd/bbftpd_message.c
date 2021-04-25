@@ -47,7 +47,7 @@
 #include <errno.h>
 #include <stdlib.h>
 
-#include <syslog.h>
+/* #include <syslog.h> */
 #if TIME_WITH_SYS_TIME
 # include <sys/time.h>
 # include <time.h>
@@ -72,135 +72,164 @@
 
 #include "_bbftpd.h"
 
-int readmessage(int sock,char *buffer,int msglen,int to) 
+static int try_select (int fd, int is_read, int to)
 {
-    int    nbget ;
-    int    retcode ;
-    int        nfds ;
-    fd_set    selectmask ; /* Select mask */
-    struct timeval    wait_timer;
+   fd_set *read_mask = NULL, *write_mask = NULL;
+   fd_set mask;
 
-    nbget = 0 ;
-/*
-** start the reading loop
-*/
-    while ( nbget < msglen ) {
-        nfds = sysconf(_SC_OPEN_MAX) ;
-        FD_ZERO(&selectmask) ;
-        FD_SET(sock,&selectmask) ;
-        wait_timer.tv_sec  = to ;
-        wait_timer.tv_usec = 0 ;
-        if ( (retcode = select(nfds,&selectmask,0,0,&wait_timer) ) == -1 ) {
-            /*
-            ** Select error
-            */
-            syslog(BBFTPD_ERR,"Read message : Select error : MSG (%d,%d)",msglen,nbget) ;
-            return -1 ;
-        } else if ( retcode == 0 ) {
-            syslog(BBFTPD_ERR,"Read message : Time out : MSG (%d,%d)",msglen,nbget) ;
-            return -1 ;
-        } else {
-            retcode = read(sock,&buffer[nbget],msglen-nbget) ;
-            if ( retcode < 0 ) {
-                syslog(BBFTPD_ERR,"Read message : Receive error : MSG (%d,%d) : %s",msglen,nbget,strerror(errno)) ;
-                return -1 ;
-            } else if ( retcode == 0 ) {
-                syslog(BBFTPD_ERR,"Read message : Connexion breaks") ;
-                return -1 ;
-            } else {
-                nbget = nbget + retcode ;
-            }
-        }
-    }
-    return(0) ;
+   FD_ZERO(&mask) ;
+   FD_SET(fd, &mask);
+
+   if (is_read)
+     read_mask = &mask;
+   else
+     write_mask = &mask;
+
+   while (1)
+     {
+	struct timeval wait_timer;
+	int status;
+
+	wait_timer.tv_sec  = to ;
+	wait_timer.tv_usec = 0 ;
+
+	if ((-1 == (status = select(fd+1, read_mask, write_mask, NULL, &wait_timer)))
+	    && (errno == EINTR))
+	  continue;
+
+	return status;
+     }
 }
 
-int discardmessage(int sock,int msglen,int to) 
+int readmessage (int sock, char *buffer, int msglen, int to)
+{
+   int    nbget ;
+   int    retcode ;
+
+   nbget = 0 ;
+   /*
+    ** start the reading loop
+    */
+   while ( nbget < msglen )
+     {
+	if (-1 == (retcode = try_select (sock, 1, to)))
+	  {
+	     bbftpd_syslog(BBFTPD_ERR,"Read message : Select error : MSG (%d,%d)", msglen, nbget);
+	     return -1;
+	  }
+	if ( retcode == 0 )
+	  {
+	     bbftpd_syslog(BBFTPD_ERR,"Read message : Time out : MSG (%d,%d)", msglen, nbget) ;
+	     return -1 ;
+	  }
+
+	while (-1 == (retcode = read(sock, &buffer[nbget], msglen-nbget)))
+	  {
+	     if (errno == EINTR)
+	       continue;
+
+	     bbftpd_syslog(BBFTPD_ERR,"Read message : Receive error : MSG (%d,%d) : %s", msglen, nbget, strerror(errno)) ;
+	     return -1 ;
+	  }
+
+	if ( retcode == 0 )
+	  {
+	     bbftpd_syslog(BBFTPD_ERR,"Read message : Connexion breaks") ;
+	     return -1 ;
+	  }
+
+	nbget = nbget + retcode ;
+     }
+
+   return 0;
+}
+
+int discardmessage (int sock, int msglen, int to)
 {
     int    nbget ;
     int    retcode ;
-    int        nfds ;
-    fd_set    selectmask ; /* Select mask */
-    struct timeval    wait_timer;
     char buffer[256] ;
-    
-    /*
+
+   /*
     ** We are going to read buflen by buflen till the message 
     ** is exhausted
     */
-    
-    nbget = 0 ;
-    while ( nbget < msglen ) {
-        nfds = sysconf(_SC_OPEN_MAX) ;
-        FD_ZERO(&selectmask) ;
-        FD_SET(sock,&selectmask) ;
-        wait_timer.tv_sec  = to ;
-        wait_timer.tv_usec = 0 ;
-        if ( (retcode = select(nfds,&selectmask,0,0,&wait_timer) ) == -1 ) {
-            /*
-            ** Select error
-            */
-            syslog(BBFTPD_ERR,"Discard message : Select error : MSG (%d,%d)",msglen,nbget) ;
-            return -1 ;
-        } else if ( retcode == 0 ) {
-            syslog(BBFTPD_ERR,"Discard message : Time out : MSG (%d,%d)",msglen,nbget) ;
-            return -1 ;
-        } else {
-            retcode = recv(sock,buffer,sizeof(buffer),0) ;
-            if ( retcode < 0 ) {
-                syslog(BBFTPD_ERR,"Discard message : Receive error : MSG (%d,%d) : %s",msglen,nbget,strerror(errno)) ;
-                return -1 ;
-            } else if ( retcode == 0 ) {
-                syslog(BBFTPD_ERR,"Discard message : Connexion breaks") ;
-                return -1 ;
-            } else {
-                nbget = nbget + retcode ;
-            }
-        }
-    }
-    return(0) ;
-}
-        
-int writemessage(int sock,char *buffer,int msglen,int to) 
-{
-    int    nbsent ;
-    int    retcode ;
-    int        nfds ;
-    fd_set    selectmask ; /* Select mask */
-    struct timeval    wait_timer;
 
-    nbsent = 0 ;
-/*
-** start the writing loop
-*/
-    while ( nbsent < msglen ) {
-        nfds = sysconf(_SC_OPEN_MAX) ;
-        FD_ZERO(&selectmask) ;
-        FD_SET(sock,&selectmask) ;
-        wait_timer.tv_sec  = to ;
-        wait_timer.tv_usec = 0 ;
-        if ( (retcode = select(nfds,0,&selectmask,0,&wait_timer) ) == -1 ) {
-            /*
-            ** Select error
-            */
-            syslog(BBFTPD_ERR,"Write message : Select error : MSG (%d,%d)",msglen,nbsent) ;
-            return -1 ;
-        } else if ( retcode == 0 ) {
-            syslog(BBFTPD_ERR,"Write message : Time out : MSG (%d,%d)",msglen,nbsent) ;
-            return -1 ;
-        } else {
-            retcode = write(sock,&buffer[nbsent],msglen-nbsent) ;
-            if ( retcode < 0 ) {
-                syslog(BBFTPD_ERR,"Write message : write error : MSG (%d,%d) : %s",msglen,nbsent,strerror(errno)) ;
-                return -1 ;
-            } else if ( retcode == 0 ) {
-                syslog(BBFTPD_ERR,"Write message : Connexion breaks") ;
-                return -1 ;
-            } else {
-                nbsent = nbsent + retcode ;
-            }
-        }
-    }
+   nbget = 0 ;
+   while ( nbget < msglen )
+     {
+	if (-1 == (retcode = try_select (sock, 1, to)))
+	  {
+	     bbftpd_syslog(BBFTPD_ERR,"Discard message : Select error : MSG (%d,%d)",msglen,nbget) ;
+	     return -1 ;
+	  }
+
+	if ( retcode == 0 )
+	  {
+	     bbftpd_syslog(BBFTPD_ERR,"Discard message : Time out : MSG (%d,%d)",msglen,nbget) ;
+	     return -1 ;
+	  }
+
+	while (-1 == (retcode = recv(sock, buffer, sizeof(buffer), 0)))
+	  {
+	     if (errno == EINTR)
+	       continue;
+
+	     bbftpd_syslog(BBFTPD_ERR,"Discard message : Receive error : MSG (%d,%d) : %s",msglen,nbget,strerror(errno)) ;
+	     return -1 ;
+	  }
+
+	if ( retcode == 0 )
+	  {
+	     bbftpd_syslog(BBFTPD_ERR,"Discard message : Connexion breaks") ;
+	     return -1 ;
+	  }
+
+	nbget = nbget + retcode ;
+     }
+
+    return 0;
+}
+
+int writemessage (int sock, char *buffer, int msglen, int to)
+{
+   int    nbsent ;
+   int    retcode ;
+
+   nbsent = 0 ;
+   /*
+    ** start the writing loop
+    */
+   while ( nbsent < msglen )
+     {
+	if (-1 == (retcode = try_select (sock, 0, to)))
+	  {
+	     bbftpd_syslog(BBFTPD_ERR,"Write message : Select error : MSG (%d,%d)",msglen,nbsent) ;
+	     return -1 ;
+	  }
+	if ( retcode == 0 )
+	  {
+	     bbftpd_syslog(BBFTPD_ERR,"Write message : Time out : MSG (%d,%d)",msglen,nbsent) ;
+		  return -1 ;
+	  }
+
+	while (-1 == (retcode = write(sock, buffer + nbsent, msglen - nbsent)))
+	  {
+	     if (errno == EINTR)
+	       continue;
+
+	     bbftpd_syslog(BBFTPD_ERR,"Write message : write error : MSG (%d,%d) : %s",msglen,nbsent,strerror(errno)) ;
+	     return -1 ;
+	  }
+	if (retcode == 0)
+	  {
+	     bbftpd_syslog(BBFTPD_ERR,"Write message : Connexion breaks") ;
+	     return -1 ;
+	  }
+
+	nbsent = nbsent + retcode ;
+     }
+
     return(0) ;
 }
 
@@ -209,7 +238,7 @@ void reply(int n, char *str)
     struct message    *mess ;
     int    lentosend ;
     char buf[MINMESSLEN] ;
-    
+
     mess = (struct message *) buf ;
     mess->code = n ;
 #ifndef WORDS_BIGENDIAN
@@ -217,16 +246,67 @@ void reply(int n, char *str)
 #else
     mess->msglen = strlen(str) ;
 #endif
+
     if ( writemessage(outcontrolsock,buf,MINMESSLEN,sendcontrolto) < 0 ) {
-        syslog(BBFTPD_ERR,"Error on reply") ;
+        bbftpd_syslog(BBFTPD_ERR,"Error on reply") ;
         clean_child() ;
         exit(1) ;
     }
+
     lentosend = strlen(str) ;
     if ( writemessage(outcontrolsock,str,lentosend,sendcontrolto) < 0 ) {
-        syslog(BBFTPD_ERR,"Error on reply") ;
+        bbftpd_syslog(BBFTPD_ERR,"Error on reply") ;
         clean_child() ;
         exit(1) ;
     }
 }
- 
+
+#include <stdio.h>
+#include <sys/stat.h>
+#include <stdarg.h>
+
+#define BBFTP_LOG_TO_FILE (0)
+
+static FILE *_pBBftp_Log_Fp = NULL;
+
+void bbftpd_syslog_open (const char *ident, int option, int facility)
+{
+#if BBFTP_LOG_TO_FILE
+   char file[256];
+   snprintf (file, sizeof(file), "/tmp/bbftp.log.%u.%lu", getpid(), time(NULL));
+   if (NULL != (_pBBftp_Log_Fp = fopen (file, "w")))
+     {
+	(void) chmod (file, 0600);
+     }
+#endif
+
+   openlog (ident, option, facility);
+}
+
+void bbftpd_syslog (int priority, const char *format, ...)
+{
+   char msg[4096];
+   va_list ap;
+
+   va_start(ap, format);
+   (void) vsnprintf (msg, sizeof(msg), format, ap);
+   va_end(ap);
+   syslog (priority, "%s", msg);
+
+   if (_pBBftp_Log_Fp != NULL)
+     {
+	(void) fputs (msg, _pBBftp_Log_Fp);
+	(void) fputs ("\n", _pBBftp_Log_Fp);
+	(void) fflush (_pBBftp_Log_Fp);
+     }
+}
+
+void bbftpd_syslog_close (void)
+{
+   closelog ();
+   if (_pBBftp_Log_Fp != NULL)
+     {
+	(void) fclose (_pBBftp_Log_Fp);
+	_pBBftp_Log_Fp = NULL;
+     }
+}
