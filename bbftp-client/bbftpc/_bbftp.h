@@ -20,6 +20,8 @@ extern int bbftp_res_printf (const char *fmt, ...);
 extern my64_t ntohll (my64_t v);
 #endif
 
+extern int BBftp_PID;
+
 extern char		*BBftp_Compbuffer ;
 extern char		*BBftp_Curfilename ;
 extern char		*BBftp_Realfilename ;

@@ -102,6 +102,8 @@
 #endif
 */
 
+int BBftp_PID = 0;
+
 int     BBftp_State   = SETTOZERO ;
 /*
 ** BBftp_Timestamp:
@@ -420,6 +422,9 @@ int main(int argc, char **argv)
 #endif
     char    minbuffer[MINMESSLEN] ;
     struct  message *msg ;
+
+   BBftp_PID = getpid ();
+
 /*
 ** Get local umask 
 */
@@ -1325,6 +1330,7 @@ int main(int argc, char **argv)
         if ( retcode > 0 ) exit(0) ;
         setsid() ;
         if ( BBftp_Verbose ) printmessage(stdout,CASE_NORMAL,0, "Starting under pid %d\n",getpid());
+       BBftp_PID = getpid ();
     }
 
 /*
@@ -1419,7 +1425,7 @@ int main(int argc, char **argv)
     ** We do not care of the result because this routine is called
     ** only at the end of the client
     */
-    writemessage(BBftp_Outcontrolsock,minbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) ;
+    writemessage(BBftp_Outcontrolsock,minbuffer,MINMESSLEN,BBftp_Sendcontrolto) ;
     sleep(1) ;
     bbftp_close_control() ;
     exit(BBftp_Myexitcode) ;

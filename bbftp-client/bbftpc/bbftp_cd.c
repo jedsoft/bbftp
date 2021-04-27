@@ -84,7 +84,7 @@ int bbftp_cd(char *dirpath,int  *errcode)
 #else
     msg->msglen = strlen(dirpath)+sizeof(int) ;
 #endif
-    if ( writemessage(BBftp_Outcontrolsock,minbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
+    if ( writemessage(BBftp_Outcontrolsock,minbuffer,MINMESSLEN,BBftp_Sendcontrolto) < 0 ) {
         /*
         ** We were not able to send the minimum message so
         ** we are going to close the control socket and to 
@@ -100,7 +100,7 @@ int bbftp_cd(char *dirpath,int  *errcode)
     */
     msg_integer = (struct mess_integer*)minbuffer ;
     msg_integer->myint = BBftp_Transferoption ;
-    if ( writemessage(BBftp_Outcontrolsock,minbuffer,sizeof(int),BBftp_Sendcontrolto,0) < 0 ) {
+    if ( writemessage(BBftp_Outcontrolsock,minbuffer,sizeof(int),BBftp_Sendcontrolto) < 0 ) {
         printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_CHDIR_V2 (transferoption)");
         *errcode = 64 ;
         bbftp_close_control() ;
@@ -109,7 +109,7 @@ int bbftp_cd(char *dirpath,int  *errcode)
     /* 
     ** Directory name
     */
-    if ( writemessage(BBftp_Outcontrolsock,dirpath,strlen(dirpath),BBftp_Sendcontrolto,0) < 0 ) {
+    if ( writemessage(BBftp_Outcontrolsock,dirpath,strlen(dirpath),BBftp_Sendcontrolto) < 0 ) {
         printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_CHDIR_V2 (directory name)");
         *errcode = 64 ;
         bbftp_close_control() ;
@@ -157,7 +157,7 @@ waitcontrol:
         /*
         ** read the message
         */
-        if ( readmessage(BBftp_Incontrolsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(BBftp_Incontrolsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
             printmessage(stderr,CASE_ERROR,61, "Error waiting %s message\n","MSG_OK (on MSG_CHDIR_V2)");
             *errcode = 61 ;
             bbftp_close_control() ;
@@ -179,7 +179,7 @@ waitcontrol:
                 bbftp_close_control() ;
                 return BB_RET_CONN_BROKEN ;
             }
-            if ( readmessage(BBftp_Incontrolsock,buffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+            if ( readmessage(BBftp_Incontrolsock,buffer,msglen,BBftp_Recvcontrolto) < 0 ) {
                 printmessage(stderr,CASE_ERROR,67, "Error reading data for %s message\n","MSG_BAD (on MSG_CHDIR_V2)");
                 *errcode = 67 ;
                 bbftp_close_control() ;
@@ -227,7 +227,7 @@ waitcontrol:
                 bbftp_close_control() ;
                 return BB_RET_CONN_BROKEN ;
             }
-            if ( readmessage(BBftp_Incontrolsock,buffer,msglen,BBftp_Recvcontrolto,0) < 0) {
+            if ( readmessage(BBftp_Incontrolsock,buffer,msglen,BBftp_Recvcontrolto) < 0) {
                 printmessage(stderr,CASE_ERROR,67, "Error reading data for %s message\n","MSG_OK (on MSG_CHDIR_V2)");
                 *errcode = 67 ;
                 bbftp_close_control() ;

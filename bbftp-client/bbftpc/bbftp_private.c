@@ -142,7 +142,7 @@ int bbftp_private_connect (void)
     /*
     **    Read the encryption supported
     */
-    if ( readmessage(prv_ctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( readmessage(prv_ctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
         close(prv_ctrlsock) ;
         printmessage(stderr,CASE_ERROR,54, "Error reading encryption message\n") ;
         return -1 ;
@@ -166,7 +166,7 @@ int bbftp_private_connect (void)
         printmessage(stderr,CASE_ERROR,54, "Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
         return -1 ;
     }
-    if ( readmessage(prv_ctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( readmessage(prv_ctrlsock,readbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
         free(readbuffer) ;
         close(prv_ctrlsock) ;
         printmessage(stderr,CASE_ERROR,56, "Error reading encrypted message : %s\n","type") ;
@@ -266,7 +266,7 @@ int bbftp_private_connect (void)
 #else
         msg->msglen = CRYPTMESSLEN+lenmykey+lenmyexpo ;
 #endif
-        if ( writemessage(prv_ctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0) {
+        if ( writemessage(prv_ctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0) {
             free(readbuffer) ;
             close(prv_ctrlsock) ;
             printmessage(stderr,CASE_ERROR,58, "Error sending LOG message : %s\n",strerror(errno)) ;
@@ -281,7 +281,7 @@ int bbftp_private_connect (void)
         msg_sec->pubkeylen  = lenmykey ;
         msg_sec->expolen    = lenmyexpo ;
 #endif
-        if (writemessage(prv_ctrlsock,minbuffer,CRYPTMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+        if (writemessage(prv_ctrlsock,minbuffer,CRYPTMESSLEN,BBftp_Recvcontrolto) < 0 ) {
             free(readbuffer) ;
             close(prv_ctrlsock) ;
             printmessage(stderr,CASE_ERROR,58, "Error sending LOG message : %s\n",strerror(errno)) ;
@@ -290,13 +290,13 @@ int bbftp_private_connect (void)
         /*
         ** Send Key and exponent
         */
-        if (writemessage(prv_ctrlsock,(char *)mypubkey,lenmykey,BBftp_Recvcontrolto,0) < 0 ) {
+        if (writemessage(prv_ctrlsock,(char *)mypubkey,lenmykey,BBftp_Recvcontrolto) < 0 ) {
             free(readbuffer) ;
             close(prv_ctrlsock) ;
             printmessage(stderr,CASE_ERROR,58, "Error sending LOG message : %s\n",strerror(errno)) ;
             return -1 ;
         }
-        if (writemessage(prv_ctrlsock,(char *)mypubexponent,lenmyexpo,BBftp_Recvcontrolto,0) < 0 ) {
+        if (writemessage(prv_ctrlsock,(char *)mypubexponent,lenmyexpo,BBftp_Recvcontrolto) < 0 ) {
             free(readbuffer) ;
             close(prv_ctrlsock) ;
             printmessage(stderr,CASE_ERROR,58, "Error sending LOG message : %s\n",strerror(errno)) ;
@@ -319,7 +319,7 @@ int bbftp_private_connect (void)
             */
             if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0, "Client private authentication OK\n") ;
             if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0, "Waiting for server answer\n") ;
-            if ( readmessage(prv_ctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+            if ( readmessage(prv_ctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
                 close(prv_ctrlsock) ;
                 free(readbuffer) ;
                 printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : %s\n","") ;
@@ -337,7 +337,7 @@ int bbftp_private_connect (void)
                     printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : malloc failed (%s)\n",strerror(errno)) ;
                     return -1 ;
                 }
-                if ( readmessage(prv_ctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+                if ( readmessage(prv_ctrlsock,readbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
                     close(prv_ctrlsock) ;
                     free(readbuffer) ;
                     if ( code == MSG_BAD ) {
@@ -367,7 +367,7 @@ int bbftp_private_connect (void)
                     printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
                     return -1 ;
                 }
-                if ( readmessage(prv_ctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+                if ( readmessage(prv_ctrlsock,readbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
                     free(readbuffer) ;
                     close(prv_ctrlsock) ;
                     printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : %s\n","OK message") ;
@@ -453,7 +453,7 @@ int bbftp_private_send(char *buffertosend, int buffertosendlength, char *logmess
 #else
     msg->msglen = nbpackets*PRIVRSAMESSLEN ;
 #endif
-    if ( writemessage(prv_ctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0) {
+    if ( writemessage(prv_ctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0) {
         sprintf(logmessage,"Error sending data : %s",strerror(errno)) ;
         return -1 ;
     }
@@ -475,7 +475,7 @@ int bbftp_private_send(char *buffertosend, int buffertosendlength, char *logmess
 #ifndef WORDS_BIGENDIAN
         msg_private->lengthdata = ntohl(msg_private->lengthdata) ;
 #endif
-        if ( writemessage(prv_ctrlsock,privatebuffer,PRIVRSAMESSLEN,BBftp_Recvcontrolto,0) < 0) {
+        if ( writemessage(prv_ctrlsock,privatebuffer,PRIVRSAMESSLEN,BBftp_Recvcontrolto) < 0) {
             sprintf(logmessage,"Error sending encrypted data : %s",strerror(errno)) ;
             return -1 ;
         }
@@ -521,7 +521,7 @@ int bbftp_private_recv(char *buffertorecv, int lengthtorecv, char *logmessage)
     /*
     ** Now wait for the MSG_PRIV_DATA
     */
-    if ( readmessage(prv_ctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( readmessage(prv_ctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
         sprintf(logmessage,"Error reading data") ;
         return -1 ;
     }
@@ -537,7 +537,7 @@ int bbftp_private_recv(char *buffertorecv, int lengthtorecv, char *logmessage)
             sprintf(logmessage,"Receive MSG_BAD message") ;
             return -1 ;
         }
-        if ( readmessage(prv_ctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(prv_ctrlsock,readbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
             sprintf(logmessage,"Receive MSG_BAD message") ;
             free(readbuffer) ;
             return -1 ;
@@ -558,7 +558,7 @@ int bbftp_private_recv(char *buffertorecv, int lengthtorecv, char *logmessage)
     if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0, "Going to receive %d encrypted packet(s)\n",expectedpackets) ;
     msg_private = (struct  mess_private *) privatebuffer ;
     for ( i = 1 ; i <= expectedpackets ; i++ ) {
-        if ( readmessage(prv_ctrlsock,privatebuffer,PRIVRSAMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(prv_ctrlsock,privatebuffer,PRIVRSAMESSLEN,BBftp_Recvcontrolto) < 0 ) {
             sprintf(logmessage,"Error reading encrypted data") ;
             return -1 ;
         }

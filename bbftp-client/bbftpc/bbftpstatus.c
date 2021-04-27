@@ -69,6 +69,8 @@
 #endif
 */
 
+int BBftp_PID = 0;
+
 int     BBftp_Newcontrolport = CONTROLPORT ;
 /* 
 ** BBftp_His_Ctladdr:
@@ -195,7 +197,8 @@ int main (int argc, char **argv)
 /*
 ** Check for -v option
 */
-    BBftp_Debug = 0 ;
+   BBftp_PID = getpid();
+   BBftp_Debug = 0 ;
 
     opterr = 0 ;
     optind = 1 ;
@@ -350,7 +353,7 @@ int main (int argc, char **argv)
     /*
     **    Read the encryption supported
     */
-    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
         close(tmpctrlsock) ;
         _printmessage(stderr,CASE_ERROR,54, "Error reading encryption message\n") ;
         return -1 ;
@@ -372,7 +375,7 @@ int main (int argc, char **argv)
         _printmessage(stderr,CASE_ERROR,54, "Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
         return -1 ;
     }
-    if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
         free(readbuffer) ;
         close(tmpctrlsock) ;
         _printmessage(stderr,CASE_ERROR,56, "Error reading encrypted message : %s\n","type") ;
@@ -386,7 +389,7 @@ int main (int argc, char **argv)
 #else
     msg->msglen = CRYPTMESSLEN+RSAMESSLEN ;
 #endif
-    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
+    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Sendcontrolto) < 0 ) {
         /*
         ** We were not able to send the minimum message so
         ** we are going to close the control socket and to 
@@ -401,7 +404,7 @@ int main (int argc, char **argv)
     ** Now we are going to wait for the message on the control 
     ** connection
     */
-        if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
             fprintf(stderr,"Error waiting %s message\n","MSG_OK (on MSG_SERVER_STATUS)");
             close(tmpctrlsock) ;
             return -1 ;
@@ -421,7 +424,7 @@ int main (int argc, char **argv)
                 close(tmpctrlsock) ;
                 return -1 ;
             }
-            if ( readmessage(tmpctrlsock,buffer,msglen,BBftp_Recvcontrolto,0) < 0) {
+            if ( readmessage(tmpctrlsock,buffer,msglen,BBftp_Recvcontrolto) < 0) {
                 fprintf(stderr,"Error reading data for %s message\n","MSG_OK (on MSG_DF)");
                 free(buffer) ;
                 close(tmpctrlsock) ;
@@ -451,7 +454,7 @@ int main (int argc, char **argv)
     ** We do not care of the result because this routine is called
     ** only at the end of the client
     */
-    writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Sendcontrolto,0) ;
+    writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Sendcontrolto) ;
     sleep(1) ;
     bbftp_close_control() ;
     exit(0) ;

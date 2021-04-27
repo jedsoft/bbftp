@@ -309,7 +309,7 @@ int connectviassh()
         /*
         ** Now we are going to wait for the remote port to connect to
         */
-        if ( readmessage(BBftp_Incontrolsock,buffer,MINMESSLEN,2 * BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(BBftp_Incontrolsock,buffer,MINMESSLEN,2 * BBftp_Recvcontrolto) < 0 ) {
             printmessage(stderr,CASE_ERROR,61, "Error waiting %s message\n","MSG_LOGGED_STDIN");
             kill(BBftp_SSH_Childpid,SIGKILL) ;
             close(BBftp_Incontrolsock) ;
@@ -323,7 +323,7 @@ int connectviassh()
                 printmessage(stdout,CASE_NORMAL,0, "Incorrect message is : ") ;
                 buffer[MINMESSLEN] = '\0' ;
                 printmessage(stdout,CASE_NORMAL,0, "%s",buffer) ;
-                discardandprintmessage(BBftp_Incontrolsock,BBftp_Recvcontrolto,0) ;
+                discardandprintmessage(BBftp_Incontrolsock,BBftp_Recvcontrolto) ;
             }
             kill(BBftp_SSH_Childpid,SIGKILL) ;
             close(BBftp_Incontrolsock) ;
@@ -343,7 +343,7 @@ int connectviassh()
         /*
         ** Read for the port number
         */
-        if ( readmessage(BBftp_Incontrolsock,buffer,4,BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(BBftp_Incontrolsock,buffer,4,BBftp_Recvcontrolto) < 0 ) {
             printmessage(stderr,CASE_ERROR,67, "Error reading data for %s message\n","MSG_LOGGED_STDIN");
             kill(BBftp_SSH_Childpid,SIGKILL) ;
             close(BBftp_Incontrolsock) ;
@@ -419,7 +419,7 @@ int connectviassh()
         /*
         ** Read the message 
         */
-        if ( writemessage(tmpctrlsock,buffer,MINMESSLEN,BBftp_Sendcontrolto,0) < 0 ) {
+        if ( writemessage(tmpctrlsock,buffer,MINMESSLEN,BBftp_Sendcontrolto) < 0 ) {
             printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_IPADDR");
             kill(BBftp_SSH_Childpid,SIGKILL) ;
             close(tmpctrlsock) ;
@@ -430,7 +430,7 @@ int connectviassh()
         /*
         ** And wait for MSG_IPADDR_OK
         */
-        if ( readmessage(tmpctrlsock,buffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,buffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
             printmessage(stderr,CASE_ERROR,61, "Error waiting %s message\n","MSG_IPADDR_OK");
             kill(BBftp_SSH_Childpid,SIGKILL) ;
             close(tmpctrlsock) ;
@@ -484,7 +484,7 @@ int connectviapassword(void)
     unsigned char   *pubkey ;
     unsigned char   *pubexponent ;
     char            rsabuffer[RSAMESSLEN] ;
-    char            cryptbuffer[CRYPTMESSLEN] ;
+    char            cryptbuffer[CRYPTMESSLEN] ;   /* uninitialized (for randomness???)  */
     int     lenkey ;
     int     lenexpo ;
     unsigned int ui ;
@@ -528,7 +528,7 @@ int connectviapassword(void)
     /*
     **    Read the encryption supported
     */
-    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,54, "Error reading encryption message\n") ;
         return -1 ;
@@ -552,7 +552,7 @@ int connectviapassword(void)
         printmessage(stderr,CASE_ERROR,54, "Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
         return -1 ;
     }
-    if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
         free(lreadbuffer) ;
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,56, "Error reading encrypted message : %s\n","type") ;
@@ -721,7 +721,7 @@ int connectviapassword(void)
 #else
     msg->msglen = CRYPTMESSLEN+RSAMESSLEN ;
 #endif
-    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0) {
+    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,58, "Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
@@ -731,7 +731,7 @@ int connectviapassword(void)
     */
     msg_sec = (struct mess_sec *)cryptbuffer ;
     msg_sec->crtype = crtype ;
-    if ( writemessage(tmpctrlsock,cryptbuffer,CRYPTMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( writemessage(tmpctrlsock,cryptbuffer,CRYPTMESSLEN,BBftp_Recvcontrolto) < 0 ) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,58, "Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
@@ -739,7 +739,7 @@ int connectviapassword(void)
     /*
     ** Then real informations
     */
-    if ( writemessage(tmpctrlsock,rsabuffer,RSAMESSLEN,BBftp_Recvcontrolto,0) < 0) {
+    if ( writemessage(tmpctrlsock,rsabuffer,RSAMESSLEN,BBftp_Recvcontrolto) < 0) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,58, "Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
@@ -748,7 +748,7 @@ int connectviapassword(void)
     /*
     ** Now wait for the OK message
     */
-    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : %s\n","") ;
         return -1 ;
@@ -765,7 +765,7 @@ int connectviapassword(void)
             printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : malloc failed (%s) BAD message\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
             close(tmpctrlsock) ;
             free(lreadbuffer) ;
             if ( code == MSG_BAD ) {
@@ -795,7 +795,7 @@ int connectviapassword(void)
             printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : %s\n","OK message") ;
@@ -832,7 +832,7 @@ int connectviapassword(void)
 #else
     msg->msglen = CRYPTMESSLEN+RSAMESSLEN ;
 #endif
-    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0) {
+    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,58, "Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
@@ -841,7 +841,7 @@ int connectviapassword(void)
     /*
     ** Now wait for the server decision
     */
-    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : %s\n","") ;
         return -1 ;
@@ -858,7 +858,7 @@ int connectviapassword(void)
             printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : malloc failed (%s) BAD message\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
             close(tmpctrlsock) ;
             free(lreadbuffer) ;
             if ( code == MSG_BAD ) {
@@ -888,7 +888,7 @@ int connectviapassword(void)
             printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : %s\n","OK message") ;
@@ -913,7 +913,7 @@ int connectviapassword(void)
 #else
     msg->msglen = CRYPTMESSLEN+RSAMESSLEN ;
 #endif
-    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0) {
+    if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,58, "Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
@@ -923,7 +923,7 @@ int connectviapassword(void)
     */
     msg_sec = (struct mess_sec *)cryptbuffer ;
     msg_sec->crtype = NO_CRYPT ;
-    if ( writemessage(tmpctrlsock,cryptbuffer,CRYPTMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( writemessage(tmpctrlsock,cryptbuffer,CRYPTMESSLEN,BBftp_Recvcontrolto) < 0 ) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,58, "Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
@@ -946,7 +946,7 @@ int connectviapassword(void)
     /*
     ** Then real informations
     */
-    if ( writemessage(tmpctrlsock,rsabuffer,RSAMESSLEN,BBftp_Recvcontrolto,0) < 0) {
+    if ( writemessage(tmpctrlsock,rsabuffer,RSAMESSLEN,BBftp_Recvcontrolto) < 0) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,58, "Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
@@ -955,7 +955,7 @@ int connectviapassword(void)
     /*
     ** Now wait for the OK message
     */
-    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : %s\n","") ;
         return -1 ;
@@ -972,7 +972,7 @@ int connectviapassword(void)
             printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : malloc failed (%s) BAD message\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
             close(tmpctrlsock) ;
             free(lreadbuffer) ;
             if ( code == MSG_BAD ) {
@@ -1002,7 +1002,7 @@ int connectviapassword(void)
             printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
             return -1 ;
         }
-        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+        if ( readmessage(tmpctrlsock,lreadbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
             free(lreadbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : %s\n","OK message") ;

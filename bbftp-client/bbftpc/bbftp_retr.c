@@ -830,7 +830,7 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
                         /*
                         ** Send the header
                         */
-                        if ( writemessage(ns,BBftp_Compbuffer,COMPMESSLEN,BBftp_Datato,1) < 0 ) {
+                        if ( writemessage(ns,BBftp_Compbuffer,COMPMESSLEN,BBftp_Datato) < 0 ) {
                             i = ETIMEDOUT ;
                             _exit(i) ;
                         }
@@ -892,7 +892,7 @@ int bbftp_retrtransferfile(char *filename,char *logmessage,int *errcode)
               /*
               ** All data has been sent so wait for the acknoledge
               */
-              if ( readmessage(ns,BBftp_Readbuffer,MINMESSLEN,BBftp_Ackto,1) < 0 ) {
+              if ( readmessage(ns,BBftp_Readbuffer,MINMESSLEN,BBftp_Ackto) < 0 ) {
                 close(ns) ;
                 _exit(ETIMEDOUT) ;
               }

@@ -1327,7 +1327,7 @@ int bbftp_storetransferfile_rfio(char *filename,char *logmessage, int *errcode)
                     /*
                     ** Receive the header first 
                     */
-                    if (readmessage(ns,BBftp_Readbuffer,COMPMESSLEN,BBftp_Datato,1) < 0 ) {
+                    if (readmessage(ns,BBftp_Readbuffer,COMPMESSLEN,BBftp_Datato) < 0 ) {
                         rfio_close(fd) ;
                         i = ETIMEDOUT ;
                         exit(i) ;
@@ -1452,7 +1452,7 @@ int bbftp_storetransferfile_rfio(char *filename,char *logmessage, int *errcode)
               msg = (struct message *) BBftp_Readbuffer ;
               msg->code = MSG_ACK ;
               msg->msglen = 0 ;
-              if ( writemessage(ns,BBftp_Readbuffer,MINMESSLEN,BBftp_Sendcontrolto,1) < 0 ) {
+              if ( writemessage(ns,BBftp_Readbuffer,MINMESSLEN,BBftp_Sendcontrolto) < 0 ) {
                 rfio_close(fd) ;
                 exit(ETIMEDOUT) ;
               }

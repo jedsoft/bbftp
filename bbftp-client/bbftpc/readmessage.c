@@ -58,24 +58,15 @@
 #include <client.h>
 #include <client_proto.h>
 
-int readmessage(int sock,char *buffer,int msglen,int to,int fromchild)
+int readmessage(int sock,char *buffer,int msglen,int to)
 {
    int     retcode ;
-   char    ent[40] ;
    fd_set  selectmask ; /* Select mask */
    struct timeval    wait_timer;
    int     msgsize ;
    int     msgget ;
    int     nbget ;
 
-   if ( fromchild == 1 )
-     {
-	sprintf(ent,"Child %06d : ",getpid()) ;
-     }
-   else
-     {
-	strcpy(ent,"") ;
-     }
    nbget = 0 ;
    msgsize = msglen ;
    /*
@@ -96,14 +87,14 @@ int readmessage(int sock,char *buffer,int msglen,int to,int fromchild)
 	      ** Select error
 	      */
 	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "%sRead message : Select error : MSG (%d,%d)\n",ent,msglen,nbget) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Read message : Select error : MSG (%d,%d)\n",msglen,nbget) ;
 	     return -1 ;
 	  }
 
 	if ( retcode == 0 )
 	  {
 	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "%sRead message : Time out : MSG (%d,%d)",ent,msglen,nbget) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Read message : Time out : MSG (%d,%d)", msglen,nbget) ;
 	     return -1 ;
 	  }
 
@@ -113,14 +104,14 @@ int readmessage(int sock,char *buffer,int msglen,int to,int fromchild)
 	       continue;
 
 	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "%sRead message : Receive error : MSG (%d,%d) %s",ent,msglen,nbget,strerror(errno)) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Read message : Receive error : MSG (%d,%d) %s",msglen,nbget,strerror(errno)) ;
 	     return -1 ;
 	  }
 
 	if ( msgget == 0 )
 	  {
 	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "%sRead message : Connection breaks : MSG (%d,%d)\n",ent,msglen,nbget) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Read message : Connection breaks : MSG (%d,%d)\n",msglen,nbget) ;
 	     return -1 ;
 	  }
 	nbget = nbget + msgget ;
@@ -128,23 +119,13 @@ int readmessage(int sock,char *buffer,int msglen,int to,int fromchild)
    return(0) ;
 }
 
-int discardmessage(int sock,int msglen,int to,int fromchild)
+int discardmessage(int sock,int msglen,int to)
 {
    int    nbget ;
    int    retcode ;
    fd_set selectmask ; /* Select mask */
    struct timeval    wait_timer;
    char    buffer[256] ;
-   char    ent[40] ;
-
-   if ( fromchild == 1 )
-     {
-	sprintf(ent,"Child %06d : ",getpid()) ;
-     }
-   else
-     {
-	strcpy(ent,"") ;
-     }
 
    /*
     ** We are going to read buflen by buflen till the message
@@ -166,14 +147,14 @@ int discardmessage(int sock,int msglen,int to,int fromchild)
 	      ** Select error
 	      */
 	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "%sDiscard message :Discard message : Select error : MSG (%d,%d)",ent,msglen,nbget) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Discard message :Discard message : Select error : MSG (%d,%d)",msglen,nbget) ;
 	     return -1 ;
 	  }
 
 	if ( retcode == 0 )
 	  {
 	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "%sDiscard message :Discard message : Time out : MSG (%d,%d)",ent,msglen,nbget) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Discard message :Discard message : Time out : MSG (%d,%d)",msglen,nbget) ;
 	     return -1 ;
 	  }
 
@@ -183,14 +164,14 @@ int discardmessage(int sock,int msglen,int to,int fromchild)
 	       continue;
 
 	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "%sDiscard message :Discard message : Receive error : MSG (%d,%d) : %s",ent,msglen,nbget,strerror(errno)) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Discard message :Discard message : Receive error : MSG (%d,%d) : %s",msglen,nbget,strerror(errno)) ;
 	     return -1 ;
 	  }
 
 	if ( retcode == 0 )
 	  {
 	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "%sDiscard message :Discard message : Connexion breaks",ent) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Discard message :Discard message : Connexion breaks") ;
 	     return -1 ;
 	  }
 	nbget = nbget + retcode ;
@@ -198,21 +179,11 @@ int discardmessage(int sock,int msglen,int to,int fromchild)
    return(0) ;
 }
 
-int discardandprintmessage(int sock,int to,int fromchild)
+int discardandprintmessage(int sock,int to)
 {
    int    retcode ;
    fd_set selectmask ; /* Select mask */
    struct timeval    wait_timer;
-   char    ent[40] ;
-
-   if ( fromchild == 1 )
-     {
-	sprintf(ent,"Child %06d : ",getpid()) ;
-     }
-   else
-     {
-	strcpy(ent,"") ;
-     }
 
    /*
     ** We are going to read buflen by buflen till the message

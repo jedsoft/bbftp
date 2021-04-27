@@ -55,6 +55,12 @@ void printmessage (FILE *strm , int flag, int errcode, char *fmt, ...)
       default:
 	break;
     }
+
+   if (BBftp_PID && (BBftp_PID != getpid()))
+     {
+	(void) fprintf(strm, "Child: %06d : ", getpid());
+     }
+
     /*
     ** And print the requested string 
     */

@@ -112,12 +112,12 @@ void reconnecttoserver(void) ;
 ** Prototype for sockets routines
 */
 int bbftp_createdatasock(int portnumber/*,char *logmessage*/);
-int discardmessage(int sock,int msglen,int to,int fromchild) ;
-int discardandprintmessage(int sock,int to,int fromchild) ;
+int discardmessage(int sock,int msglen,int to) ;
+int discardandprintmessage(int sock,int to) ;
 int getdatasock(int nbsock, int *errcode) ;
-int readmessage(int sock,char *buffer,int msglen,int to,int fromchild) ;
+int readmessage(int sock,char *buffer,int msglen,int to) ;
 int sendproto(void) ;
-int writemessage(int sock,char *buffer,int msglen,int to,int fromchild) ;
+int writemessage(int sock,char *buffer,int msglen,int to) ;
 /*
 ** Prototype for command routines
 */

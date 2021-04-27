@@ -58,10 +58,9 @@
 #include <client.h>
 #include <client_proto.h>
 
-int writemessage(int sock,char *buffer,int msglen,int to,int fromchild)
+int writemessage(int sock,char *buffer,int msglen,int to)
 {
     int     retcode ;
-    char    ent[40] ;
     fd_set  selectmask ; /* Select mask */
     struct timeval    wait_timer;
 
@@ -69,11 +68,6 @@ int writemessage(int sock,char *buffer,int msglen,int to,int fromchild)
     int     msgsend ;
     int     nbsent ;
 
-    if ( fromchild == 1 ) {
-        sprintf(ent,"Child %06d : ",getpid()) ;
-    } else {
-        strcpy(ent,"") ;
-    }
     nbsent = 0 ;
     msgsize = msglen ;
 /*
@@ -93,14 +87,14 @@ int writemessage(int sock,char *buffer,int msglen,int to,int fromchild)
 	      ** Select error
 	      */
 	     if (BBftp_Debug ) 
-	       printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Select error : MSG (%d,%d)\n",ent,msglen,nbsent) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Write message : Select error : MSG (%d,%d)\n",msglen,nbsent) ;
 	     return -1 ;
 	  }
 
 	if ( retcode == 0 )
 	  {
 	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Time Out : MSG (%d,%d)\n",ent,msglen,nbsent) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Write message : Time Out : MSG (%d,%d)\n",msglen,nbsent) ;
 	     return -1 ;
 	  }
 
@@ -109,14 +103,14 @@ int writemessage(int sock,char *buffer,int msglen,int to,int fromchild)
 	     if (errno == EINTR) continue;
 
 	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Send error %d(%s) : MSG (%d,%d)\n",ent,errno,strerror(errno),msglen,nbsent) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Write message : Send error %d(%s) : MSG (%d,%d)\n",errno,strerror(errno),msglen,nbsent) ;
 	     return -1 ;
 	  }
 
 	if (msgsend == 0)
 	  {
 	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "%sWrite message : Connection breaks : MSG (%d,%d)\n",ent,msglen,nbsent) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Write message : Connection breaks : MSG (%d,%d)\n",msglen,nbsent) ;
 	     return -1 ;
 	  }
 	nbsent = nbsent + msgsend ;

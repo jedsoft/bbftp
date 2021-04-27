@@ -129,7 +129,7 @@ int bbftp_cert_connect(void)
     /*
     **    Read the encryption supported
     */
-    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,54, "Error reading encryption message\n") ;
         return -1 ;
@@ -150,7 +150,7 @@ int bbftp_cert_connect(void)
         printmessage(stderr,CASE_ERROR,54, "Error reading encryption message : malloc failed (%s)\n",strerror(errno)) ;
         return -1 ;
     }
-    if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+    if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
         free(readbuffer) ;
         close(tmpctrlsock) ;
         printmessage(stderr,CASE_ERROR,56, "Error reading encrypted message : %s\n","type") ;
@@ -163,7 +163,7 @@ int bbftp_cert_connect(void)
 #else
         msg->msglen = CRYPTMESSLEN ;
 #endif
-        if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0) {
+        if ( writemessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0) {
             free(readbuffer) ;
             close(tmpctrlsock) ;
             printmessage(stderr,CASE_ERROR,58, "Error sending CERT_LOG message : %s\n",strerror(errno)) ;
@@ -197,7 +197,7 @@ int bbftp_cert_connect(void)
             */
             if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0, "Client certificate authentication OK\n") ;
             if (BBftp_Debug) printmessage(stdout,CASE_NORMAL,0, "Waiting for server answer\n") ;
-            if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto,0) < 0 ) {
+            if ( readmessage(tmpctrlsock,minbuffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
                 close(tmpctrlsock) ;
                 free(readbuffer) ;
                 printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : %s\n","") ;
@@ -215,7 +215,7 @@ int bbftp_cert_connect(void)
                     printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : malloc failed (%s)\n",strerror(errno)) ;
                     return -1 ;
                 }
-                if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+                if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
                     close(tmpctrlsock) ;
                     free(readbuffer) ;
                     if ( code == MSG_BAD ) {
@@ -245,7 +245,7 @@ int bbftp_cert_connect(void)
                     printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : OK message : malloc failed (%s)\n",strerror(errno)) ;
                     return -1 ;
                 }
-                if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto,0) < 0 ) {
+                if ( readmessage(tmpctrlsock,readbuffer,msglen,BBftp_Recvcontrolto) < 0 ) {
                     free(readbuffer) ;
                     close(tmpctrlsock) ;
                     printmessage(stderr,CASE_ERROR,59, "Error reading login message answer : %s\n","OK message") ;
