@@ -93,7 +93,7 @@ my64_t    ntohll(my64_t v) ;
 # endif
 #endif
 
-int bbftpd_readcontrol(int msgcode,int msglen) 
+static int readcontrol_v2 (int msgcode,int msglen)
 {
 
     int        retcode ;
@@ -107,13 +107,8 @@ int bbftpd_readcontrol(int msgcode,int msglen)
     char    logmessage[1024] ;
     int     *portfree ;
     struct utimbuf ftime ;
-    int     *porttosend ;    
-    /*
-    ** Depending on the state the accepted message may be different
-    */
-#ifndef WORDS_BIGENDIAN
-    msglen = ntohl(msglen) ;
-#endif
+    int     *porttosend ;
+
     switch (state) {
         /*
         ** Case S_LOGGED :
@@ -1072,5 +1067,92 @@ int bbftpd_readcontrol(int msgcode,int msglen)
         }
     }
 }
-       
-        
+
+
+/*
+** Loop for the v2 protocol (also available for v3)
+*/
+
+int bbftp_run_protocol_2 (void)
+{
+   /*
+    ** Initialize the variables
+    */
+   mychildren = NULL ;
+   nbpidchild = 0 ;
+   curfilename = NULL ;
+   curfilenamelen = 0 ;
+
+    /*
+    ** Set up v2 handlers
+    */
+    if ( bbftpd_setsignals() < 0 ) {
+        exit(1) ;
+    }
+    /*
+    ** Set the umask ; first unset it and then reset to the default value
+    */
+    umask(0) ;
+    umask(myumask) ;
+    while (1)
+     {
+	struct message msg;
+	int timeout, retcode;
+
+        switch (state)
+	  {
+	   case S_WAITING_STORE_START :
+	   case S_WAITING_FILENAME_STORE :
+	   case S_WAITING_FILENAME_RETR :
+	     /*
+	      ** Timer of 10s between XX_V2 and FILENAME_XX
+	      */
+	     timeout = 10;
+	     break;
+
+            case S_SENDING :
+            case S_RECEIVING :
+	     timeout = -1;	       /* block indefinitely */
+	     break;
+
+            default:
+                /*
+                ** Timer of 900s between commands
+                */
+	       timeout = 900;
+	       break ;
+	  }
+
+	while (-1 == (retcode = bbftpd_msg_pending (timeout)))
+	  {
+	     /* Should we exit?  */
+	     sleep (5);
+	  }
+
+	if (retcode == 0)	       /* timer expired */
+	  {
+	     if ( state == S_WAITING_STORE_START )
+	       bbftpd_storeunlink(realfilename) ;
+
+	     return 0;
+	  }
+
+	/* Otherwise there is input on the channel */
+	if (-1 == bbftpd_msgrecv_msg (&msg))
+	  {
+	     if ( state == S_WAITING_STORE_START  || state == S_RECEIVING) 
+	       {
+		  bbftpd_storeunlink(realfilename) ;
+		  sleep(5) ;
+	       }
+	     return 0;
+	  }
+	if (readcontrol_v2 (msg.code, msg.msglen) < 0 )
+	  return 0;
+     }
+}
+
+int bbftp_run_protocol_3 (void)
+{
+   return bbftp_run_protocol_2 ();
+}

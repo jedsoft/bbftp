@@ -72,9 +72,9 @@ int sendlist (int code, int msglen) {
     int        retcode ;
     char    *tmpfile ;
 
-#ifndef WORDS_BIGENDIAN
-    msglen = ntohl(msglen) ;
-#endif
+/* #ifndef WORDS_BIGENDIAN */
+/*     msglen = ntohl(msglen) ; */
+/* #endif */
     if ( msglen > (int) MAXMESSLEN ) {
         /*
         ** In order to avoid buffer overflow we reject message to

@@ -62,9 +62,9 @@ int changetodir (int code, int msglen) {
     char    logmessage[1024] ;
     char    *currentdir ;
 
-#ifndef WORDS_BIGENDIAN
-    msglen = ntohl(msglen) ;
-#endif
+/* #ifndef WORDS_BIGENDIAN */
+/*     msglen = ntohl(msglen) ; */
+/* #endif */
     if ( msglen > (int)MAXMESSLEN ) {
         /*
         ** In order to avoid buffer overflow we reject message to

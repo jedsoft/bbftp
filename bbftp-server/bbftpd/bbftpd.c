@@ -117,9 +117,9 @@
 #include "_bbftpd.h"
 
 #ifdef CERTIFICATE_AUTH
-#define OPTIONS    "bcd:fl:m:pR:suvw:"
+#define OPTIONS    "Abcd:fl:m:pR:suvw:"
 #else
-#define OPTIONS    "bd:e:fl:m:R:suvw:"
+#define OPTIONS    "Abd:e:fl:m:R:suvw:"
 #endif
 /*
 ** Common variables for BBFTP protocole version 1 and 2
@@ -134,12 +134,8 @@
 **      2 means running in background                   (run as bbftpd -b)
 **      Default 0
 */
-int        be_daemon = 0 ;
-/*
-** daemonchar:
-**      String used to initialize bbftpd_openlog
-*/
-char        daemonchar[50] ;
+/* int        be_daemon = 0 ; --- local variable in main */
+
 /*
 ** fixeddataport :
 **      If set to 1 then the server will use CONTROLPORT-1 
@@ -177,11 +173,6 @@ struct sockaddr_in his_addr;
 **      Local adresse (the server)
 */
 struct sockaddr_in ctrl_addr;
-/*
-** bbftpdrc:
-**      Where to store the bbftpdrc file
-*/
-char    *bbftpdrc = NULL ;
 /*
 ** protocolversion :
 **      Set to 0 before any PROT message exchange, that also means
@@ -222,7 +213,7 @@ int    unlinkfile = 0  ;
 **      Set to one for RFIO debug. Valid only with the -b option
 **      set to the value needed for RFIO_TRACE
 */
-int     debug = 0 ;
+/* int     debug = 0 ; -- local to main */
 /*
 ** castfd:
 **      CASTOR file descriptor use with RFIO and CASTOR
@@ -244,6 +235,10 @@ char    *castfilename = NULL ;
 **      Define control socket for the server
 */
 int     msgsock ;
+/* For be_daemon == 2; msgsock = incontrolsock = outcontrolsock
+ * For be_daemon == 0: msgsock = incontrolsock = outcontrolsock = 0
+ */
+
 /*
 ** currentfilename :
 **      Define the file we are working on 
@@ -331,11 +326,6 @@ int	    recvcontrolto   = CONTROLSOCKTO;
 int	    sendcontrolto   = SENDCONTROLTO;
 int	    datato          = DATASOCKTO;
 int	    checkstdinto    = CHECKSTDINTO;
-int     force_encoding  = 1;
-#ifdef CERTIFICATE_AUTH
-int     accept_certs_only = 0;
-int     accept_pass_only = 0;
-#endif
 /*
 ** Parameters describing the transfer
 */
@@ -382,6 +372,440 @@ gss_cred_id_t   server_creds;
 */
 struct  timeval  tstart;
 
+static int is_option_present (int argc, char **argv, int opt)
+{
+   int i;
+
+   opterr = 0 ;
+   optind = 1;
+
+   while (-1 != (i = getopt(argc, argv, OPTIONS)))
+     {
+	if (i == opt) return 1;
+     }
+   return 0;
+}
+
+
+static void print_version_info (void)
+{
+   printf("bbftpd version %s\n",VERSION) ;
+   printf("Compiled with  :   default port %d\n",CONTROLPORT) ;
+   printf("                   default maximum streams = %d \n",maxstreams) ;
+#ifdef PORT_RANGE
+   printf("                   data ports range = %s \n", PORT_RANGE) ;
+#endif
+#ifdef WITH_GZIP
+   printf("                   compression with Zlib-%s\n", zlibVersion()) ;
+#endif
+   printf("                   encryption with %s \n",SSLeay_version(SSLEAY_VERSION)) ;
+#ifdef WITH_RFIO
+# ifdef CASTOR
+   printf("                   CASTOR support (RFIO)\n") ;
+# else
+   printf("                   HPSS support (RFIO)\n") ;
+# endif
+#endif
+#ifdef WITH_RFIO64
+# ifdef CASTOR
+   printf("                   CASTOR support (RFIO64)\n") ;
+# else
+   printf("                   HPSS support (RFIO64)\n") ;
+# endif
+#endif
+#ifdef AFS
+   printf("                   AFS authentication \n") ;
+#endif
+#ifdef CERTIFICATE_AUTH
+   printf("                   GSI authentication \n") ;
+#endif
+#ifdef PRIVATE_AUTH
+   printf("                   private authentication \n") ;
+#endif
+}
+
+static int check_libs (void)
+{
+#ifdef WITH_GZIP
+     {
+	/* Check zlib version */
+	int z0, z1;
+	if (0 != strcmp(zlibVersion(), ZLIB_VERSION))
+	  {
+	     printf ("WARNING zlib version changed since last compile.\n");
+	     printf ("Compiled Version is %s\n", ZLIB_VERSION);
+	     printf ("Linked   Version is %s\n", zlibVersion());
+	  }
+	z0 = atoi (ZLIB_VERSION);
+	z1 = atoi (zlibVersion());
+	if (z0 != z1)
+	  {
+	     printf ("ERROR: zlib is not compatible!\n");
+	     printf ("zlib source can found at http://www.gzip.org/zlib/\n");
+	     return -1;
+	  }
+     }
+#endif
+
+   return 0;
+}
+
+
+static void set_log_level (const char *level)
+{
+   char uplevel[32];
+   int i;
+
+   strncpy (uplevel, level, sizeof(uplevel));
+   uplevel[sizeof(uplevel)-1] = 0;
+
+   i = 0;
+   while (uplevel[i] != 0)
+     {
+	uplevel[i] = toupper(uplevel[i]);
+	i++;
+     }
+
+   if ( !strcmp(optarg,"EMERGENCY") ) i = BBFTPD_EMERG;
+   else if ( !strcmp(optarg,"ALERT") ) i = BBFTPD_ALERT;
+   else if ( !strcmp(optarg,"CRITICAL") ) i = BBFTPD_CRIT;
+   else if ( !strcmp(optarg,"ERROR") ) i = BBFTPD_ERR;
+   else if ( !strcmp(optarg,"WARNING") ) i = BBFTPD_WARNING;
+   else if ( !strcmp(optarg,"NOTICE") ) i = BBFTPD_NOTICE;
+   else if ( !strcmp(optarg,"INFORMATION") ) i = BBFTPD_INFO;
+   else if ( !strcmp(optarg,"DEBUG") ) i = BBFTPD_DEBUG;
+   else return;
+
+   setlogmask(LOG_UPTO(i));
+}
+
+typedef struct
+{
+   int server_mode;
+   int force_encoding;
+   int accept_pass_only;
+   int accept_certs_only;
+   int debug;
+   int ask_remote_address;
+   char *bbftpdrc_file;
+   int argc;
+   char **argv;
+}
+Server_Config_Type;
+
+static int init_default_server_config (int argc, char **argv, Server_Config_Type *server_config)
+{
+   memset (server_config, 0, sizeof(Server_Config_Type));
+   server_config->server_mode = 0;
+   server_config->force_encoding = 1;
+   server_config->accept_pass_only = 0;
+   server_config->accept_certs_only = 0;
+   server_config->debug = 0;
+   server_config->ask_remote_address = 0;
+   server_config->bbftpdrc_file = NULL;
+   server_config->argc = argc;
+   server_config->argv = argv;
+   /*
+    ** Get 5K for castfilename in order to work with CASTOR
+    ** software (even if we are not using it)
+    */
+   if ( (castfilename = (char *) malloc (5000)) == NULL ) {
+      /*
+       ** Starting badly if we are unable to malloc 5K
+       */
+      bbftpd_syslog(BBFTPD_ERR,"No memory for CASTOR : %s",strerror(errno)) ;
+      fprintf(stderr,"No memory for CASTOR : %s\n",strerror(errno)) ;
+      return -1;
+   }
+   return 0;
+}
+
+static int process_cmdline_options (int argc, char **argv, Server_Config_Type *server_config)
+{
+   int i, j, k;
+   int be_daemon = 0;
+
+   opterr = 0 ;
+   optind = 1 ;
+   while ((j = getopt(argc, argv, OPTIONS)) != -1)
+     {
+	switch (j)
+	  {
+	   case 'A':
+	     server_config->ask_remote_address = 1;
+	     break;
+
+	   case 'b' :
+	     if (be_daemon && (be_daemon != 2))
+	       {
+		  bbftpd_syslog(BBFTPD_ERR,"-b and -s options are incompatible");
+		  return -1;
+	       }
+	     server_config->server_mode = be_daemon = 2;
+	     break;
+
+	   case 'd' :
+#if defined(WITH_RFIO) || defined(WITH_RFIO64)
+	     sscanf(optarg,"%d",&i) ;
+	     if ( i > 0 ) server_config->debug = i;
+#endif
+	     break ;
+
+	 case 'e' :
+	     if ((2 == sscanf(optarg,"%d:%d",&i, &k)) && (i < k))
+	       {
+                  pasvport_min = i; pasvport_max = k;
+	       }
+	     else
+	       {
+                  bbftpd_syslog(BBFTPD_ERR,"Invalid port range : %s", optarg) ;
+                  fprintf(stderr,"Invalid port range : %s\n", optarg);
+		  return -1;
+	       }
+	     break;
+
+            case 'f' :
+	     fixeddataport = 0 ;
+	     break ;
+
+	   case 'm' :
+	     sscanf(optarg,"%d",&i) ;
+	     if ( i > 0 ) maxstreams = i ;
+	     break ;
+
+	   case 'R' :
+	     server_config->bbftpdrc_file = optarg;
+	     break ;
+
+	   case 's' :
+#ifdef PRIVATE_AUTH
+	     bbftpd_syslog(BBFTPD_ERR,"-s option cannot be used with private authentication") ;
+	     return -1;
+#else
+	     if (be_daemon && (be_daemon != 1))
+	       {
+		  bbftpd_syslog(BBFTPD_ERR,"-b and -s options are incompatible") ;
+		  return -1;
+	       }
+	     server_config->server_mode = be_daemon = 1;
+	     break ;
+#endif
+            case 'u' :
+	     server_config->force_encoding = 0;
+	     break ;
+
+            case 'w' :
+	     sscanf(optarg,"%d",&newcontrolport) ;
+	     break ;
+
+#ifdef CERTIFICATE_AUTH
+            case 'c' :
+	     server_config->accept_certs_only = 1 ;
+	     break ;
+
+            case 'p' :
+	     server_config->accept_pass_only = 1 ;
+	     break;
+#endif
+            default :
+	     break;
+	  }
+     }
+   return 0;
+}
+
+static char *System_BBftpdrc_File = BBFTPD_CONF;
+/* returns either a malloced string for *filep or System_BBftpdrc_File */
+static int get_bbftprc_file (char **filep)
+{
+   struct  passwd  *mypasswd;
+   struct stat st;
+   char *file;
+
+   *filep = System_BBftpdrc_File;	       /* default */
+
+   /*
+    ** look for the local user in order to find the .bbftpdrc file
+    ** use /etc/bbftpd.conf if root
+    */
+   if ( getuid() == 0)
+     return 0;
+
+   if (NULL == (mypasswd = getpwuid(getuid())))
+     {
+	bbftpd_syslog(BBFTPD_WARNING, "Unable to get passwd entry, using %s\n", System_BBftpdrc_File);
+	return 0;
+     }
+
+    if (mypasswd->pw_dir == NULL)
+     {
+	bbftpd_syslog(BBFTPD_WARNING, "No home directory, using %s\n", System_BBftpdrc_File) ;
+	return 0;
+     }
+
+   if (NULL == (file = bbftpd_strcat (mypasswd->pw_dir, "/.bbftpdrc")))
+     {
+	bbftpd_syslog(BBFTPD_ERR, "Error allocating space for ~/.bbftpdrc file\n");
+	*filep = NULL;
+	return -1;
+     }
+
+   if (-1 == stat(file, &st))
+     {
+	/* fall back to system config file */
+	free (file);
+	return 0;
+     }
+
+   return 0;
+}
+
+typedef struct
+{
+   const char *name;
+   const char *usage_string;
+   int *valp;
+}
+Setcmd_Type;
+
+static Setcmd_Type Setcmd_Table [] =
+{
+   {"setackto", "Acknowledge timeout must be numeric and > 0", &ackto},
+   {"setrecvcontrolto", "Input control timeout must be numeric and > 0", &recvcontrolto},
+   {"setsendcontrolto", "Output control timeout must be numeric and > 0", &sendcontrolto},
+   {"setdatato", "Data timeout must be numeric and > 0", &datato},
+   {"setcheckstdinto", "Check input timeout must be numeric and > 0", &checkstdinto},
+   {NULL, NULL, NULL}
+};
+
+static int process_bbftpdrc_line (char *line)
+{
+   Setcmd_Type *setcmd;
+
+   if (*line == '#') return 0;
+
+   setcmd = Setcmd_Table;
+   while (setcmd->name != NULL)
+     {
+	size_t len = strlen (setcmd->name);
+	int val;
+
+	if ((strncmp (setcmd->name, line, len))
+	    || ((line[len] != ' ') && (line[len] != '\t')))
+	  {
+	     setcmd++;
+	     continue;
+	  }
+	if ((1 != sscanf (line + len + 1, "%d", &val))
+	    || (val <= 0))
+	  {
+	     bbftpd_syslog (BBFTPD_WARNING, "%s: %s\n", setcmd->name, setcmd->usage_string);
+	     return 0;
+	  }
+	*setcmd->valp = val;
+	return 0;
+     }
+
+   /* The only setoption allowed in the file is [no]fixeddataport */
+   if ((0 == strncmp (line, "setoption", 9))
+       && ((line[9] == ' ') || (line[9] == '\t')))
+     {
+	int has_no;
+
+	line += 9;
+	while ((*line == ' ') || (*line == '\t')) line++;
+
+	has_no = (0 == strncmp (line, "no", 2));
+	if (has_no) line += 2;
+
+	if ((0 == strncmp (line, "fixeddataport", 13))
+	    && ((line[13] == 0) || (line[13] == '#') || isspace(line[13])))
+	  {
+	     /* The default value for fixeddataport is 1.  This can be set to
+	      * 0 via a command line argument.  The assumption seems to be that if
+	      * it is 0, then it has been set on the command line.  In that case,
+	      * do not override it here.
+	      */
+	     if (has_no) fixeddataport = 0;
+	     return 0;
+	  }
+
+	bbftpd_syslog (BBFTPD_WARNING, "Unsupported or illegal setoption command in bbftpdrc file (%s)\n", line);
+	return 0;
+     }
+
+   bbftpd_syslog (BBFTPD_WARNING, "Unsupported or illegal setoption command in bbftpdrc file (%s)\n", line);
+   return 0;
+}
+
+static int process_bbftpd_rcfile (Server_Config_Type *server_config)
+{
+   struct stat st;
+   size_t len;
+   char *file;
+   char *line, *carret, *contents = NULL;
+   int status = -1;
+
+   if (NULL == (file = server_config->bbftpdrc_file))
+     {
+	if (-1 == get_bbftprc_file (&file))
+	  return -1;
+
+	if (file == NULL)
+	  return 0;
+     }
+
+   if (0 == strcmp (file, "none"))
+     return 0;
+
+   if (-1 == stat (file, &st))
+     {
+	if (file == System_BBftpdrc_File)
+	  return 0;
+
+	bbftpd_syslog (BBFTPD_ERR, "Error stating bbftpdrc file (%s)\n", file);
+	goto return_status;
+     }
+
+   if (st.st_size == 0)
+     {
+	status = 0;
+	goto return_status;
+     }
+
+   /* bbftpd_read_file will null terminate the string */
+   if (NULL == (contents = bbftpd_read_file (file, &len)))
+     goto return_status;
+
+   carret = contents;
+   line = contents;
+   /*
+    ** Strip starting CR
+    */
+   while (*carret != 0)
+     {
+	while (isspace (*carret)) carret++;
+	line = carret;
+	carret = (char *) strchr (carret, '\n');
+	if ( carret != NULL )
+	  *carret++ = 0;
+	else
+	  carret = line + strlen (line);
+
+	(void) process_bbftpdrc_line (line);
+     }
+   status = 0;
+   /* drop */
+
+return_status:
+   if (contents != NULL) free (contents);
+   if ((file != server_config->bbftpdrc_file)
+       && (file != System_BBftpdrc_File))
+     free (file);
+
+   return status;
+}
+
 static void append_to_logmessage (char *buf, size_t buflen, char *dbuf)
 {
    size_t dn = strlen (buf);
@@ -391,44 +815,368 @@ static void append_to_logmessage (char *buf, size_t buflen, char *dbuf)
    buf[buflen-1] = 0;
 }
 
-
-int main (int argc, char **argv)
+static void send_server_status (Server_Config_Type *server_config)
 {
-/*
-#if defined(SUNOS) || defined(_HPUX_SOURCE) || defined(IRIX)
-    int        addrlen ;
-#else
-    size_t        addrlen ;
+   char dmsgbuf[128];
+   char logmessage[1024];
+
+   *logmessage = 0;
+   sprintf(dmsgbuf, "bbftpd version %s\n",VERSION);
+   append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+   sprintf(dmsgbuf, "Compiled with  :   default port %d\n", CONTROLPORT) ;
+   append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+#ifdef WITH_GZIP
+   sprintf(dmsgbuf, "  compression with Zlib-%s\n", zlibVersion()) ;
+   append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
 #endif
-*/
+   sprintf(dmsgbuf, "  encryption with %s \n", SSLeay_version(SSLEAY_VERSION)) ;
+   append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+#ifdef WITH_RFIO
+# ifdef CASTOR
+   sprintf(dmsgbuf, "  CASTOR support (RFIO)\n") ;
+# else
+   sprintf(dmsgbuf, "  HPSS support (RFIO)\n") ;
+# endif
+   append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+#endif
+#ifdef WITH_RFIO64
+# ifdef CASTOR
+   sprintf(dmsgbuf, "  CASTOR support (RFIO64)\n") ;
+# else
+   sprintf(dmsgbuf, "  HPSS support (RFIO64)\n") ;
+# endif
+   append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+#endif
+#ifdef AFS
+   sprintf(dmsgbuf, "  AFS authentication \n") ;
+   append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+#endif
+#ifdef CERTIFICATE_AUTH
+   sprintf(dmsgbuf, "  GSI authentication \n") ;
+   append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+#endif
+#ifdef PRIVATE_AUTH
+   sprintf(dmsgbuf, "  private authentication \n") ;
+   append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+#endif
+   sprintf(dmsgbuf, "Running options:\n") ;
+   append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+   sprintf(dmsgbuf, "  Maximum number of streams = %d\n",maxstreams) ;
+   append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+   if (pasvport_min)
+     {
+	sprintf(dmsgbuf, "  data ports range = [%d-%d]\n", pasvport_min, pasvport_max) ;
+	append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+     }
+
+#ifdef CERTIFICATE_AUTH
+   if (accept_pass_only)
+     {
+	sprintf(dmsgbuf, "  The server only accepts USER/PASS\n",);
+	append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+     }
+   if (accept_certs_only)
+     {
+	sprintf(dmsgbuf, "  The server only accepts certificates\n",logmessage);
+	append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+     }
+#endif
+#ifndef PRIVATE_AUTH
+   if (server_config->force_encoding)
+     sprintf(dmsgbuf, "  The server requires encrypted login\n");
+   else
+     sprintf(dmsgbuf, "  The server allows non-encrypted login\n");
+   append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
+#endif
+
+   reply(MSG_OK,logmessage);
+   exit(0);
+}
+
+static int get_gwf_cred (Server_Config_Type *server_config)
+{
+#ifdef CERTIFICATE_AUTH
+   OM_uint32 min_stat, maj_stat;
+
+   if (server_config->accept_pass_only) return 0;
+
+   maj_stat = gfw_acquire_cred(&min_stat, NULL, &server_creds);
+   if (maj_stat != GSS_S_COMPLETE)
+     {
+	gfw_msgs_list *messages = NULL;
+	gfw_status_to_strings(maj_stat, min_stat, &messages) ;
+	while (messages != NULL) {
+	   bbftpd_syslog(BBFTPD_ERR,"gfw_acquire_cred: %s", messages->msg) ;
+	   if (server_config->server_mode == 2)
+	     fprintf(stderr,"Acquire credentials: %s\n", messages->msg) ;
+	   messages = messages->next;
+	}
+	return -1;
+     }
+#endif
+   (void) server_config;
+   return 0;
+}
+
+static int get_peer_and_sock_names (void)
+{
 #ifdef HAVE_SOCKLEN_T
     socklen_t     addrlen ;
 #else
     int           addrlen ;
 #endif
-    struct  timeval    wait_timer;
-    fd_set  selectmask ; 
-    int        nfds ; 
-    int        retcode ;
-    int        i, j, k ;
-    struct  message *msg ;
-    char    buffer[MINMESSLEN] ;
-    char    logmessage[1024] ;
-    struct  passwd  *mypasswd ;
-    char    *bbftpdrcfile = NULL, *bbftpdrcfile_static = NULL;
-    int     fd ;
-    char    *carret ;
-    char    *startcmd ;
-    int     nooption ;
-    struct  stat    statbuf ;
-    int     alluse ;
-    
-    sprintf(daemonchar,"bbftpd v%s",VERSION) ;
-    bbftpd_syslog_open(daemonchar, LOG_PID | LOG_NDELAY, BBFTPD_FACILITY);
+
+   /* Get the remote address */
+   addrlen = sizeof(his_addr);
+   if (-1 == getpeername(incontrolsock, (struct sockaddr *) &his_addr, &addrlen))
+     {
+	bbftpd_syslog(BBFTPD_ERR, "getpeername : %s", strerror(errno));
+	return -1;
+     }
+
+   addrlen = sizeof(ctrl_addr);
+   if (-1 == getsockname(incontrolsock, (struct sockaddr *) &ctrl_addr, &addrlen))
+     {
+	bbftpd_syslog(BBFTPD_ERR, "getsockname : %s", strerror(errno));
+	return -1;
+     }
+   bbftpd_syslog(BBFTPD_INFO,"Getting new bbftp connexion from : %s",inet_ntoa(his_addr.sin_addr)) ;
+   return 0;
+}
+
+/* Not used for SSH mode */
+static int perform_login (Server_Config_Type *server_config)
+{
+   char    logmessage[1024] ;
+   char buffer[MINMESSLEN] ;
+   struct  message *msg ;
+
+   /*
+    ** Send the encryption supported 
+    */
+   sendcrypt() ;
+
+   while (1)
+     {
+        state = S_CONN ;
+	if (-1 == readmessage (incontrolsock, buffer, MINMESSLEN, recvcontrolto))
+	  {
+	     /* error or time-out expired */
+	     bbftpd_syslog(BBFTPD_ERR,"Error reading MSG_LOG ") ;
+	     return -1;
+	  }
+
+	msg = (struct message *) buffer ;
+	switch (msg->code)
+	  {
+	   default:
+	     bbftpd_syslog(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
+	     reply(MSG_BAD,"Unkown message in connected state") ;
+	     return -1;
+
+	   case MSG_SERVER_STATUS:
+	     send_server_status (server_config);
+	     exit (0);
+
+#ifndef PRIVATE_AUTH
+# ifdef CERTIFICATE_AUTH
+	   case MSG_CERT_LOG:
+	     if (server_config->accept_pass_only)
+	       {
+		  bbftpd_syslog (BBFTPD_ERR,"%s", "The server only accepts USER/PASS");
+		  reply(MSG_BAD_NO_RETRY, "The server only accepts USER/PASS");
+		  return -1;
+	       }
+	     status = bbftpd_cert_receive_connection(msg->msglen);
+	     if ( retval < 0 ) /* The login failed, do not wait for a new one */
+	       return -1;
+
+	     /* bbftpd_cert_receive_connection could return 1 to indicate that /tmp will
+	      * be used as the home directory.  Assume that the login was successful
+	      */
+	     sprintf (logmessage,"bbftpd version %s : OK",VERSION) ;
+	     reply(MSG_OK,logmessage) ;
+	     return 0;
+# endif				       /* CERTIFICATE_AUTH */
+
+	   case MSG_LOG:
+# ifdef CERTIFICATE_AUTH
+	     if (server_config->accept_certs_only)
+	       {
+		  bbftpd_syslog(BBFTPD_ERR, "%s", "The server only accepts certificates") ;
+		  reply (MSG_BAD_NO_RETRY, "The server only accepts certificates");
+		  break;
+	       }
+# endif				       /* CERTIFICATE_AUTH */
+	     /*
+	      ** It seems that it is the message we were waiting
+	      ** so lets decrypt 
+	      */
+	     if ( loginsequence() < 0 ) /* The login failed, do not wait for a new one */
+	       return -1;
+
+	     state = S_PROTWAIT ;
+	     sprintf(logmessage,"bbftpd version %s : OK",VERSION) ;
+	     reply(MSG_OK,logmessage) ;
+	     return 0;
+
+	   case MSG_CRYPT:
+# ifdef CERTIFICATE_AUTH
+	     if (server_config->accept_certs_only)
+	       {
+		  sprintf(logmessage, "The server only accepts certificates");
+		  reply(MSG_BAD_NO_RETRY,logmessage);
+		  return -1;
+	       }
+# endif
+	     if (server_config->force_encoding)
+	       {
+		  /*
+		   **  The client can't encode and ask if it can send uncrypted
+		   **  login information
+		   */
+		  reply (MSG_BAD_NO_RETRY, "The server requires encrypted login");
+		  return -1;
+	       }
+
+	     reply(MSG_OK, "Uncrypted login dialog accepted");
+	     /* continue with the loop */
+	     break;
+#else /* PRIVATE_AUTH */
+	   case MSG_PRIV_LOG:
+	     if ( bbftpd_private_receive_connection(msg->msglen) < 0 )
+		return -1; /* The login failed, do not wait for a new one */
+
+	     state = S_PROTWAIT ;
+	     sprintf(logmessage,"bbftpd version %s : OK",VERSION) ;
+	     reply(MSG_OK,logmessage) ;
+	     return 0;
+#endif				       /* PRIVATE_AUTH */
+	  }
+     }
+}
+
+
+
+static int initialize_bbftpd_mode_daemon (Server_Config_Type *server_config)
+{
+   if (-1 == get_gwf_cred (server_config))
+     return -1;
+
+   do_daemon(server_config->argc, server_config->argv);
+   /* At this point,  we are the forked child from the parent process and a connection has been
+    * accepted.
+    */
+   fatherpid = getpid() ;	       /* Update from previous value */
+
+#if defined(WITH_RFIO) || defined(WITH_RFIO64)
+   bbftpd_rfio_enable_debug (server_config->debug);
+#endif
+
+   if (-1 == get_peer_and_sock_names ())
+     return -1;
+
+   if (-1 == perform_login (server_config))
+     return -1;
+
+   return 0;
+}
+
+static int initialize_bbftpd_mode_ssh (Server_Config_Type *server_config)
+{
+   (void) server_config;
+
+  /*
+   ** Get the username 
+   */
+   struct passwd *result ;
+   if ( (result = getpwuid(getuid())) == NULL ) {
+   bbftpd_syslog(BBFTPD_WARNING,"Error getting username") ;
+      sprintf(currentusername,"UID %d",getuid()) ;
+   } else {
+      strcpy(currentusername,result->pw_name) ;
+   }
+
+   /*
+    ** Set the control sock to stdin and stdout
+    */
+   incontrolsock = 0  ;
+   outcontrolsock = 1 ;
+   /*
+    ** As we cannot rely on the env variables to know the
+    ** remote host, we are going to wait on an undefined 
+    ** port, send the MSG_LOGGED_STDIN and the port number
+    ** and wait for a connection...
+    */
+   checkfromwhere (server_config->ask_remote_address) ;
+   bbftpd_syslog(BBFTPD_INFO,"bbftpd started by : %s from %s",currentusername,inet_ntoa(his_addr.sin_addr)) ;
+
+   return 0;
+}
+
+
+/* Started from inetd */
+static int initialize_bbftpd_mode_inetd (Server_Config_Type *server_config)
+{
+   char    buffrand[NBITSINKEY] ;
+   struct timeval tp ;
+   unsigned int i, seed ;
+
+   newcontrolport = CONTROLPORT;
+
+   if (-1 == get_gwf_cred (server_config))
+     return -1;
+
+   /*
+    ** Load the error message from the crypto lib
+    */
+#if !defined(OPENSSL_API_COMPAT) || (OPENSSL_API_COMPAT < 0x10100000L)
+   ERR_load_crypto_strings() ;
+#endif
+   /*
+    ** Initialize the buffrand buffer which is giong to be used to initialize the 
+    ** random generator
+    */
+
+   /*
+    ** Take the usec to initialize the random session
+    */
+   gettimeofday(&tp,NULL) ;
+   seed = tp.tv_usec ;
+   srandom(seed) ;
+   for (i=0; i < (int) sizeof(buffrand) ; i++) {
+      buffrand[i] = random() ;
+   }
+   /*
+    ** Initialize the random generator
+    */
+   RAND_seed(buffrand,NBITSINKEY) ;
+
+   incontrolsock = 0  ;
+   outcontrolsock = incontrolsock ;
+   msgsock = incontrolsock ;
+   state = S_PROTWAIT ;
+
+   if (-1 == get_peer_and_sock_names ())
+     return -1;
+
+   if (-1 == perform_login (server_config))
+     return -1;
+
+   return 0;
+}
+
+int main (int argc, char **argv)
+{
+   Server_Config_Type server_config;
+    struct  message msg ;
+
+    bbftpd_syslog_open ();
     /*
     ** Set the log mask to BBFTPD_EMERG (0) 
     */
     setlogmask(LOG_UPTO(BBFTPD_DEFAULT));
+
     /*
     ** Initialize variables
     */
@@ -437,911 +1185,97 @@ int main (int argc, char **argv)
     sscanf(PORT_RANGE,"%d:%d",&pasvport_min, &pasvport_max) ;
 #endif
 
-    newcontrolport = CONTROLPORT ;
-    opterr = 0 ;
-    while ((j = getopt(argc, argv, OPTIONS)) != -1) {
-        switch (j) {
-            case 'v' :{
-                printf("bbftpd version %s\n",VERSION) ;
-                printf("Compiled with  :   default port %d\n",CONTROLPORT) ;
-                printf("                   default maximum streams = %d \n",maxstreams) ;
-#ifdef PORT_RANGE
-                printf("                   data ports range = %s \n", PORT_RANGE) ;
-#endif
-#ifdef WITH_GZIP
-                printf("                   compression with Zlib-%s\n", zlibVersion()) ;
-#endif
-                printf("                   encryption with %s \n",SSLeay_version(SSLEAY_VERSION)) ;
-#ifdef WITH_RFIO
-# ifdef CASTOR
-                printf("                   CASTOR support (RFIO)\n") ;
-# else
-                printf("                   HPSS support (RFIO)\n") ;
-# endif
-#endif
-#ifdef WITH_RFIO64
-# ifdef CASTOR
-                printf("                   CASTOR support (RFIO64)\n") ;
-# else
-                printf("                   HPSS support (RFIO64)\n") ;
-# endif
-#endif
-#ifdef AFS
-                printf("                   AFS authentication \n") ;
-#endif
-#ifdef CERTIFICATE_AUTH
-                printf("                   GSI authentication \n") ;
-#endif
-#ifdef PRIVATE_AUTH
-                printf("                   private authentication \n") ;
-#endif
-                exit(0) ;
-            }
-        }
-    }
-/* Check zlib version */
-#ifdef WITH_GZIP
-    {
-	int z0, z1;
-	if (0 != strcmp(zlibVersion(), ZLIB_VERSION)) {
-		printf ("WARNING zlib version changed since last compile.\n");
-		printf ("Compiled Version is %s\n", ZLIB_VERSION);
-		printf ("Linked   Version is %s\n", zlibVersion());
-	}
-	z0 = atoi (ZLIB_VERSION);
-	z1 = atoi (zlibVersion());
-	if (z0 != z1) {
-		printf ("ERROR: zlib is not compatible!\n");
-		printf ("zlib source can found at http://www.gzip.org/zlib/\n");
-		exit (0);
-	}
+   newcontrolport = CONTROLPORT ;
 
-    }
-#endif
-    /*
-    ** Look at the loglevel option 
+   if (is_option_present (argc, argv, 'v'))
+     {
+	print_version_info ();
+	exit (0);
+     }
+
+   if (-1 == check_libs ())
+     exit (1);
+
+   if (is_option_present (argc, argv, 'l'))
+     set_log_level (optarg);
+
+   bbftpd_syslog(BBFTPD_DEBUG,"Starting bbftpd") ;
+
+   if ((-1 == init_default_server_config (argc, argv, &server_config))
+       || (-1 == process_cmdline_options (argc, argv, &server_config))
+       || (-1 == process_bbftpd_rcfile (&server_config)))
+     {
+	bbftpd_syslog_close ();
+	exit (1);
+     }
+
+   fatherpid = getpid() ;
+
+   switch (server_config.server_mode)
+     {
+      case 0:
+	if (-1 == initialize_bbftpd_mode_inetd (&server_config))
+	  exit (1);
+	break;
+
+      case 1:
+	if (-1 == initialize_bbftpd_mode_ssh (&server_config))
+	  exit (1);
+	break;
+
+      case 2:
+	if (-1 == initialize_bbftpd_mode_daemon (&server_config))
+	  exit (1);
+	break;
+     }
+
+   /*
+    ** At this stage we are in the S_PROTWAIT state.
+    * Determine the protocol version
     */
-    i = 0 ;
-    opterr = 0 ;
-    optind = 1 ;
-    while ((j = getopt(argc, argv, OPTIONS)) != -1) {
-        switch (j) {
-            case 'l' :{
-                for ( i=0 ; i < (int)strlen(optarg) ; i++ ) {
-                    optarg[i] = toupper(optarg[i]) ;
-                }
-                i = 0 ;
-                if ( !strcmp(optarg,"EMERGENCY") ) {
-                    i = BBFTPD_EMERG;
-                } else if ( !strcmp(optarg,"ALERT") ) {
-                    i = BBFTPD_ALERT;
-                } else if ( !strcmp(optarg,"CRITICAL") ) {
-                    i = BBFTPD_CRIT;
-                } else if ( !strcmp(optarg,"ERROR") ) {
-                    i = BBFTPD_ERR;
-                } else if ( !strcmp(optarg,"WARNING") ) {
-                    i = BBFTPD_WARNING;
-                } else if ( !strcmp(optarg,"NOTICE") ) {
-                    i = BBFTPD_NOTICE;
-                } else if ( !strcmp(optarg,"INFORMATION") ) {
-                    i = BBFTPD_INFO;
-                } else if ( !strcmp(optarg,"DEBUG") ) {
-                    i = BBFTPD_DEBUG;
-                }
-                if ( i > 0 ) {
-                    setlogmask(LOG_UPTO(i));
-                }
-                break ;
-            }
-        }
-    }
-    bbftpd_syslog(BBFTPD_DEBUG,"Starting bbftpd") ;
-    opterr = 0 ;
-    optind = 1 ;
-    while ((j = getopt(argc, argv, OPTIONS)) != -1) {
-        switch (j) {
-            case 'b' :{
-                if ( be_daemon != 0 ) {
-                    bbftpd_syslog(BBFTPD_ERR,"-b and -s options are incompatibles") ;
-                    exit(1) ;
-                }
-                be_daemon = 2 ;
-                break ;
-            }
-            case 'd' :{
-                sscanf(optarg,"%d",&i) ;
-                if ( i > 0 ) debug = i ;
-                break ;
-            }
-            case 'e' :{
-                if ((sscanf(optarg,"%d:%d",&i, &k) == 2) && (i < k)) {
-                  pasvport_min = i; pasvport_max = k;
-                } else {
-                  bbftpd_syslog(BBFTPD_ERR,"Invalid port range : %s",optarg) ;
-                  fprintf(stderr,"Invalid port range : %s\n",optarg) ;
-                  exit(1) ;
-                }
-                break ;
-            }
-            case 'f' :{
-                fixeddataport = 0 ;
-                break ;
-            }
-            case 'm' :{
-                sscanf(optarg,"%d",&i) ;
-                if ( i > 0 ) maxstreams = i ;
-                break ;
-            }
-            case 'R' :{
-                bbftpdrcfile_static = optarg ;
-                break ;
-            }
-            case 's' :{
-                if ( be_daemon != 0 ) {
-                    bbftpd_syslog(BBFTPD_ERR,"-b and -s options are incompatibles") ;
-                    exit(1) ;
-                }
-#ifdef PRIVATE_AUTH
-                bbftpd_syslog(BBFTPD_ERR,"-s option cannot be used with private authentication") ;
-                exit(1) ;                
-#endif
-                be_daemon = 1 ;
-                break ;
-            }
-            case 'u' :{
-                force_encoding = 0 ;
-                break ;
-            }
-            case 'w' :{
-                sscanf(optarg,"%d",&newcontrolport) ;
-                break ;
-            }
-#ifdef CERTIFICATE_AUTH
-            case 'c' :{
-                accept_certs_only = 1 ;
-                break ;
-            }
-            case 'p' :{
-                accept_pass_only = 1 ;
-                break ;
-            }
-#endif
-            default : {
-                break ;
-            }
-        }
-    }
+   state = S_PROTWAIT;
+   if ((bbftpd_msg_pending (10) <= 0)
+       || (-1 == bbftpd_msgrecv_msg (&msg)))
+     exit (1);
 
-/*
-** Check for the local user in order to find the .bbftpdrc file
-*/
-   bbftpdrcfile = bbftpdrcfile_static;
+   if (msg.code != MSG_PROT)
+     protocolversion = 1;
+   else	if (-1 == checkprotocol (&protocolversion))
+     exit (1);
 
-    if ( bbftpdrcfile == NULL ) {
-        /*
-        ** look for the local user in order to find the .bbftpdrc file
-	** use /etc/bbftpd.conf if root
-        */
-	if ( getuid() == 0) {
-            if ( (bbftpdrcfile = (char *) malloc (strlen(BBFTPD_CONF)+1 )) == NULL ) {
-                bbftpd_syslog(BBFTPD_ERR, "Error allocationg space for config file name.\n") ;
-	    } else {
-		strcpy(bbftpdrcfile,BBFTPD_CONF);
-	    }
-	} else if ( (mypasswd = getpwuid(getuid())) == NULL ) {
-            bbftpd_syslog(BBFTPD_WARNING, "Unable to get passwd entry, using %s\n", BBFTPD_CONF) ;
-            if ( (bbftpdrcfile = (char *) malloc (strlen(BBFTPD_CONF)+1) ) != NULL ) {
-	      strcpy(bbftpdrcfile,BBFTPD_CONF);
-	    }
-        } else if ( mypasswd->pw_dir == NULL ) {
-            bbftpd_syslog(BBFTPD_WARNING, "No home directory, using %s\n", BBFTPD_CONF) ;
-            if ( (bbftpdrcfile = (char *) malloc (strlen(BBFTPD_CONF)+1) ) != NULL ) {
-	      strcpy(bbftpdrcfile,BBFTPD_CONF);
-	    }
-        } else if ( (bbftpdrcfile = (char *) malloc (strlen(mypasswd->pw_dir)+11) ) == NULL ) {
-            bbftpd_syslog(BBFTPD_ERR, "Error allocationg space for bbftpdrc file name, .bbftpdrc will not be used\n") ;
-        } else {
-            strcpy(bbftpdrcfile,mypasswd->pw_dir) ;
-            strcat(bbftpdrcfile,"/.bbftpdrc") ;
-            if ( stat(bbftpdrcfile,&statbuf) < 0  )
-	     {
-		free (bbftpdrcfile);
-                if ( (bbftpdrcfile = (char *) malloc (strlen(BBFTPD_CONF)+1) ) != NULL ) {
-		   strcpy(bbftpdrcfile,BBFTPD_CONF);
-	        }
-	     }
-        }
-    }
-    if ( bbftpdrcfile != NULL ) {
-        if ( strncmp(bbftpdrcfile,"none",4) != 0 ) {
-            /*
-            ** Stat the file in order to get the length
-            */
-            if ( stat(bbftpdrcfile,&statbuf) < 0  ) {
-                /*
-		  bbftpd_syslog(BBFTPD_WARNING, "Error stating bbftpdrc file (%s)\n",bbftpdrcfile) ;
-		 */
-            } else if ( statbuf.st_size == 0 ) {
-                /*
-                ** do nothing 
-                */
-            } else if ( (bbftpdrc = (char *) malloc (statbuf.st_size + 1 ) ) == NULL ) {
-                bbftpd_syslog(BBFTPD_ERR, "Error allocation memory for bbftpdrc, .bbftpdrc will not be used\n") ;
-            } else if ( ( fd  = open (bbftpdrcfile,O_RDONLY) )  < 0 ) {
-                bbftpd_syslog(BBFTPD_ERR, "Error openning .bbftpdrc file (%s) : %s \n",bbftpdrcfile,strerror(errno)) ;
-            } else if ( ( j = read( fd, bbftpdrc , statbuf.st_size )) != statbuf.st_size ) {
-                bbftpd_syslog(BBFTPD_ERR, "Error reading .bbftpdrc file (%s)\n",bbftpdrcfile) ;
-            } else {
-                bbftpdrc[j] = '\0' ;
-            }
-        }
-       if (bbftpdrcfile != bbftpdrcfile_static) free (bbftpdrcfile);
-    }
-/*
-** Analyse the bbftpdrc command in order to supress forbiden command
-** Allowed commands are :
-**          setackto %d
-**          setrecvcontrolto %d
-**          setsendcontrolto %d
-**          setdatato %d
-**          setcheckstdinto %d
-**          setoption fixeddataport
-*/
-    if ( bbftpdrc != NULL ) {
-        carret = bbftpdrc ;
-        startcmd = bbftpdrc ;
-        /*
-        ** Strip starting CR
-        */
-        while (1) {
-            while ( *carret == 10 || *carret == ' ' ) carret++ ;
-            startcmd = carret ;
-            carret = (char *) strchr (carret, 10);
-            if ( carret == NULL ) break ;
-            *carret = '\0' ;
-            if (!strncmp(startcmd,"setackto",8)) {
-                retcode = sscanf(startcmd,"setackto %d",&alluse) ;
-                if ( retcode != 1  || alluse <= 0 ) {
-                    bbftpd_syslog(BBFTPD_WARNING, "Acknowledge timeout must be numeric and > 0\n") ;
-                } else {
-                    ackto = alluse ;
-                }
-            } else if (!strncmp(startcmd,"setrecvcontrolto",16)) {
-                retcode = sscanf(startcmd,"setrecvcontrolto %d",&alluse) ;
-                if ( retcode != 1  || alluse <= 0 ) {
-                    bbftpd_syslog(BBFTPD_WARNING, "Input control timeout must be numeric and > 0\n") ;
-                } else {
-                    recvcontrolto = alluse ;
-                }
-            } else if (!strncmp(startcmd,"setsendcontrolto",16)) {
-                retcode = sscanf(startcmd,"setsendcontrolto %d",&alluse) ;
-                if ( retcode != 1  || alluse <= 0 ) {
-                    bbftpd_syslog(BBFTPD_WARNING, "Output control timeout must be numeric and > 0\n") ;
-                } else {
-                    sendcontrolto = alluse ;
-                }
-            } else if (!strncmp(startcmd,"setdatato",9)) {
-                retcode = sscanf(startcmd,"setdatato %d",&alluse) ;
-                if ( retcode != 1  || alluse <= 0 ) {
-                    bbftpd_syslog(BBFTPD_WARNING, "Data timeout must be numeric and > 0\n") ;
-                } else {
-                    datato = alluse ;
-                }
-            } else if (!strncmp(startcmd,"setcheckstdinto",15)) {
-                retcode = sscanf(startcmd,"setcheckstdinto %d",&alluse) ;
-                if ( retcode != 1  || alluse <= 0 ) {
-                    bbftpd_syslog(BBFTPD_WARNING, "Check input timeout must be numeric and > 0\n") ;
-                } else {
-                    checkstdinto = alluse ;
-                }
-            } else if (!strncmp(startcmd,"setoption",9)) {
-                /*
-                ** look for the option
-                */
-                startcmd = startcmd + 9 ;
-                while (*startcmd == ' ' && *startcmd != '\0' ) startcmd++ ;
-                if ( !strncmp(startcmd,"no",2) ) {
-                    nooption = 1 ;
-                    startcmd = startcmd+2 ;
-                } else {
-                    nooption = 0 ;
-                }
-                if ( !strncmp(startcmd,"fixeddataport",9) ) {
-                    if ( nooption ) {
-                        if (fixeddataport == 1) { /* default value */
-                            fixeddataport = 0;
-			}
-                    }
-                }
-            } else {
-                bbftpd_syslog(BBFTPD_WARNING, "Unkown command in .bbftpdrc file (%s)\n",startcmd) ;
-            }
-            carret++ ;
-        }
-    }
-    /*
-    ** Get 5K for castfilename in order to work with CASTOR
-    ** software (even if we are not using it)
-    */
-    if ( (castfilename = (char *) malloc (5000)) == NULL ) {
-        /*
-        ** Starting badly if we are unable to malloc 5K
-        */
-        bbftpd_syslog(BBFTPD_ERR,"No memory for CASTOR : %s",strerror(errno)) ;
-        fprintf(stderr,"No memory for CASTOR : %s\n",strerror(errno)) ;
-        exit(1) ;
-    }
-    /*
-    ** Reset debug to zero if -b option is not present
-    */
-    if ( (be_daemon != 2) ) debug = 0 ;
-    /*
-    ** Check if be_daemon = 0 and in this case reset the 
-    ** control port to CONTROLPORT
-    */
-    if ( be_daemon == 0 ) newcontrolport = CONTROLPORT ;
+   bbftpd_syslog(BBFTPD_INFO,"Using bbftp protocol version %d", protocolversion) ;
+   state = S_LOGGED ;
 
-#ifdef CERTIFICATE_AUTH                
-    if (be_daemon != 1 && !accept_pass_only) {
-        OM_uint32 min_stat, maj_stat;
-	maj_stat = gfw_acquire_cred(&min_stat, NULL, &server_creds);
-        if (maj_stat != GSS_S_COMPLETE) {
-            gfw_msgs_list *messages = NULL;
-            gfw_status_to_strings(maj_stat, min_stat, &messages) ;
-            while (messages != NULL) {
-                bbftpd_syslog(BBFTPD_ERR,"gfw_acquire_cred: %s", messages->msg) ;
-                if (be_daemon == 2) fprintf(stderr,"Acquire credentials: %s\n", messages->msg) ;
-                messages = messages->next;
-            }
-            exit(1);
-        }
-    }
-#endif
+   switch (protocolversion)
+     {
+      case 1:
+	(void) bbftp_run_protocol_1 (&msg);
+	break;
 
-    if ( be_daemon == 2 ) {
-        /*
-        ** Run as a daemon 
-        */
-        do_daemon(argc, argv);
-        /*
-        ** Check for debug
-        */
-        if ( debug != 0 ) {
-#if defined(WITH_RFIO) || defined(WITH_RFIO64)
-	   static char rfio_trace[20] ;
-	   sprintf(rfio_trace,"RFIO_TRACE=%d",debug) ;
-	   retcode = putenv (rfio_trace) ;   /* FIXME: retcode set here changes previous value  */
-#endif
-            if ( retcode == 0 ) {
-                /*
-                ** reopen stdout to a file like /tmp/bbftpd.rfio.trace.pid
-                */
-                close(STDOUT_FILENO) ;
-                sprintf(logmessage,"/tmp/bbftp.rfio.trace.level.%d.%d",debug,getpid()) ;
-                (void) freopen(logmessage,"w",stdout) ;
-            }
-        }
-    } else if ( be_daemon == 1 ) {
-        /*
-        ** Run by a remote user
-        */
-        /*
-        ** Get the username 
-        */
-        struct passwd *result ;
-        if ( (result = getpwuid(getuid())) == NULL ) {
-            bbftpd_syslog(BBFTPD_WARNING,"Error getting username") ;
-            sprintf(currentusername,"UID %d",getuid()) ;
-        } else {
-            strcpy(currentusername,result->pw_name) ;
-        }
-        /*
-        ** Set the control sock to stdin and stdout
-        */
-        incontrolsock = 0  ;
-        outcontrolsock = 1 ;
-        /*
-        ** As we cannot rely on the env variables to know the
-        ** remote host, we are going to wait on an undefined 
-        ** port, send the MSG_LOGGED_STDIN and the port number
-        ** and wait for a connection...
-        */
-        checkfromwhere() ;
-        bbftpd_syslog(BBFTPD_INFO,"bbftpd started by : %s from %s",currentusername,inet_ntoa(his_addr.sin_addr)) ;
-    } else {
-        char    buffrand[NBITSINKEY] ;
-        struct timeval tp ;
-        unsigned int seed ;
-        /*
-        ** Load the error message from the crypto lib
-        */
-#if !defined(OPENSSL_API_COMPAT) || (OPENSSL_API_COMPAT < 0x10100000L)
-        ERR_load_crypto_strings() ;
-#endif
-        /*
-        ** Initialize the buffrand buffer which is giong to be used to initialize the 
-        ** random generator
-        */
-        /*
-        ** Take the usec to initialize the random session
-        */
-        gettimeofday(&tp,NULL) ;
-        seed = tp.tv_usec ;
-        srandom(seed) ;
-        for (i=0; i < (int) sizeof(buffrand) ; i++) {
-            buffrand[i] = random() ;
-        }
-        /*
-        ** Initialize the random generator
-        */
-        RAND_seed(buffrand,NBITSINKEY) ;
-        incontrolsock = 0  ;
-        outcontrolsock = incontrolsock ;
-        msgsock = incontrolsock ;
-        /* 
-        ** set the state
-        */
-        state = S_PROTWAIT ;
-    }
-    fatherpid = getpid() ;
-    if ( be_daemon == 2 || be_daemon == 0 ) {
-        /* Get the remote address */
-        addrlen = sizeof(his_addr);
-        if (getpeername(incontrolsock, (struct sockaddr *) &his_addr, &addrlen) < 0) {
-            bbftpd_syslog(BBFTPD_ERR, "getpeername (%s): %s", argv[0],strerror(errno));
-            exit(1);
-        }
-        addrlen = sizeof(ctrl_addr);
-        if (getsockname(incontrolsock, (struct sockaddr *) &ctrl_addr, &addrlen) < 0) {
-            bbftpd_syslog(BBFTPD_ERR, "getsockname (%s): %s", argv[0],strerror(errno));
-            exit(1);
-        }
-        bbftpd_syslog(BBFTPD_INFO,"Getting new bbftp connexion from : %s",inet_ntoa(his_addr.sin_addr)) ;
-        /*
-        ** Send the encryption supported 
-        */
-        sendcrypt() ;
-        /* 
-        ** set the state
-        */
-login:
-        state = S_CONN ;
-        nfds = sysconf(_SC_OPEN_MAX) ;
-        FD_ZERO(&selectmask) ;
-        FD_SET(incontrolsock,&selectmask) ;
-        wait_timer.tv_sec  = 10 ;
-        wait_timer.tv_usec = 0 ;
-        if ( (retcode = select(nfds,&selectmask,0,0,&wait_timer) ) == -1 ) {
-            bbftpd_syslog(BBFTPD_ERR,"Select error : %s",strerror(errno)) ;
-            exit(1) ;
-        } else if ( retcode == 0 ) {
-            bbftpd_syslog(BBFTPD_ERR,"Time OUT ") ;
-            exit(1) ;
-        } else {
-            if ( (retcode = readmessage(incontrolsock,buffer,MINMESSLEN,recvcontrolto)) < 0 ) {
-                bbftpd_syslog(BBFTPD_ERR,"Error reading MSG_LOG ") ;
-                exit(1) ;
-            }
-            msg = (struct message *) buffer ;
-            if ( msg->code == MSG_SERVER_STATUS ) {
-	       char dmsgbuf[128];
+      case 2:
+	(void) bbftp_run_protocol_2 ();
+	break;
 
-	       *logmessage = 0;
-	       sprintf(dmsgbuf, "bbftpd version %s\n",VERSION);
-	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-	       sprintf(dmsgbuf, "Compiled with  :   default port %d\n", CONTROLPORT) ;
-	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-#ifdef WITH_GZIP
-	       sprintf(dmsgbuf, "  compression with Zlib-%s\n", zlibVersion()) ;
-	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-#endif
-	       sprintf(dmsgbuf, "  encryption with %s \n", SSLeay_version(SSLEAY_VERSION)) ;
-	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-#ifdef WITH_RFIO
-# ifdef CASTOR
-	       sprintf(dmsgbuf, "  CASTOR support (RFIO)\n") ;
-# else
-	       sprintf(dmsgbuf, "  HPSS support (RFIO)\n") ;
-# endif
-	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-#endif
-#ifdef WITH_RFIO64
-# ifdef CASTOR
-	       sprintf(dmsgbuf, "  CASTOR support (RFIO64)\n") ;
-# else
-	       sprintf(dmsgbuf, "  HPSS support (RFIO64)\n") ;
-# endif
-	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-#endif
-#ifdef AFS
-	       sprintf(dmsgbuf, "  AFS authentication \n") ;
-	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-#endif
-#ifdef CERTIFICATE_AUTH
-	       sprintf(dmsgbuf, "  GSI authentication \n") ;
-	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-#endif
-#ifdef PRIVATE_AUTH
-	       sprintf(dmsgbuf, "  private authentication \n") ;
-	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-#endif
-	       sprintf(dmsgbuf, "Running options:\n") ;
-	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-	       sprintf(dmsgbuf, "  Maximum number of streams = %d\n",maxstreams) ;
-	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-	       if (pasvport_min)
-		 {
-		    sprintf(dmsgbuf, "  data ports range = [%d-%d]\n", pasvport_min, pasvport_max) ;
-		    append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-		 }
+      case 3:
+	(void) bbftp_run_protocol_3 ();
+	break;
 
-#ifdef CERTIFICATE_AUTH
-	       if (accept_pass_only)
-		 {
-                    sprintf(dmsgbuf, "  The server only accepts USER/PASS\n",);
-		    append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-		 }
-                if (accept_certs_only)
-		 {
-                    sprintf(dmsgbuf, "  The server only accepts certificates\n",logmessage);
-		    append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-		 }
-#endif
-#ifndef PRIVATE_AUTH
-	       if (force_encoding)
-		 sprintf(dmsgbuf, "  The server requires encrypted login\n");
-	       else
-		 sprintf(dmsgbuf, "  The server allows non-encrypted login\n");
-	       append_to_logmessage (logmessage, sizeof(logmessage), dmsgbuf);
-#endif
+      default:
+	bbftpd_syslog(BBFTPD_ERR,"Unknown protocol version %d",protocolversion) ;
+	exit (1);
+     }
 
-	       reply(MSG_OK,logmessage);
-	       exit(0);
-            }
-#ifdef CERTIFICATE_AUTH
-            if ( msg->code == MSG_CERT_LOG ) {
-                int retval;
-                if (accept_pass_only) {
-                    sprintf(logmessage, "The server only accepts USER/PASS");
-                    bbftpd_syslog(BBFTPD_ERR,"%s",logmessage) ;
-                    reply(MSG_BAD_NO_RETRY,logmessage);
-                    exit(1);
-                }
-                retval=bbftpd_cert_receive_connection(msg->msglen);
-                if ( retval < 0 ) {
-                    /*
-                    ** The login failed, do not wait for a new one
-                    */
-					exit(1) ;
-                }
-                /*
-                ** If retval >0, means an MSG_WARN has been sent already
-                */
-                    state = S_PROTWAIT ;
-                if (retval == 0) {
-                    sprintf(logmessage,"bbftpd version %s : OK",VERSION) ;
-                    reply(MSG_OK,logmessage) ;
-                }
-            } else if ( msg->code == MSG_LOG ) {
-                if (accept_certs_only) {
-                    sprintf(logmessage, "The server only accepts certificates");
-                    bbftpd_syslog(BBFTPD_ERR,"%s",logmessage) ;
-                    reply(MSG_BAD_NO_RETRY,logmessage);
-                } else {
-                    /*
-                    ** It seems that it is the message we were waiting
-                    ** so lets decrypt 
-                    */
-                    if ( loginsequence() < 0 ) {
-                        /*
-                        ** The login failed, do not wait for a new one
-                        */
-                        exit(1) ;
-                    }
-                    state = S_PROTWAIT ;
-                    sprintf(logmessage,"bbftpd version %s : OK",VERSION) ;
-                    reply(MSG_OK,logmessage) ;
-		}
-            } else if (msg->code == MSG_CRYPT) { 
-                if (accept_certs_only) {
-                    sprintf(logmessage, "The server only accepts certificates");
-                    reply(MSG_BAD_NO_RETRY,logmessage);
-                } else if (force_encoding) {
-                    /*
-                    **  The client can't encode and ask if it can send uncrypted
-                    **  login information
-                    */
-                    sprintf(logmessage, "The server requires encrypted login");
-                    reply(MSG_BAD_NO_RETRY,logmessage);
-                } else {
-                    sprintf(logmessage, "Uncrypted login dialog accepted");
-                    reply(MSG_OK,logmessage);
-                    goto login;
-		}
-            } else {
-                bbftpd_syslog(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
-                reply(MSG_BAD,"Unkown message in connected state") ;
-                exit(1) ;
-            }
-#else
-#ifndef PRIVATE_AUTH
-            if ( msg->code == MSG_LOG ) {
-                /*
-                ** It seems that it is the message we were waiting
-                ** so lets decrypt 
-                */
-                if ( loginsequence() < 0 ) {
-                    /*
-                    ** The login failed, do not wait for a new one
-                    */
-                    exit(1) ;
-                }
-                state = S_PROTWAIT ;
-                sprintf(logmessage,"bbftpd version %s : OK",VERSION) ;
-                reply(MSG_OK,logmessage) ;
-            } else if (msg->code == MSG_CRYPT) { 
-                /*
-                **  The client can't encode and ask if it can send uncrypted
-                **  login information
-                */
-                if (force_encoding) {
-                    sprintf(logmessage, "The server requires encrypted login");
-                    reply(MSG_BAD_NO_RETRY,logmessage);
-                    exit(1);
-                }
-                sprintf(logmessage, "Uncrypted login dialog accepted");
-                reply(MSG_OK,logmessage);
-                goto login;
-            } else {
-                bbftpd_syslog(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
-                reply(MSG_BAD,"Unkown message in connected state") ;
-                exit(1) ;
-            }
-#else
-            if ( msg->code == MSG_PRIV_LOG ) {
-                if ( bbftpd_private_receive_connection(msg->msglen) < 0 ) {
-                    /*
-                    ** The login failed, do not wait for a new one
-                    */
-                    exit(1) ;
-                }
-                state = S_PROTWAIT ;
-                sprintf(logmessage,"bbftpd version %s : OK",VERSION) ;
-                reply(MSG_OK,logmessage) ;
-            } else {
-                bbftpd_syslog(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
-                reply(MSG_BAD,"Unkown message in connected state") ;
-                exit(1) ;
-            }
-#endif
-#endif
-        }
-    }
+   clean_child() ;
+   exit_clean ();
 
-    /*
-    ** At this stage we are in the S_PROTWAIT state
-    */
-    nfds = sysconf(_SC_OPEN_MAX) ;
-    FD_ZERO(&selectmask) ;
-    FD_SET(incontrolsock,&selectmask) ;
-    wait_timer.tv_sec  = 10 ;
-    wait_timer.tv_usec = 0 ;
-    if ( (retcode = select(nfds,&selectmask,0,0,&wait_timer) ) == -1 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Select error in S_PROTWAIT state : %s",strerror(errno)) ;
-        exit(1) ;
-    } else if ( retcode == 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Time OUT in S_PROTWAIT state") ;
-        exit(1) ;
-    } else {
-        if ( (retcode = readmessage(incontrolsock,buffer,MINMESSLEN,recvcontrolto)) < 0 ) {
-            bbftpd_syslog(BBFTPD_ERR,"Error reading in S_PROTWAIT state") ;
-            exit(1) ;
-        }
-        msg = (struct message *) buffer ;
-        if ( msg->code == MSG_PROT ) {
-            /*
-            ** The client is using bbftp v2 protocol or higher
-            */
-            if ( checkprotocol() < 0 ) {
-                exit_clean() ;
-                exit(1) ;
-            }
-            bbftpd_syslog(BBFTPD_INFO,"Using bbftp protocol version %d",protocolversion) ;
-            state = S_LOGGED ;
-            /*
-            ** Initialize the variables
-            */
-            mychildren = NULL ;
-            nbpidchild = 0 ;
-            curfilename = NULL ;
-            curfilenamelen = 0 ;
-        } else {
-            /*
-            ** This is a bbftp v1 client 
-            */
-            protocolversion = 1 ;
-            bbftpd_syslog(BBFTPD_INFO,"Using bbftp protocol version 1") ;
-            state = S_LOGGED ;
-            /*
-            ** So set up the v1 handlers
-            */
-            if ( set_signals_v1() < 0 ) {
-                exit(1) ;
-            }
-            /*
-            ** Initialize the pid array
-            */
-            for ( i=0 ; i< MAXPORT ; i++) {
-                pid_child[i] = 0 ;
-            }
-            /*
-            ** As we have already read the message 
-            */
-            if ( readcontrol(msg->code,msg->msglen) < 0 ) { 
-                clean_child() ;
-                exit_clean() ;
-                exit(0) ;
-            }
-        }
-    }
-    if ( protocolversion == 1 ) goto loopv1 ;
-    if ( protocolversion == 2 || protocolversion == 3) goto loopv2 ;
-    bbftpd_syslog(BBFTPD_ERR,"Unknown protocol version %d",protocolversion) ;
-    exit(1) ;
-/*
-** Loop for the v2 protocol (also available for v3)
-*/
-loopv2:
-    /*
-    ** Set up v2 handlers
-    */
-    if ( bbftpd_setsignals() < 0 ) {
-        exit(1) ;
-    }
-    /*
-    ** Set the umask ; first unset it and then reset to the default value
-    */
-    umask(0) ;
-    umask(myumask) ;
-    for (;;) {
-        /*
-        ** Initialize the selectmask
-        */
-        nfds = sysconf(_SC_OPEN_MAX) ;
-        FD_ZERO(&selectmask) ;
-        FD_SET(incontrolsock,&selectmask) ;
-        /*
-        ** Depending on the state set a timer or not 
-        */
-        switch (state) {
-            case S_WAITING_STORE_START :
-            case S_WAITING_FILENAME_STORE :
-            case S_WAITING_FILENAME_RETR : {
-                /*
-                ** Timer of 10s between XX_V2 and FILENAME_XX
-                */
-                wait_timer.tv_sec  = 10 ;
-                wait_timer.tv_usec = 0 ;
-                break ;
-            }
-            
-            case S_SENDING : 
-            case S_RECEIVING : {
-                /*
-                ** No timer while receiving or sending
-                */
-                wait_timer.tv_sec  = 0 ;
-                wait_timer.tv_usec = 0 ;
-                break ;
-            }
-            default : {
-                /*
-                ** Timer of 900s between commands
-                */
-                wait_timer.tv_sec  = 900 ;
-                wait_timer.tv_usec = 0 ;
-                break ;
-            }
-        }
-        if ( (retcode = select(nfds,&selectmask,0,0,(wait_timer.tv_sec == 0) ? NULL : &wait_timer) ) == -1 ) {
-            if ( errno != EINTR ) {
-                bbftpd_syslog(BBFTPD_ERR,"Select error : %s",strerror(errno)) ;
-            }
-        } else if ( retcode == 0 ) {
-            bbftpd_syslog(BBFTPD_ERR,"Time OUT ") ;
-            if ( state == S_WAITING_STORE_START ) {
-                bbftpd_storeunlink(realfilename) ;
-            }
-            clean_child() ;
-            exit_clean() ;
-            exit(0) ;
-        } else {
-            /*
-            ** At this stage we can only receive a command
-            */
-            if ( (retcode = readmessage(incontrolsock,buffer,MINMESSLEN,recvcontrolto)) < 0 ) {
-                if ( state == S_WAITING_STORE_START  || state == S_RECEIVING) {
-                    bbftpd_storeunlink(realfilename) ;
-                    sleep(5) ;
-                }
-                clean_child() ;
-                exit_clean() ;
-                exit(0) ;
-            }
-            if ( bbftpd_readcontrol(msg->code,msg->msglen) < 0 ) { 
-                clean_child() ;
-                exit_clean() ;
-                exit(0) ;
-            } else {
-            }
-        }
-    }
-/*
-** Loop for the v1 protocol 
-*/
-loopv1:
-    for (;;) {
-        /*
-        ** Initialize the selectmask
-        */
-        nfds = sysconf(_SC_OPEN_MAX) ;
-        FD_ZERO(&selectmask) ;
-        FD_SET(incontrolsock,&selectmask) ;
-        /*
-        ** Depending on the state set a timer or not 
-        */
-        switch (state) {
-            case S_SENDING : 
-            case S_RECEIVING : {
-                /*
-                ** No timer while receiving or sending
-                */
-                wait_timer.tv_sec  = 0 ;
-                wait_timer.tv_usec = 0 ;
-                break ;
-            }
-            default : {
-                /*
-                ** Timer of 900s between commands
-                */
-                wait_timer.tv_sec  = 900 ;
-                wait_timer.tv_usec = 0 ;
-                break ;
-            }
-        }
-        if ( (retcode = select(nfds,&selectmask,0,0,(wait_timer.tv_sec == 0) ? NULL : &wait_timer) ) == -1 ) {
-            if ( errno != EINTR ) {
-                bbftpd_syslog(BBFTPD_ERR,"Select error : %s",strerror(errno)) ;
-            }
-        } else if ( retcode == 0 ) {
-            bbftpd_syslog(BBFTPD_ERR,"Time OUT ") ;
-            clean_child() ;
-            exit_clean() ;
-            exit(0) ;
-        } else {
-            /*
-            ** At this stage we can only receive a command
-            */
-            if ( (retcode = readmessage(incontrolsock,buffer,MINMESSLEN,recvcontrolto)) < 0 ) {
-                clean_child() ;
-                exit_clean() ;
-                exit(0) ;
-            }
-            if ( readcontrol(msg->code,msg->msglen) < 0 ) { 
-                clean_child() ;
-                exit_clean() ;
-                exit(0) ;
-            } else {
-            }
-        }
-    }
+   return 0;
 }
 
 void clean_child (void)
 {
     int    *pidfree ;
     int    i ;
-    
+
     if ( protocolversion == 0 ) return ;
     if ( protocolversion == 1 ) {
         if ( killdone == 0 ) {
@@ -1371,9 +1305,8 @@ void clean_child (void)
     }
 }
 
-void exit_clean() 
+void exit_clean (void)
 {
-    
     switch (state) {
         case S_CONN : {
             return ;

@@ -65,16 +65,6 @@
 
 #include "_bbftpd.h"
 
-/*******************************************************************************
-** checkfromwhere :                                                            *
-**                                                                             *
-**      This routine get a socket on a port, send a MSG_LOGGED_STDIN and       *
-**      wait for a connection on that port.                                    *
-**                                                                             *
-**      RETURN:                                                                *
-**          No return but the routine exit in case of error.                   *
-*******************************************************************************/
-
 static int try_bind (int port_min, int port_max,
 		     int sockfd, struct sockaddr_in *server)
 {
@@ -102,20 +92,82 @@ static int try_bind (int port_min, int port_max,
 }
 
 
-void checkfromwhere (void) 
+static int ask_remote_for_address (void)
+{
+   struct message msg;
+
+   if (-1 == bbftpd_msgsend_len (MSG_IPADDR, 0))
+     {
+	bbftpd_syslog(BBFTPD_ERR,"Error writing MSG_IPADDR to request address");
+	reply (MSG_BAD, "Error writing MSG_IPADDR");
+	return -1;
+     }
+
+   if (-1 == bbftpd_msgrecv_msg (&msg))
+     {
+	bbftpd_syslog(BBFTPD_ERR, "Time out or error waiting for MSG_IPADDR_OK");
+	reply(MSG_BAD, "Failed to get MSG_IPADDR_OK message");
+	return -1;
+     }
+   if (msg.code != MSG_IPADDR_OK)
+     {
+	bbftpd_syslog (BBFTPD_ERR, "Expected MSG_IPADDR_OK message.  Got %d", msg.code);
+	reply(MSG_BAD, "Expect to see MSG_IPADDR_OK with ipaddress");
+	return -1;
+     }
+   if (msg.msglen != 4)
+     {
+	bbftpd_syslog (BBFTPD_ERR, "Expected a 32bit IP address to follow MSG_IPADDR_OK");
+	reply(MSG_BAD, "Expected a 32bit IP address to follow MSG_IPADDR_OK");
+	return -1;
+     }
+   if (-1 == bbftpd_msgrecv_bytes ((char *)&his_addr.sin_addr.s_addr, 4))
+     {
+	bbftpd_syslog (BBFTPD_ERR, "Failed to read 32 bit IP address");
+	reply (MSG_BAD, "Failed to read 32 bit IP address");
+	return -1;
+     }
+
+   reply (MSG_OK, "IP address received");
+   return 0;
+}
+
+   
+     
+/*******************************************************************************
+** checkfromwhere :                                                            *
+**                                                                             *
+**      This routine get a socket on a port, send a MSG_LOGGED_STDIN and       *
+**      wait for a connection on that port.                                    *
+**                                                                             *
+**      RETURN:                                                                *
+**          No return but the routine exit in case of error.                   *
+**
+** This function gets used when bbftpd gets started via an ssh connection, and *
+** not running as a daemon.
+*******************************************************************************/
+
+void checkfromwhere (int ask_remote)
 {
    socklen_t addrlen;
-    int        sock, ns, retcode,nfds ;
+    int        sock, ns, retcode;
     struct  sockaddr_in server ;
-    char    buffer[MINMESSLEN] ;
-   struct    message *msg ;
-    struct  timeval wait_timer;
-    fd_set    selectmask ;
+   struct message msg ;
     struct linger li ;
     int     on = 1 ;
    int port_min, port_max;
 
-    
+   if (ask_remote)
+     {
+	if (-1 == ask_remote_for_address ())
+	  {
+	     reply (MSG_BAD, "Closing connection");
+	     bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+	  }
+	ctrl_addr.sin_port = htons(newcontrolport) ;
+	return;
+     }
+
     sock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
     if ( sock < 0 ) {
         bbftpd_syslog(BBFTPD_ERR, "Cannot create checkreceive socket : %s",strerror(errno));
@@ -171,67 +223,39 @@ void checkfromwhere (void)
         exit(1) ;
     }
     bbftpd_syslog(BBFTPD_INFO, "listen port : %d",ntohs(server.sin_port));
+
     /*
     ** Send the MSG_LOGGED_STDIN message
     */
-    msg = (struct message *)buffer ;
-    msg->code = MSG_LOGGED_STDIN ;
-#ifndef WORDS_BIGENDIAN
-    msg->msglen = ntohl(4) ;
-#else
-    msg->msglen = 4 ;
-#endif
-    if ( writemessage(outcontrolsock,buffer,MINMESSLEN,sendcontrolto) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error writing checkreceive socket part 1") ;
-        reply(MSG_BAD,"Error writing checkreceive socket") ;
+   if (-1 == bbftpd_msgsend_int32 (MSG_LOGGED_STDIN, ntohs(server.sin_port)))
+     {
+        bbftpd_syslog(BBFTPD_ERR,"Error writing checkreceive socket port");
+        reply(MSG_BAD,"Error writing checkreceive socket port") ;
         bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(sock) ;
         exit(1) ;
     }
-    /*
-    ** Send the port number
-    */
-#ifndef WORDS_BIGENDIAN
-    msg->code = ntohl(ntohs(server.sin_port)) ;
-#else
-    msg->code = server.sin_port ;
-#endif
-     if ( writemessage(outcontrolsock,buffer,4,sendcontrolto) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error writing checkreceive socket part 2") ;
-        reply(MSG_BAD,"Error writing checkreceive socket") ;
+
+   retcode = bbftpd_input_pending (sock, checkstdinto);
+   if (retcode <= 0)
+     {
+	close (sock);
+	if (retcode == -1)
+	  {
+	     bbftpd_syslog(BBFTPD_ERR,"Error select checkreceive socket : %s ",strerror(errno)) ;
+	     reply(MSG_BAD,"Error select checkreceive socket") ;
+	  }
+	else
+	  {
+	     bbftpd_syslog(BBFTPD_ERR,"Time out select checkreceive socket ") ;
+	     reply(MSG_BAD,"Time Out select checkreceive socket") ;
+	     bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+	  }
         bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         exit(1) ;
     }
-    /*
-    ** Now wait on the socket for a connection
-    */
-    nfds = sysconf(_SC_OPEN_MAX) ;
-    FD_ZERO(&selectmask) ;
-    FD_SET(sock,&selectmask) ;
-    /*
-    ** Set the timer for the connection
-    */
-    wait_timer.tv_sec  = checkstdinto ;
-    wait_timer.tv_usec = 0 ;
-    retcode = select(nfds,&selectmask,0,0,&wait_timer) ;
-    if ( retcode < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error select checkreceive socket : %s ",strerror(errno)) ;
-        reply(MSG_BAD,"Error select checkreceive socket") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
-        close(sock) ;
-        exit(1) ;
-    }
-    if ( retcode == 0 ) {
-        /*
-        ** Time out
-        */
-        bbftpd_syslog(BBFTPD_ERR,"Time out select checkreceive socket ") ;
-        reply(MSG_BAD,"Time Out select checkreceive socket") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
-        close(sock) ;
-        exit(1) ;
-    }
-    if ( (ns = accept(sock,0,0) ) < 0 ) {
+
+   if ( (ns = accept(sock,0,0) ) < 0 ) {
         bbftpd_syslog(BBFTPD_ERR,"Error accept checkreceive socket ") ;
         reply(MSG_BAD,"Error accep checkreceive socket") ;
         bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
@@ -258,33 +282,37 @@ void checkfromwhere (void)
     /*
     ** Now read the message
     */
-    if ( readmessage(ns,buffer,MINMESSLEN,recvcontrolto) < 0 ) {
+   if (-1 == bbftpd_fd_msgrecv_msg (ns, &msg))
+     {
         bbftpd_syslog(BBFTPD_ERR,"Error reading checkreceive socket") ;
         reply(MSG_BAD,"Error reading checkreceive socket") ;
         bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(ns) ;
         exit(1) ;
-    }
-    if (msg->code != MSG_IPADDR ) {
+     }
+
+    if (msg.code != MSG_IPADDR )
+     {
         bbftpd_syslog(BBFTPD_ERR,"Receive unkown message on checkreceive socket") ;
         reply(MSG_BAD,"Receive unkown message on checkreceive socket") ;
         bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(ns) ;
         exit(1);
     }
+
     /*
     ** Everything seems OK so send a MSG_IPADDR_OK on the
     ** control socket and close the connection
     */
-    msg->code = MSG_IPADDR_OK ;
-    msg->msglen = 0 ;
-     if ( writemessage(ns,buffer,MINMESSLEN,sendcontrolto) < 0 ) {
+   if (-1 == bbftpd_fd_msgsend_len (ns, MSG_IPADDR_OK, 0))
+     {
         bbftpd_syslog(BBFTPD_ERR,"Error writing checkreceive socket OK message") ;
         reply(MSG_BAD,"Error writing checkreceive socket OK message") ;
         bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(ns) ;
         exit(1) ;
-    }
+     }
+
     /*
     ** set the port of ctrl_addr structure to the control port
     */
@@ -307,74 +335,46 @@ void checkfromwhere (void)
 **          -1 calling program exit                                            *
 *******************************************************************************/
 
-int checkprotocol() 
+int checkprotocol (int *versionp)
 {
+   struct  message msg ;
 
-    char    buffer[MINMESSLEN] ;
-    struct  message *msg ;
-    int     msglen ;
+   if (-1 == bbftpd_msgsend_int32_2 (MSG_PROT_ANS, protocolmin, protocolmax))
+     {
+        bbftpd_syslog(BBFTPD_ERR,"Error writing MSG_PROT_ANS") ;
+        return -1 ;
+     }
 
-    msg = ( struct    message * ) buffer ;
-    msg->code = MSG_PROT_ANS ;
-#ifndef WORDS_BIGENDIAN
-    msg->msglen = ntohl(MINMESSLEN) ;
-#else
-    msg->msglen = MINMESSLEN ;
-#endif
-    if ( writemessage(outcontrolsock,buffer,MINMESSLEN,sendcontrolto) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error writing MSG_PROT_ANS part 1") ;
-        return -1 ;
-    }
-    /*
-    ** Send the min and max protocol version
-    */
-#ifndef WORDS_BIGENDIAN
-    msg->code = ntohl(protocolmin) ;
-    msg->msglen = ntohl(protocolmax) ;
-#else
-    msg->code = protocolmin ;
-    msg->msglen = protocolmax ;
-#endif
-     if ( writemessage(outcontrolsock,buffer,MINMESSLEN,sendcontrolto) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error writing MSG_PROT_ANS part 2") ;
-        return -1 ;
-    }
-    /*
-    ** And wait for the answer
-    */
-    if ( readmessage(incontrolsock,buffer,MINMESSLEN,recvcontrolto) < 0 ) {
+   if (-1 == bbftpd_msgrecv_msg (&msg))
+     {
         bbftpd_syslog(BBFTPD_ERR,"Error waiting MSG_PROT_ANS") ;
         return -1 ;
     }
-    if ( msg->code == MSG_PROT_ANS ) {
-#ifndef WORDS_BIGENDIAN
-        msglen = ntohl(msg->msglen) ;
-#else 
-        msglen = msg->msglen ;
-#endif
-        if ( msglen == 4 ) {
-            if ( readmessage(incontrolsock,buffer,4,recvcontrolto) < 0 ) {
-                bbftpd_syslog(BBFTPD_ERR,"Error waiting MSG_PROT_ANS (protocol version)") ;
-                return -1 ;
-            }
-#ifndef WORDS_BIGENDIAN
-            msglen = ntohl(msg->code) ;
-#else 
-            msglen = msg->code ;
-#endif
-            protocolversion = msglen ;
-            return 0 ;
-        } else {
-            bbftpd_syslog(BBFTPD_ERR,"Unexpected length while MSG_PROT_ANS %d",msglen) ;
-            return -1 ;
-        }
-    } else if ( msg->code == MSG_BAD_NO_RETRY ) {
-        bbftpd_syslog(BBFTPD_ERR,"Incompatible server and client") ;
-        return -1 ;
-    } else {
-        bbftpd_syslog(BBFTPD_ERR,"Unexpected message while MSG_PROT_ANS %d",msg->code) ;
-        return -1 ;
-    }
 
-    
+   if (msg.code == MSG_PROT_ANS)
+     {
+        if (msg.msglen == 4)
+	  {
+	     int32_t p;
+	     if (-1 == bbftpd_msgrecv_int32 (&p))
+	       {
+		  bbftpd_syslog(BBFTPD_ERR,"Error waiting MSG_PROT_ANS (protocol version)") ;
+		  return -1 ;
+	       }
+	     *versionp = p;
+	     return 0 ;
+	  }
+	bbftpd_syslog(BBFTPD_ERR,"Unexpected length while MSG_PROT_ANS %d", msg.msglen) ;
+	return -1 ;
+     }
+
+   if (msg.code == MSG_BAD_NO_RETRY )
+     {
+	bbftpd_syslog(BBFTPD_ERR,"Incompatible server and client") ;
+	*versionp = -1;
+	return -1;
+     }
+
+   bbftpd_syslog(BBFTPD_ERR,"Unexpected message while MSG_PROT_ANS %d", msg.code) ;
+   return -1 ;
 }

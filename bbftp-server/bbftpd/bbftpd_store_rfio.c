@@ -102,12 +102,13 @@ extern int  state ;
 extern int childendinerror ;
 extern int flagsighup ;
 extern int mycos ;
-extern int  debug ;
 extern int  castfd ;
 extern char *castfilename ;
 extern struct  timeval  tstart ;
 extern int  protocolversion ;
 extern  char            currentusername[MAXLEN] ;
+
+int  debug;
 
 /*******************************************************************************
 ** bbftpd_storeclosecastfile_rfio :                                            *
@@ -128,7 +129,7 @@ extern  char            currentusername[MAXLEN] ;
 int bbftpd_storeclosecastfile_rfio(char *filename,char *logmessage)
 {
     int     retcode ;
-    
+
     if ( castfd > 0 ) {
         if ( debug ) {
             fprintf(stdout,"In storeclosecastfile_rfio : rfio_close(castfd) (%d)\n",castfd) ;
@@ -1717,4 +1718,24 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
     }
     (void) gettimeofday(&tstart, (struct timezone *)0);
     return 0 ;
+}
+
+void bbftpd_rfio_enable_debug (int dbg)
+{
+   static char rfio_trace[32] ;
+   char file[128];
+
+   if (dbg == 0) return;
+
+   sprintf(rfio_trace,"RFIO_TRACE=%d", dbg) ;
+   if (0 == putenv (rfio_trace))
+     {
+	/*
+	 ** reopen stdout to a file like /tmp/bbftpd.rfio.trace.pid
+	 */
+	close(STDOUT_FILENO) ;
+	snprintf(file, sizeof(file), "/tmp/bbftp.rfio.trace.level.%d.%d", dbg, getpid());
+	(void) freopen(file,"w",stdout) ;
+	debug = dbg;
+     }
 }

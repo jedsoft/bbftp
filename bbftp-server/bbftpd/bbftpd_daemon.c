@@ -74,21 +74,6 @@
 
 #include "_bbftpd.h"
 
-/*
-** Common variables for BBFTP protocole version 1 and 2
-*/
-extern int  newcontrolport ;
-extern char daemonchar[50] ;
-/*
-** Variables for BBFTP protocole version 1 
-*/
-extern int msgsock ;
-/*
-** Variables for BBFTP protocole version 2
-*/
-extern int incontrolsock ;
-extern int outcontrolsock ;
-
 void do_daemon (int argc, char **argv)
 {
 
@@ -155,7 +140,7 @@ void do_daemon (int argc, char **argv)
     for (i = 0; i <= nfds; i++) {
         if ( i != controlsock) close(i);
     }
-    bbftpd_syslog_open (daemonchar, LOG_PID | LOG_NDELAY, BBFTPD_FACILITY);
+    bbftpd_syslog_open ();
 
     /* log PID in /var/run/bbftpd.pid */
     {
@@ -217,7 +202,7 @@ void do_daemon (int argc, char **argv)
             /* Only parent needs controlsock */
             if (controlsock != 0 && controlsock != 1)
 	      close(controlsock);
-	    bbftpd_syslog_open(daemonchar, LOG_PID | LOG_NDELAY, BBFTPD_FACILITY);
+	    bbftpd_syslog_open();
 	    incontrolsock = msgsock ;
 	    outcontrolsock = msgsock ;
 	    return;

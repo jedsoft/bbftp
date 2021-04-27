@@ -29,8 +29,8 @@
 /*
 ** Prototype for utilities
 */
-void checkfromwhere(void) ;
-int checkprotocol(void) ;
+void checkfromwhere(int) ;
+int checkprotocol(int *p) ;
 void clean_child(void) ;
 void exit_clean(void) ;
 int bbftpd_checkendchild(int status) ;
@@ -76,6 +76,8 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage) ;
 int bbftpd_retrcheckfile_rfio(char *filename,char *logmessage) ;
 int bbftpd_retrlistdir_rfio(char *pattern,char **filelist,int *filelistlen,char *logmessage) ;
 int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage) ;
+extern void bbftpd_rfio_enable_debug (int dbg);
+
 /*
 ** Prototype for store routines
 */
@@ -103,5 +105,4 @@ int bbftpd_storeunlink_rfio(char *filename) ;
 int bbftpd_cd(int sock,int msglen) ;
 int bbftpd_list(char *pattern,char *logmessage) ;
 int bbftpd_mkdir(int sock,int msglen) ;
-int bbftpd_readcontrol(int msgcode,int msglen) ;
 

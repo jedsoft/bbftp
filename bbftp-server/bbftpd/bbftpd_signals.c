@@ -67,33 +67,6 @@
 
 #include "_bbftpd.h"
 
-#if 0
-/*
-** For V1 and V2 Protocol
-*/
-extern int  flagsighup;
-extern int  childendinerror ;
-extern int  state ;
-extern int  killdone ;
-extern int  unlinkfile ;
-extern pid_t    fatherpid ;
-/*
-** For V2 protocol
-*/
-extern char *realfilename ;
-extern char *curfilename ;
-extern int  transferoption ;
-extern int  *mychildren ;
-extern int  nbpidchild ;
-extern char lastaccess[9] ;
-extern char lastmodif[9] ;
-extern int  filemode ;
-extern int  castfd ;
-extern struct  timeval  tstart;
-extern my64_t  filesize ;
-extern  char            currentusername[MAXLEN] ;
-#endif
-
 int bbftpd_checkendchild(int status)
 {
     

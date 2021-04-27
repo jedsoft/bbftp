@@ -33,11 +33,17 @@
 #include <bbftpd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #if HAVE_STRING_H
 # include <string.h>
 #endif
 
+#include <daemon.h>
 #include "_bbftpd.h"
 
 /*
@@ -97,4 +103,90 @@ void free_all_var(void)
     }
     nbpidchild = 0 ;
 }
-        
+
+char *bbftpd_strdup (const char *in)
+{
+   size_t len;
+   char *out;
+
+   len = strlen (in);
+   if (NULL != (out = (char *) malloc (len+1)))
+     strcpy (out, in);
+
+   return out;
+}
+
+char *bbftpd_strcat (const char *a, const char *b)
+{
+   char *c;
+   size_t lena, lenb;
+
+   lena = strlen(a);
+   lenb = strlen(b);
+   if (NULL == (c = (char *)malloc (lena+lenb+1)))
+     {
+	bbftpd_syslog(BBFTPD_ERR, "Unable to allocate space for strcat\n");
+	return NULL;
+     }
+   memcpy (c, a, lena);
+   memcpy (c+lena, b, lenb+1);
+   return c;
+}
+
+
+/* required to return a \0 terminated string */
+char *bbftpd_read_file (const char *file, size_t *sizep)
+{
+   char *buf;
+   struct stat st;
+   size_t nread;
+   int fd;
+
+   while (-1 == (fd = open (file, O_RDONLY)))
+     {
+	if (errno == EINTR) continue;
+
+	bbftpd_syslog (BBFTPD_ERR, "Error opening file (%s) : %s \n", file, strerror(errno));
+	return NULL;
+     }
+
+   if (-1 == fstat (fd, &st))
+     {
+	bbftpd_syslog (BBFTPD_ERR, "Unable to stat (%s) : %s \n", file, strerror(errno));
+	(void) close (fd);
+	return NULL;
+     }
+
+   if (NULL == (buf = (char *) malloc(1+st.st_size)))
+     {
+	bbftpd_syslog (BBFTPD_ERR, "Unable to allocate space to read file (%s)\n", file);
+	(void) close (fd);
+	return NULL;
+     }
+
+   nread = 0;
+   while (nread < (size_t)st.st_size)
+     {
+	ssize_t dn;
+
+	if (-1 == (dn = read (fd, buf+nread, st.st_size - nread)))
+	  {
+	     if (errno == EINTR)
+	       continue;
+
+	     free (buf);
+	     bbftpd_syslog(BBFTPD_ERR, "Error reading file (%s): %s\n", file, strerror(errno));
+	  }
+	nread += dn;
+	if (dn == 0)
+	  {
+	     /* End of file. */
+	     break;
+	  }
+     }
+
+   buf[nread] = 0;
+   (void) close (fd);
+   *sizep = nread;
+   return buf;
+}

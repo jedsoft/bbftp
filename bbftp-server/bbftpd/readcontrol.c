@@ -53,6 +53,8 @@
 *****************************************************************************/
 #include <sys/time.h>
 #include <netinet/in.h>
+#include <unistd.h>
+
 /* #include <syslog.h> */
 
 #include <bbftpd.h>
@@ -64,7 +66,7 @@
 
 #include "_bbftpd.h"
 
-int readcontrol(int msgcode,int msglen) {
+static int readcontrol_v1 (int msgcode,int msglen) {
 
     int        retcode ;
     int        i ;
@@ -166,3 +168,71 @@ int readcontrol(int msgcode,int msglen) {
             return -1 ;
     }
 }
+
+/*
+** Loop for the v1 protocol 
+*/
+int bbftp_run_protocol_1 (struct message *msg)
+{
+   int i;
+
+   /*
+    ** So set up the v1 handlers
+    */
+   if ( set_signals_v1() < 0 ) {
+      return -1;
+   }
+   /*
+    ** Initialize the pid array
+    */
+   for ( i=0 ; i< MAXPORT ; i++) {
+      pid_child[i] = 0 ;
+   }
+
+   while (1)
+     {
+	int timeout, retcode;
+
+	/*
+	 ** As we have already read the message in determining the protocol,
+	 * So start from here.
+	 */
+	if (readcontrol_v1 (msg->code, msg->msglen) < 0)
+	  return -1;
+
+        /*
+        ** Depending on the state set a timer or not 
+        */
+        switch (state)
+	  {
+	   case S_SENDING : 
+	   case S_RECEIVING :
+	     /*
+	      ** No timer while receiving or sending
+	      */
+	     timeout = -1;
+	     break ;
+
+            default :
+	     /*
+	      ** Timer of 900s between commands
+	      */
+	     timeout = 900;
+	     break ;
+	  }
+
+	while (-1 == (retcode = bbftpd_msg_pending (timeout)))
+	  {
+	     /* Should we exit?  */
+	     sleep (5);
+	  }
+
+	if (retcode == 0)
+	  return 0;		       /* time out */
+
+	/* Otherwise there is input on the channel */
+	if (-1 == bbftpd_msgrecv_msg (msg))
+	  return 0;
+     }
+}
+

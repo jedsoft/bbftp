@@ -54,10 +54,6 @@
 #include <structures.h>
 
 #include "_bbftpd.h"
-/* extern int  transferoption ; */
-/* extern int  outcontrolsock ; */
-/* extern	int	recvcontrolto ; */
-/* extern	int	sendcontrolto ; */
 
 int bbftpd_list(char *pattern,char *logmessage) 
 {

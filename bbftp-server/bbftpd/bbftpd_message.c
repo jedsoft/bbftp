@@ -69,6 +69,7 @@
 #include <daemon.h>
 #include <daemon_proto.h>
 #include <structures.h>
+#include <version.h>
 
 #include "_bbftpd.h"
 
@@ -233,44 +234,156 @@ int writemessage (int sock, char *buffer, int msglen, int to)
     return(0) ;
 }
 
-void reply(int n, char *str)
+int bbftpd_fd_msgsend_int32_2 (int fd, int code, int i, int j)
 {
-    struct message    *mess ;
-    int    lentosend ;
-    char buf[MINMESSLEN] ;
+   int32_t buf[4];
 
-    mess = (struct message *) buf ;
-    mess->code = n ;
-#ifndef WORDS_BIGENDIAN
-    mess->msglen = ntohl(strlen(str)) ;
-#else
-    mess->msglen = strlen(str) ;
-#endif
+   buf[0] = code;
+   buf[1] = htonl (8);
+   buf[2] = htonl (i);
+   buf[3] = htonl (j);
 
-    if ( writemessage(outcontrolsock,buf,MINMESSLEN,sendcontrolto) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error on reply") ;
-        clean_child() ;
-        exit(1) ;
-    }
+   return writemessage (fd, (char *)buf, sizeof(buf), sendcontrolto);
+}
 
-    lentosend = strlen(str) ;
-    if ( writemessage(outcontrolsock,str,lentosend,sendcontrolto) < 0 ) {
+int bbftpd_fd_msgsend_int32 (int fd, int code, int i)
+{
+   int32_t buf[3];
+
+   buf[0] = code;
+   buf[1] = htonl (4);
+   buf[2] = htonl (i);
+
+   return writemessage (fd, (char *)buf, sizeof(buf), sendcontrolto);
+}
+
+int bbftpd_fd_msgsend_len (int fd, int code, int len)
+{
+   int32_t buf[2];
+
+   buf[0] = code;
+   buf[1] = htonl(len);
+
+   return writemessage (fd, (char *)buf, sizeof(buf), sendcontrolto);
+}
+
+int bbftpd_msgsend_int32_2 (int code, int i, int j)
+{
+   int32_t buf[4];
+
+   buf[0] = code;
+   buf[1] = htonl(8);
+   buf[2] = htonl(i);
+   buf[3] = htonl(j);
+
+   return writemessage (outcontrolsock, (char *)buf, sizeof(buf), sendcontrolto);
+}
+
+int bbftpd_msgsend_int32 (int code, int i)
+{
+   return bbftpd_fd_msgsend_int32 (outcontrolsock, code, i);
+}
+
+int bbftpd_msgsend_len (int code, int len)
+{
+   return bbftpd_fd_msgsend_len (outcontrolsock, code, len);
+}
+
+void reply (int code, char *str)
+{
+   int len;
+
+   len = strlen (str);
+   if ((-1 == bbftpd_msgsend_len (code, len))
+       || (-1 == writemessage (outcontrolsock, str, len, sendcontrolto)))
+     {
         bbftpd_syslog(BBFTPD_ERR,"Error on reply") ;
         clean_child() ;
         exit(1) ;
     }
 }
 
+int bbftpd_input_pending (int fd, int timeout)
+{
+   int status;
+
+   while (1)
+     {
+	fd_set selectmask ;
+	struct timeval wait_timer;
+
+	FD_ZERO(&selectmask) ;
+	FD_SET(fd,&selectmask) ;
+	if (timeout >= 0)
+	  {
+	     wait_timer.tv_sec = timeout ;
+	     wait_timer.tv_usec = 0 ;
+	     status = select (fd + 1, &selectmask, NULL, NULL, &wait_timer);
+	  }
+	else
+	  status = select (fd + 1, &selectmask, NULL, NULL, NULL);
+
+	if (status > 0) return 1;;
+	if (status == 0)
+	  return 0;
+	if ((errno == EINTR) || (errno == EAGAIN))
+	  continue;
+
+	bbftpd_syslog (BBFTPD_ERR, "Error in select: %s", strerror(errno));
+	return -1;
+     }
+}
+
+/* Returns 1 if input available, 0 if not, or -1 upon error */
+int bbftpd_msg_pending (int timeout)
+{
+   return bbftpd_input_pending (incontrolsock, timeout);
+}
+
+int bbftpd_fd_msgrecv_msg (int fd, struct message *msg)
+{
+   if (-1 == readmessage (fd, (char *)msg, MINMESSLEN, recvcontrolto))
+     return -1;
+
+   msg->msglen = ntohl (msg->msglen);
+   return 0;
+}
+
+/* Returns:
+ *   -1 if read failed
+ *    0 upon success
+ */
+int bbftpd_msgrecv_msg (struct message *msg)
+{
+   return bbftpd_fd_msgrecv_msg (incontrolsock, msg);
+}
+
+int bbftpd_msgrecv_int32 (int32_t *val)
+{
+   if (-1 == readmessage (incontrolsock, (char *)val, 4, recvcontrolto))
+     return -1;
+
+   *val = ntohl (*val);
+   return 0;
+}
+
+int bbftpd_msgrecv_bytes (char *bytes, int num)
+{
+   return readmessage (incontrolsock, bytes, num, recvcontrolto);
+}
+
 #include <stdio.h>
 #include <sys/stat.h>
 #include <stdarg.h>
 
-#define BBFTP_LOG_TO_FILE (0)
+#define BBFTP_LOG_TO_FILE (1)
 
-static FILE *_pBBftp_Log_Fp = NULL;
+static FILE *_pBBftp_Log_Fp;
 
-void bbftpd_syslog_open (const char *ident, int option, int facility)
+void bbftpd_syslog_open (void)
 {
+   static char ident[64];
+
 #if BBFTP_LOG_TO_FILE
    char file[256];
    snprintf (file, sizeof(file), "/tmp/bbftp.log.%u.%lu", getpid(), time(NULL));
@@ -280,7 +393,11 @@ void bbftpd_syslog_open (const char *ident, int option, int facility)
      }
 #endif
 
-   openlog (ident, option, facility);
+   /* openlog function requires that this be static */
+   if (ident[0] == 0)
+     (void) snprintf (ident, sizeof(ident), "bbftpd v%s", VERSION) ;
+
+   openlog (ident, LOG_PID | LOG_NDELAY, BBFTPD_FACILITY);
 }
 
 void bbftpd_syslog (int priority, const char *format, ...)

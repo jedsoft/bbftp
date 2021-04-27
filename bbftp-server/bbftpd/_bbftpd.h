@@ -8,7 +8,6 @@ extern void do_daemon (int argc, char **argv);
 extern void sendcrypt (void);
 extern int loginsequence (void);
 extern int set_signals_v1 (void);
-extern int readcontrol (int msgcode, int msglen);
 
 extern int bbftpd_rm(int sock,int msglen);
 extern int bbftpd_stat(int sock,int msglen);
@@ -26,7 +25,6 @@ extern void reply(int n, char *str);
 extern int readmessage(int sock,char *buffer,int msglen,int to);
 extern int createadir(int code, int msglen);
 extern int createreceivesock(int port, int socknum, char *logmessage);
-extern int readcontrol(int msgcode,int msglen);
 extern int sendafile(int code);
 extern int storeafile(int code);
 
@@ -37,7 +35,6 @@ extern void in_sigterm_v1(int sig);
 extern int set_signals_v1(void);
 
 extern int flagsighup ;
-extern int msgsock ;
 extern char currentfilename[MAXLENFILE];
 extern int childendinerror ;
 extern int pid_child[MAXPORT] ;
@@ -62,7 +59,6 @@ extern int  fixeddataport ;
 extern int msgsock ;
 extern int     recvcontrolto ;
 
-extern int outcontrolsock ;
 extern	int	sendcontrolto ;
 
 extern int  sendwinsize ;
@@ -91,15 +87,13 @@ extern int decodersapass(char *buffer, char *username, char *password);
 extern int loginsequence (void);
 extern int decodersapass(char *buffer, char *username, char *password);
 
-extern int incontrolsock ;
 extern	int	recvcontrolto ;
 extern char currentusername[MAXLEN] ;
 
 #ifdef USE_PAM
-extern char daemonchar[50] ;
+/* extern char daemonchar[50] ; */
 #endif
 
-extern int  outcontrolsock ;
 extern	int	sendcontrolto ;
 
 
@@ -116,8 +110,6 @@ extern int  *mychildren ;
 extern int  *mysockets ;
 extern int  nbpidchild ;
 extern int  unlinkfile ;
-extern int  incontrolsock ;
-extern int  outcontrolsock ;
 extern	int	datato ;
 extern	int	ackto ;
 extern int  state ;
@@ -160,13 +152,41 @@ extern char lastaccess[9] ;
 extern char lastmodif[9] ;
 extern int  filemode ;
 
-extern int newcontrolport;
+extern int newcontrolport;	       /* protocol 1 and 2 */
+extern int msgsock ;		       /* protocol 1 */
+extern int incontrolsock ;	       /* protocol 2 */
+extern int outcontrolsock ;	       /* protocol 2 */
+
 extern int checkstdinto;
 extern int protocolmin;
 extern int protocolmax;
 
-extern void bbftpd_syslog_open (const char *ident, int option, int facility);
+extern void bbftpd_syslog_open (void);
 extern void bbftpd_syslog (int priority, const char *format, ...);
 extern void bbftpd_syslog_close (void);
+
+extern char *bbftpd_strdup (const char *in);
+extern char *bbftpd_strcat (const char *a, const char *b);
+extern char *bbftpd_read_file (const char *file, size_t *sizep);
+
+extern int bbftpd_input_pending (int fd, int timeout);
+extern int bbftpd_fd_msgsend_int32 (int fd, int code, int i);
+extern int bbftpd_fd_msgsend_int32_2 (int fd, int code, int i, int j);
+extern int bbftpd_fd_msgsend_len (int fd, int code, int len);
+extern int bbftpd_fd_msgrecv_msg (int fd, struct message *msg);
+extern int bbftpd_fd_msgrecv_int32 (int32_t *valp);
+extern int bbftpd_msgrecv_bytes (char *bytes, int num);
+
+/* Like above but use outcontrolsock */
+extern int bbftpd_msg_pending (int timeout);
+extern int bbftpd_msgsend_int32 (int code, int i);
+extern int bbftpd_msgsend_int32_2 (int code, int i, int j);
+extern int bbftpd_msgsend_len (int code, int len);
+extern int bbftpd_msgrecv_msg (struct message *msg);
+extern int bbftpd_msgrecv_int32 (int32_t *valp);
+
+extern int bbftp_run_protocol_1 (struct message *msg);
+extern int bbftp_run_protocol_2 (void);
+extern int bbftp_run_protocol_3 (void);
 
 #endif
