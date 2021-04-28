@@ -78,6 +78,103 @@
 #define SETTOZERO    0
 #define SETTOONE     1
 
+static int get_ip_address (const char *host, in_addr_t *ip)
+{
+   char hostbuf[512];
+   struct in_addr addr;
+   struct hostent *h;
+   char **h_addr_list;
+
+   if (host == NULL)
+     {
+	if (-1 == gethostname (hostbuf, sizeof(hostbuf)))
+	  {
+	     printmessage (stderr, CASE_ERROR, 61, "gethostname failed: %s\n", strerror (errno));
+	     return -1;
+	  }
+	host = hostbuf;
+     }
+
+   if (NULL == (h = gethostbyname (host)))
+     {
+	int save_herrno = h_errno;
+	/* In case of dotted form */
+	if (0 != inet_aton (host, &addr))   /* returns non-0 upon success */
+	  {
+	     *ip = addr.s_addr;
+	     return 0;
+	  }
+	printmessage (stderr, CASE_ERROR, 61, "gethostbyname(%s) failed: h_errno=%d\n", host, save_herrno);
+	return -1;
+     }
+
+   /* Take the first address */
+   if ((h->h_addrtype != AF_INET) || (h->h_length != 4))
+     {
+	printmessage (stderr, CASE_ERROR, 61, "%s\n", "AF_INET6 addresses are unsupported");
+	return -1;
+     }
+   /* Default to the first one */
+   h_addr_list = h->h_addr_list;
+   addr = *((struct in_addr *)h_addr_list[0]);
+   /* Avoid the loopback address */
+   while (*h_addr_list != NULL)
+     {
+	unsigned char *bytes = (unsigned char *)h_addr_list[0];
+	/* The loopback address is "0x7F 0x?? 0x?? 0x??" in network byte order */
+	if (bytes[0] == 0x7F)
+	  {
+	     h_addr_list++;
+	     continue;
+	  }
+	addr = *(struct in_addr *)bytes;
+	break;
+     }
+
+   *ip = addr.s_addr;
+   return 0;
+}
+
+static char *ip_to_dotted (in_addr_t ip)
+{
+   static char buf[16];
+   unsigned char *s;
+
+   s = (unsigned char *)&ip;
+   snprintf (buf, sizeof(buf), "%d.%d.%d.%d", s[0], s[1], s[2], s[3]);
+   return buf;
+}
+
+static int exchange_addessses_with_server (void)
+{
+   in_addr_t local, remote;
+
+   /* The server sent its ip address.  Read it */
+
+   if (-1 == bbftp_msgread_bytes ((char *)&remote, 4))
+     {
+	printmessage (stderr, CASE_ERROR, 61, "%s\n", "Failed to read 32 bit IP address from server");
+	return -1;
+     }
+
+   if (BBftp_Debug)
+     printmessage (stderr, CASE_NORMAL, 0, "Server sent ip address: %s\n", ip_to_dotted(remote));
+
+   if (-1 == get_ip_address (NULL, &local))
+     return -1;
+
+   if (BBftp_Debug)
+     printmessage (stderr, CASE_NORMAL, 0, "Sending server local ip address: %s\n", ip_to_dotted(local));
+
+   if (-1 == bbftp_msgwrite_bytes (MSG_IPADDR_OK, (char *)&local, 4))
+     {
+	printmessage (stderr, CASE_ERROR, 61, "%s\n", "Error sending ip address to server");
+	return -1;
+     };
+
+   return 0;
+}
+
 /****************************************************************************
   Separate STR into arguments, respecting quote and escaped characters.
   Returns the number of arguments (or < 0 if limits are passed), which are
@@ -158,100 +255,105 @@ static int splitargs (const char* s, char** argv, size_t maxargs,
 
 *****************************************************************************/
 
-int connectviassh() 
+int connectviassh (void)
 {
-/* 
-** This is set to non-zero if compression is desired. 
-*/
-    int sshcompress = SETTOZERO;
-/* 
-** This is to call ssh with argument -P (for using non-privileged
-** ports to get through some firewalls.) 
-*/
-    int use_privileged_port = SETTOONE ;
-/* 
-** This is set to the cipher type string if given on the command line. 
-*/
-    char *cipher = NULL;
+   int port;
+   /*
+    ** This is set to non-zero if compression is desired.
+    */
+   int sshcompress = SETTOZERO;
+   /*
+    ** This is to call ssh with argument -P (for using non-privileged
+    ** ports to get through some firewalls.)
+    */
+   int use_privileged_port = SETTOONE ;
+   /*
+    ** This is set to the cipher type string if given on the command line.
+    */
+   char *cipher = NULL;
 
-/* 
-** Ssh options 
-*/
-    char **ssh_options = NULL;
-    unsigned int ssh_options_cnt = 0;
-    
-    int pin[2], pout[2], reserved[2];
-    int retcode ;
-    
-    char    buffer[MINMESSLEN+1] ;
-    struct  message *msg ;
-    int     tmpctrlsock ;
+   /*
+    ** Ssh options
+    */
+   char **ssh_options = NULL;
+   unsigned int ssh_options_cnt = 0;
+
+   int pin[2], pout[2], reserved[2];
+   int retcode ;
+
+   struct  message msg ;
+   int     tmpctrlsock ;
 #ifdef SUNOS
-    int     addrlen ;
+   int     addrlen ;
 #else
-    socklen_t  addrlen ;
+   socklen_t  addrlen ;
 #endif
-    struct sockaddr_in data_source ;
-    int     on = 1 ;
+   struct sockaddr_in data_source ;
+   int     on = 1 ;
 
-  /*  add multiple addresses  */
-    char **sav_h_addr_list;
-    if (BBftp_Hostent) sav_h_addr_list = BBftp_Hostent->h_addr_list;
+   /*  add multiple addresses  */
+   char **sav_h_addr_list;
+   if (BBftp_Hostent) sav_h_addr_list = BBftp_Hostent->h_addr_list;
 
-/* 
-** Reserve two descriptors so that the real pipes won't get descriptors
-** 0 and 1 because that will screw up dup2 below. 
-*/
-    pipe(reserved);
-/*
-** Create a socket pair for communicating with ssh. 
-*/
-    if (pipe(pin) < 0)
-        printmessage(stderr,CASE_FATAL_ERROR,41, "Pipe for ssh failed : %s", strerror(errno)) ;
+   /*
+    ** Reserve two descriptors so that the real pipes won't get descriptors
+    ** 0 and 1 because that will screw up dup2 below.
+    */
+   pipe(reserved);
+   /*
+    ** Create a socket pair for communicating with ssh.
+    */
+   if (pipe(pin) < 0)
+     printmessage(stderr,CASE_FATAL_ERROR,41, "Pipe for ssh failed : %s", strerror(errno)) ;
 
-    if (pipe(pout) < 0)
-        printmessage(stderr,CASE_FATAL_ERROR,41, "Pipe for ssh failed : %s", strerror(errno)) ;
+   if (pipe(pout) < 0)
+     printmessage(stderr,CASE_FATAL_ERROR,41, "Pipe for ssh failed : %s", strerror(errno)) ;
 
-/*
-** Free the reserved descriptors. 
-*/
-    close(reserved[0]);
-    close(reserved[1]);
-    BBftp_SSH_Childpid = 0 ;
+   /*
+    ** Free the reserved descriptors.
+    */
+   close(reserved[0]);
+   close(reserved[1]);
+   BBftp_SSH_Childpid = 0 ;
 
-/*
-** Fork a child to execute the command on the remote host using ssh. 
-*/
-    if ( (retcode = fork()) == 0 ) {
-        /*
-        ** We are in child
-        */
+   /*
+    ** Fork a child to execute the command on the remote host using ssh.
+    */
+   if (-1 == (retcode = fork ()))
+     {
+        printmessage(stderr,CASE_ERROR,45, "Fork for ssh command failed\n");
+        return -1;
+     }
+
+   if (retcode == 0)
+     {
+	/* child code */
         char *args[256], *argbuf;
         unsigned int i, j, largbuf;
         int  ntok;
-        
+
         close(pin[1]);
         close(pout[0]);
         dup2(pin[0], 0);
         dup2(pout[1], 1);
         close(pin[0]);
         close(pout[1]);
-        
+
         i = 0;
         largbuf= strlen (BBftp_SSHcmd)+1;
         argbuf= (char*) malloc (largbuf * sizeof (char));
         ntok= splitargs(BBftp_SSHcmd,args,250,argbuf,largbuf);
         if (ntok<0)
-            printmessage(stderr,CASE_FATAL_ERROR,42, "Too many arguments in ssh command :%s \n",BBftp_SSHcmd) ;
+	  printmessage(stderr,CASE_FATAL_ERROR,42, "Too many arguments in ssh command :%s \n",BBftp_SSHcmd) ;
         if (ntok==0)
-            printmessage(stderr,CASE_FATAL_ERROR,43, "No ssh command specified\n") ;
+	  printmessage(stderr,CASE_FATAL_ERROR,43, "No ssh command specified\n") ;
         i += ntok;
 
         for(j = 0; j < ssh_options_cnt; j++) {
-            args[i++] = "-o";
-            args[i++] = ssh_options[j];
-            if (i > 250)
-                printmessage(stderr,CASE_FATAL_ERROR,44, "Too many -o options (total number of arguments is more than 256)");
+	   args[i++] = "-o";
+	   args[i++] = ssh_options[j];
+	   if (i > 250)
+	     printmessage(stderr,CASE_FATAL_ERROR,44, "Too many -o options (total number of arguments is more than 256)");
         }
         args[i++] = "-x";
         args[i++] = "-a";
@@ -259,202 +361,207 @@ int connectviassh()
         if (sshcompress) args[i++] = "-C";
         if (!use_privileged_port) args[i++] = "-P";
         if (BBftp_SSHbatchmode) {
-            args[i++] = "-oBatchMode yes";
-            args[i++] = "-oStrictHostKeyChecking no" ;
+	   args[i++] = "-oBatchMode yes";
+	   args[i++] = "-oStrictHostKeyChecking no" ;
         }
         if (cipher != NULL) {
-            args[i++] = "-c";
-            args[i++] = cipher;
+	   args[i++] = "-c";
+	   args[i++] = cipher;
         }
         if (BBftp_SSHidentityfile  != NULL) {
-            args[i++] = "-i";
-            args[i++] = BBftp_SSHidentityfile;
+	   args[i++] = "-i";
+	   args[i++] = BBftp_SSHidentityfile;
         }
 	if (BBftp_Username != NULL) {
-            args[i++] = "-l";
-            args[i++] = BBftp_Username;
+	   args[i++] = "-l";
+	   args[i++] = BBftp_Username;
 	}
         args[i++] = BBftp_Hostname;
         /*args[i++] = inet_ntoa(BBftp_His_Ctladdr.sin_addr);*/
         args[i++] = BBftp_SSHremotecmd;
         args[i++] = NULL;
-        
+
         if ( BBftp_Debug ) {
-            /*
+	   /*
             ** We write on stderr and not on stdout because writing on
             ** stdout will cause problem on the contrlo connection
             */
-            printmessage(stderr,CASE_NORMAL,0, "Executing :%s",args[0]) ;
-            for (j= 1; args[j]; j++)  printmessage(stderr,CASE_NORMAL,0, " %s", args[j]);
-            printmessage(stderr,CASE_NORMAL,0, "\n");
+	   printmessage(stderr,CASE_NORMAL,0, "Executing :%s",args[0]) ;
+	   for (j= 1; args[j]; j++)  printmessage(stderr,CASE_NORMAL,0, " %s", args[j]);
+	   printmessage(stderr,CASE_NORMAL,0, "\n");
         }
-            
-        execvp(args[0], args);
-        printmessage(stderr,CASE_FATAL_ERROR,46, "Error while execvp ssh command (%s) : %s\n",BBftp_SSHcmd,strerror(errno)) ;
-    } else if ( retcode < 0 ) {
-        /*
-        ** fork error
-        */
-        printmessage(stderr,CASE_ERROR,45, "Fork for ssh command failed\n");
-        return -1 ;
-    } else {
-        /*
-        ** We are in father
-        */
-        close(pin[0]);
-        BBftp_Outcontrolsock = pin[1];
-        close(pout[1]);
-        BBftp_Incontrolsock = pout[0];
-        BBftp_SSH_Childpid = retcode ;
-        /*
-        ** Now we are going to wait for the remote port to connect to
-        */
-        if ( readmessage(BBftp_Incontrolsock,buffer,MINMESSLEN,2 * BBftp_Recvcontrolto) < 0 ) {
-            printmessage(stderr,CASE_ERROR,61, "Error waiting %s message\n","MSG_LOGGED_STDIN");
-            kill(BBftp_SSH_Childpid,SIGKILL) ;
-            close(BBftp_Incontrolsock) ;
-            close(BBftp_Outcontrolsock) ;
-            return -1 ;
-        }
-        msg = (struct message *)buffer ;
-        if ( msg->code != MSG_LOGGED_STDIN) {
-            printmessage(stderr,CASE_ERROR,62, "Unknown message while waiting for %s message\n","MSG_LOGGED_STDIN");
-            if ( BBftp_Debug ) {
-                printmessage(stdout,CASE_NORMAL,0, "Incorrect message is : ") ;
-                buffer[MINMESSLEN] = '\0' ;
-                printmessage(stdout,CASE_NORMAL,0, "%s",buffer) ;
-                discardandprintmessage(BBftp_Incontrolsock,BBftp_Recvcontrolto) ;
-            }
-            kill(BBftp_SSH_Childpid,SIGKILL) ;
-            close(BBftp_Incontrolsock) ;
-            close(BBftp_Outcontrolsock) ;
-            return -1 ;
-        }
-#ifndef WORDS_BIGENDIAN
-        msg->msglen = ntohl(msg->msglen) ;
-#endif
-        if ( msg->msglen != 4) {
-            printmessage(stderr,CASE_ERROR,63, "Unexpected message length while waiting for %s message\n","MSG_LOGGED_STDIN");
-            kill(BBftp_SSH_Childpid,SIGKILL) ;
-            close(BBftp_Incontrolsock) ;
-            close(BBftp_Outcontrolsock) ;
-            return -1 ;
-        }
-        /*
-        ** Read for the port number
-        */
-        if ( readmessage(BBftp_Incontrolsock,buffer,4,BBftp_Recvcontrolto) < 0 ) {
-            printmessage(stderr,CASE_ERROR,67, "Error reading data for %s message\n","MSG_LOGGED_STDIN");
-            kill(BBftp_SSH_Childpid,SIGKILL) ;
-            close(BBftp_Incontrolsock) ;
-            close(BBftp_Outcontrolsock) ;
-            return -1 ;
-        }
-#ifndef WORDS_BIGENDIAN
-        msg->code = ntohl(msg->code) ;
-#endif
-        if (BBftp_Debug) 
-            printmessage(stderr,CASE_NORMAL,0, "Port number = %d\n",msg->code) ;
-        while (1) {
-           if ( (tmpctrlsock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP )) < 0 ) {
-               printmessage(stderr,CASE_ERROR,47, "Cannot get socket for MSG_IPADDR message : %s\n",strerror(errno));
-               kill(BBftp_SSH_Childpid,SIGKILL) ;
-               close(BBftp_Incontrolsock) ;
-               close(BBftp_Outcontrolsock) ;
-               return -1 ;
-           }
-           if ( setsockopt(tmpctrlsock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0 ) {
-               close(tmpctrlsock) ;
-               printmessage(stderr,CASE_ERROR,47, "Cannot set SO_REUSEADDR on socket for MSG_IPADDR message : %s\n",strerror(errno));
-               kill(BBftp_SSH_Childpid,SIGKILL) ;
-               close(BBftp_Incontrolsock) ;
-               close(BBftp_Outcontrolsock) ;
-               return -1 ;
-           }
-           data_source.sin_family = AF_INET;
-           data_source.sin_addr.s_addr = INADDR_ANY;
-           /*
-           data_source.sin_port = htons(BBftp_Newcontrolport+1);
-           */
-           data_source.sin_port = 0;
-           if ( bind(tmpctrlsock, (struct sockaddr *) &data_source,sizeof(data_source)) < 0) {
-               printmessage(stderr,CASE_ERROR,49, "Cannot bind socket for MSG_IPADDR message : %s\n",strerror(errno));
-               close(tmpctrlsock) ;
-               kill(BBftp_SSH_Childpid,SIGKILL) ;
-               close(BBftp_Incontrolsock) ;
-               close(BBftp_Outcontrolsock) ;
-           }
-           if (BBftp_Debug) printmessage(stderr,CASE_NORMAL,0, "connect control to address %s\n", inet_ntoa(BBftp_His_Ctladdr.sin_addr)) ;
-           BBftp_His_Ctladdr.sin_family = AF_INET ;
-           BBftp_His_Ctladdr.sin_port = htons(msg->code);
-           addrlen = sizeof(BBftp_His_Ctladdr) ;
-           while (-1 == connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen)) {
 
-	      if (errno == EINTR) continue;
+	execvp(args[0], args);
+	printmessage(stderr,CASE_FATAL_ERROR,46, "Error while execvp ssh command (%s) : %s\n",BBftp_SSHcmd,strerror(errno)) ;
+	return -1;
+     }				       /* end of child code */
 
-               if ( BBftp_Hostent ) {
-                  if ( BBftp_Hostent->h_addr_list[1] ) {
-                      close(tmpctrlsock) ;
-                      BBftp_Hostent->h_addr_list++;
-                      memcpy(&BBftp_His_Ctladdr.sin_addr,BBftp_Hostent->h_addr_list[0],  BBftp_Hostent->h_length);
-                      /* Sleep a moment before retrying. */
-                      sleep(1);
-                      continue;
-                   } else {
-                       BBftp_Hostent->h_addr_list = sav_h_addr_list;
-                       memcpy(&BBftp_His_Ctladdr.sin_addr,BBftp_Hostent->h_addr_list[0],  BBftp_Hostent->h_length);
-                   }
-               }
-               printmessage(stderr,CASE_ERROR,48, "Cannot connect socket for MSG_IPADDR message : %s\n",strerror(errno));
-               close(tmpctrlsock) ;
-               kill(BBftp_SSH_Childpid,SIGKILL) ;
-               close(BBftp_Incontrolsock) ;
-               close(BBftp_Outcontrolsock) ;
-               return -1 ;
-           }
-           break;
-        }
-        msg->code = MSG_IPADDR ;
-        msg->msglen = 0 ;
-        /*
-        ** Read the message 
-        */
-        if ( writemessage(tmpctrlsock,buffer,MINMESSLEN,BBftp_Sendcontrolto) < 0 ) {
-            printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_IPADDR");
-            kill(BBftp_SSH_Childpid,SIGKILL) ;
-            close(tmpctrlsock) ;
-            close(BBftp_Incontrolsock) ;
-            close(BBftp_Outcontrolsock) ;
-            return -1 ;
-        }
-        /*
-        ** And wait for MSG_IPADDR_OK
-        */
-        if ( readmessage(tmpctrlsock,buffer,MINMESSLEN,BBftp_Recvcontrolto) < 0 ) {
-            printmessage(stderr,CASE_ERROR,61, "Error waiting %s message\n","MSG_IPADDR_OK");
-            kill(BBftp_SSH_Childpid,SIGKILL) ;
-            close(tmpctrlsock) ;
-            close(BBftp_Incontrolsock) ;
-            close(BBftp_Outcontrolsock) ;
-            return -1 ;
-        }
-        if ( msg->code != MSG_IPADDR_OK) {
-            printmessage(stderr,CASE_ERROR,65, "Unknown message while waiting for %s message\n","MSG_IPADDR_OK");
-            close(tmpctrlsock) ;
-            kill(BBftp_SSH_Childpid,SIGKILL) ;
-            close(BBftp_Incontrolsock) ;
-            close(BBftp_Outcontrolsock) ;
-            return -1 ;
-        }
-        close(tmpctrlsock) ;
-        return 0;
-    }
-    /*
-    ** Never reach this point but to in order to avoid stupid messages
-    ** from IRIX compiler set a return code to -1
+   /* parent code */
+
+   close(pin[0]);
+   BBftp_Outcontrolsock = pin[1];
+   close(pout[1]);
+   BBftp_Incontrolsock = pout[0];
+   BBftp_SSH_Childpid = retcode ;
+   /*
+    ** Now we are going to wait for the remote port to connect to
     */
-    return -1 ;
+   if ((-1 == bbftp_msg_pending (BBftp_Recvcontrolto))
+       || (-1 == bbftp_msgread_msg (&msg)))
+     {
+	printmessage(stderr,CASE_ERROR,61, "Error waiting %s message\n","MSG_LOGGED_STDIN");
+	kill(BBftp_SSH_Childpid,SIGKILL) ;
+	close(BBftp_Incontrolsock) ;
+	close(BBftp_Outcontrolsock) ;
+	return -1 ;
+     }
+   if ( msg.code != MSG_LOGGED_STDIN)
+     {
+	if ((msg.code == MSG_IPADDR) && (msg.msglen == 4))
+	  {
+	     /* The server is asking for the IP address */
+	     if (0 == exchange_addessses_with_server ())
+	       return 0;
+	     /* drop */
+	  }
+	else
+	  {
+	     printmessage(stderr,CASE_ERROR,62, "Unknown message while waiting for %s message\n","MSG_LOGGED_STDIN");
+	     if ( BBftp_Debug ) {
+		printmessage(stdout,CASE_NORMAL,0, "Incorrect message is {%d, %d}: ", msg.code, msg.msglen);
+		discardandprintmessage(BBftp_Incontrolsock,BBftp_Recvcontrolto) ;
+	     }
+	  }
+	kill(BBftp_SSH_Childpid,SIGKILL) ;
+	close(BBftp_Incontrolsock) ;
+	close(BBftp_Outcontrolsock) ;
+	return -1 ;
+     }
+
+   if ( msg.msglen != 4)
+     {
+	printmessage(stderr,CASE_ERROR,63, "Unexpected message length while waiting for %s message\n","MSG_LOGGED_STDIN");
+	kill(BBftp_SSH_Childpid,SIGKILL) ;
+	close(BBftp_Incontrolsock) ;
+	close(BBftp_Outcontrolsock) ;
+	return -1 ;
+     }
+
+   if (-1 == bbftp_msgread_int32 (&port))
+     {
+	printmessage(stderr,CASE_ERROR,67, "Error reading data for %s message\n","MSG_LOGGED_STDIN");
+	kill(BBftp_SSH_Childpid,SIGKILL) ;
+	close(BBftp_Incontrolsock) ;
+	close(BBftp_Outcontrolsock) ;
+	return -1 ;
+     }
+
+   if (BBftp_Debug)
+     printmessage(stderr,CASE_NORMAL,0, "Port number = %d\n", (int) port) ;
+
+   while (1)
+     {
+	if ( (tmpctrlsock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP )) < 0 )
+	  {
+	     printmessage(stderr,CASE_ERROR,47, "Cannot get socket for MSG_IPADDR message : %s\n",strerror(errno));
+	     kill(BBftp_SSH_Childpid,SIGKILL) ;
+	     close(BBftp_Incontrolsock) ;
+	     close(BBftp_Outcontrolsock) ;
+	     return -1 ;
+	  }
+	if ( setsockopt(tmpctrlsock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0 )
+	  {
+	     close(tmpctrlsock) ;
+	     printmessage(stderr,CASE_ERROR,47, "Cannot set SO_REUSEADDR on socket for MSG_IPADDR message : %s\n",strerror(errno));
+	     kill(BBftp_SSH_Childpid,SIGKILL) ;
+	     close(BBftp_Incontrolsock) ;
+	     close(BBftp_Outcontrolsock) ;
+	     return -1 ;
+	  }
+	data_source.sin_family = AF_INET;
+	data_source.sin_addr.s_addr = INADDR_ANY;
+	data_source.sin_port = 0;
+
+	if ( bind(tmpctrlsock, (struct sockaddr *) &data_source,sizeof(data_source)) < 0)
+	  {
+	     printmessage(stderr,CASE_ERROR,49, "Cannot bind socket for MSG_IPADDR message : %s\n",strerror(errno));
+	     close(tmpctrlsock) ;
+	     kill(BBftp_SSH_Childpid,SIGKILL) ;
+	     close(BBftp_Incontrolsock) ;
+	     close(BBftp_Outcontrolsock) ;
+	     return -1;
+	  }
+	if (BBftp_Debug) printmessage(stderr,CASE_NORMAL,0, "connect control to address %s\n", inet_ntoa(BBftp_His_Ctladdr.sin_addr)) ;
+	BBftp_His_Ctladdr.sin_family = AF_INET ;
+	BBftp_His_Ctladdr.sin_port = htons (port);
+	addrlen = sizeof(BBftp_His_Ctladdr) ;
+	while (-1 == connect(tmpctrlsock,(struct sockaddr*)&BBftp_His_Ctladdr,addrlen))
+	  {
+	     if (errno == EINTR) continue;
+
+	     if ( BBftp_Hostent )
+	       {
+		  if ( BBftp_Hostent->h_addr_list[1] )
+		    {
+		       close(tmpctrlsock) ;
+		       BBftp_Hostent->h_addr_list++;
+		       memcpy(&BBftp_His_Ctladdr.sin_addr,BBftp_Hostent->h_addr_list[0],  BBftp_Hostent->h_length);
+		       /* Sleep a moment before retrying. */
+		       sleep(1);
+		       continue;
+		    }
+		  else
+		    {
+		       BBftp_Hostent->h_addr_list = sav_h_addr_list;
+		       memcpy(&BBftp_His_Ctladdr.sin_addr,BBftp_Hostent->h_addr_list[0],  BBftp_Hostent->h_length);
+		    }
+	       }
+	     printmessage(stderr,CASE_ERROR,48, "Cannot connect socket for MSG_IPADDR message : %s\n",strerror(errno));
+	     close(tmpctrlsock) ;
+	     kill(BBftp_SSH_Childpid,SIGKILL) ;
+	     close(BBftp_Incontrolsock) ;
+	     close(BBftp_Outcontrolsock) ;
+	     return -1 ;
+	  }
+	break;
+     }
+
+   if (-1 == bbftp_fd_msgwrite_len (tmpctrlsock, MSG_IPADDR, 0))
+     {
+	printmessage(stderr,CASE_ERROR,64, "Error sending %s message\n","MSG_IPADDR");
+	kill(BBftp_SSH_Childpid,SIGKILL) ;
+	close(tmpctrlsock) ;
+	close(BBftp_Incontrolsock) ;
+	close(BBftp_Outcontrolsock) ;
+	return -1 ;
+     }
+
+   /*
+    ** And wait for MSG_IPADDR_OK
+    */
+   if (-1 == bbftp_fd_msgread_msg (tmpctrlsock, &msg))
+     {
+	printmessage(stderr,CASE_ERROR,61, "Error waiting %s message\n","MSG_IPADDR_OK");
+	kill(BBftp_SSH_Childpid,SIGKILL) ;
+	close(tmpctrlsock) ;
+	close(BBftp_Incontrolsock) ;
+	close(BBftp_Outcontrolsock) ;
+	return -1 ;
+     }
+
+   if (msg.code != MSG_IPADDR_OK)
+     {
+	printmessage(stderr,CASE_ERROR,65, "Unknown message while waiting for %s message\n","MSG_IPADDR_OK");
+	close(tmpctrlsock) ;
+	kill(BBftp_SSH_Childpid,SIGKILL) ;
+	close(BBftp_Incontrolsock) ;
+	close(BBftp_Outcontrolsock) ;
+	return -1 ;
+     }
+   close(tmpctrlsock) ;
+   return 0;
 }
+
 /****************************************************************************
 
  connectviapassword is the standart method to connect to bbftpd

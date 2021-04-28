@@ -128,14 +128,14 @@ static int readcontrol_v2 (int msgcode,int msglen)
             switch (msgcode) {
             
                 case MSG_CHCOS : {
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_CHCOS, msglen = %d",msglen) ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_CHCOS, msglen = %d",msglen) ;
                     if ( (receive_buffer = (char *) malloc (msglen)) == NULL ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error allocating memory for MSG_CHCOS : %s",strerror(errno)) ;
+                        bbftpd_log(BBFTPD_ERR,"Error allocating memory for MSG_CHCOS : %s",strerror(errno)) ;
                         reply(MSG_BAD,"Error allocating memory for MSG_CHCOS") ;
                         return 0 ;
                     }
                     if ( readmessage(incontrolsock,receive_buffer,msglen,recvcontrolto) < 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error reading MSG_CHCOS") ;
+                        bbftpd_log(BBFTPD_ERR,"Error reading MSG_CHCOS") ;
                         FREE(receive_buffer) ;
                         return -1 ;
                     }
@@ -146,10 +146,10 @@ static int readcontrol_v2 (int msgcode,int msglen)
                     mycos = msg_integer->myint ;
 #endif
                     if (mycos>=0) {
-                        bbftpd_syslog(BBFTPD_DEBUG,"Cos set to %d",mycos) ;
+                        bbftpd_log(BBFTPD_DEBUG,"Cos set to %d",mycos) ;
                         reply(MSG_OK,"COS set") ;
                     } else {
-                        bbftpd_syslog(BBFTPD_DEBUG,"Cos received : %d",mycos) ;
+                        bbftpd_log(BBFTPD_DEBUG,"Cos received : %d",mycos) ;
                         reply(MSG_OK,"COS not set") ;
                     }
                     FREE(receive_buffer) ;
@@ -157,20 +157,20 @@ static int readcontrol_v2 (int msgcode,int msglen)
                }
 
                 case MSG_CHDIR_V2 : {
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_CHDIR_V2, msglen = %d",msglen) ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_CHDIR_V2, msglen = %d",msglen) ;
                     retcode = bbftpd_cd(incontrolsock,msglen) ;
                     return retcode ;
                 }
                 
                 case MSG_CHUMASK : {
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_UMASK ") ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_UMASK ") ;
                     if ( (receive_buffer = (char *) malloc (msglen)) == NULL ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error allocating memory for MSG_UMASK : %s",strerror(errno)) ;
+                        bbftpd_log(BBFTPD_ERR,"Error allocating memory for MSG_UMASK : %s",strerror(errno)) ;
                         reply(MSG_BAD,"Error allocating memory for MSG_UMASK") ;
                         return 0 ;
                     }
                     if ( readmessage(incontrolsock,receive_buffer,msglen,recvcontrolto) < 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error reading MSG_UMASK") ;
+                        bbftpd_log(BBFTPD_ERR,"Error reading MSG_UMASK") ;
                         FREE(receive_buffer) ;
                         return -1 ;
                     }
@@ -194,15 +194,15 @@ static int readcontrol_v2 (int msgcode,int msglen)
                 }
  
                 case MSG_CLOSE_CONN : {
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_CLOSE_CONN, msglen = %d",msglen) ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_CLOSE_CONN, msglen = %d",msglen) ;
                     return -1 ;
                 }
                 
                 
                 case MSG_LIST_V2 :{
-                   bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_LIST_V2 ") ;
+                   bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_LIST_V2 ") ;
                    if ( (receive_buffer = (char *) malloc (msglen+1) ) == NULL ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Unable to malloc space for directory name (%d)",msglen) ;
+                        bbftpd_log(BBFTPD_ERR,"Unable to malloc space for directory name (%d)",msglen) ;
                         reply(MSG_BAD,"Unable to malloc space for directory name") ;
                        return 0 ;
                    }
@@ -213,7 +213,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                        /*
                        ** Error ...
                        */
-                        bbftpd_syslog(BBFTPD_ERR,"Error reading directory name") ;
+                        bbftpd_log(BBFTPD_ERR,"Error reading directory name") ;
                        FREE(receive_buffer) ;
                        return -1 ;
                    }
@@ -223,44 +223,44 @@ static int readcontrol_v2 (int msgcode,int msglen)
                    receive_buffer[msglen] = '\0' ;
                    msg_dir = (struct mess_dir *) receive_buffer ;
                    transferoption  = msg_dir->transferoption ;
-                   bbftpd_syslog(BBFTPD_DEBUG,"Pattern = %s",msg_dir->dirname) ;
+                   bbftpd_log(BBFTPD_DEBUG,"Pattern = %s",msg_dir->dirname) ;
                    retcode = bbftpd_list(msg_dir->dirname,logmessage) ;
                    FREE(receive_buffer) ;
                    return retcode ;
                 }
                 
                 case MSG_MKDIR_V2 : {
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_MKDIR_V2 ") ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_MKDIR_V2 ") ;
                     retcode = bbftpd_mkdir(incontrolsock,msglen) ;
                     return retcode ;
                 }
                 
                 case MSG_RM : {
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_RM ") ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_RM ") ;
                     retcode = bbftpd_rm(incontrolsock,msglen) ;
                     return retcode ;
                 }
                 
 		case MSG_STAT : {
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_STAT ") ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_STAT ") ;
                     retcode = bbftpd_stat(incontrolsock,msglen) ;
                     return retcode ;
                 }
                     
 		case MSG_DF : {
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_DF ") ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_DF ") ;
                     retcode = bbftpd_statfs(incontrolsock,msglen) ;
                     return retcode ;
                 }
                     
                 case MSG_RETR_V2 : {
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_RETR_V2") ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_RETR_V2") ;
                     if ( (receive_buffer = (char *) malloc (msglen)) == NULL ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error allocating memory for MSG_RETR_V2 : %s",strerror(errno)) ;
+                        bbftpd_log(BBFTPD_ERR,"Error allocating memory for MSG_RETR_V2 : %s",strerror(errno)) ;
                         return -1 ;
                     }
                      if ( readmessage(incontrolsock,receive_buffer,msglen,recvcontrolto) < 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error reading MSG_RETR_V2") ;
+                        bbftpd_log(BBFTPD_ERR,"Error reading MSG_RETR_V2") ;
                         FREE(receive_buffer) ;
                         return -1 ;
                     }
@@ -282,24 +282,24 @@ static int readcontrol_v2 (int msgcode,int msglen)
                     buffersizeperstream     = msg_store_v2->buffersizeperstream ;
                     requestedstreamnumber   = msg_store_v2->nbstream ;
 #endif
-                    bbftpd_syslog(BBFTPD_DEBUG,"transferoption         = %d ",transferoption) ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"sendwinsize            = %d ",sendwinsize) ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"recvwinsize            = %d ",recvwinsize) ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"buffersizeperstream    = %d ",buffersizeperstream) ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"requestedstreamnumber  = %d ",requestedstreamnumber) ;
+                    bbftpd_log(BBFTPD_DEBUG,"transferoption         = %d ",transferoption) ;
+                    bbftpd_log(BBFTPD_DEBUG,"sendwinsize            = %d ",sendwinsize) ;
+                    bbftpd_log(BBFTPD_DEBUG,"recvwinsize            = %d ",recvwinsize) ;
+                    bbftpd_log(BBFTPD_DEBUG,"buffersizeperstream    = %d ",buffersizeperstream) ;
+                    bbftpd_log(BBFTPD_DEBUG,"requestedstreamnumber  = %d ",requestedstreamnumber) ;
                     state = S_WAITING_FILENAME_RETR ;
                     FREE(receive_buffer) ;
                     return 0 ;
                 }
                 
                 case MSG_STORE_V2 :{
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_STORE_V2") ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_STORE_V2") ;
                     if ( (receive_buffer = (char *) malloc (msglen)) == NULL ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error allocating memory for MSG_STORE_V2 : %s",strerror(errno)) ;
+                        bbftpd_log(BBFTPD_ERR,"Error allocating memory for MSG_STORE_V2 : %s",strerror(errno)) ;
                         return -1 ;
                     }
                      if ( readmessage(incontrolsock,receive_buffer,msglen,recvcontrolto) < 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error reading MSG_STORE_V2") ;
+                        bbftpd_log(BBFTPD_ERR,"Error reading MSG_STORE_V2") ;
                         FREE(receive_buffer) ;
                         return -1 ;
                     }
@@ -333,22 +333,22 @@ static int readcontrol_v2 (int msgcode,int msglen)
                     requestedstreamnumber   = msg_store_v2->nbstream ;
                     filesize                = msg_store_v2->filesize ;
 #endif
-                    bbftpd_syslog(BBFTPD_DEBUG,"transferoption         = %d ",transferoption) ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"filemode               = %d ",filemode) ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"lastaccess             = %s ",lastaccess) ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"lastmodif              = %s ",lastmodif) ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"sendwinsize            = %d ",sendwinsize) ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"recvwinsize            = %d ",recvwinsize) ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"buffersizeperstream    = %d ",buffersizeperstream) ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"requestedstreamnumber  = %d ",requestedstreamnumber) ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"filesize               = %" LONG_LONG_FORMAT " ",filesize) ;
+                    bbftpd_log(BBFTPD_DEBUG,"transferoption         = %d ",transferoption) ;
+                    bbftpd_log(BBFTPD_DEBUG,"filemode               = %d ",filemode) ;
+                    bbftpd_log(BBFTPD_DEBUG,"lastaccess             = %s ",lastaccess) ;
+                    bbftpd_log(BBFTPD_DEBUG,"lastmodif              = %s ",lastmodif) ;
+                    bbftpd_log(BBFTPD_DEBUG,"sendwinsize            = %d ",sendwinsize) ;
+                    bbftpd_log(BBFTPD_DEBUG,"recvwinsize            = %d ",recvwinsize) ;
+                    bbftpd_log(BBFTPD_DEBUG,"buffersizeperstream    = %d ",buffersizeperstream) ;
+                    bbftpd_log(BBFTPD_DEBUG,"requestedstreamnumber  = %d ",requestedstreamnumber) ;
+                    bbftpd_log(BBFTPD_DEBUG,"filesize               = %" LONG_LONG_FORMAT " ",filesize) ;
                     state = S_WAITING_FILENAME_STORE ;
                     FREE(receive_buffer) ;
                     return 0 ;
                 }
                 
                 default :{
-                    bbftpd_syslog(BBFTPD_ERR,"Unkown message in logged state %d",msgcode) ;
+                    bbftpd_log(BBFTPD_ERR,"Unkown message in logged state %d",msgcode) ;
                     retcode = discardmessage(incontrolsock,msglen,recvcontrolto) ;
                     reply(MSG_BAD_NO_RETRY,"Unkown message in S_LOGGED state") ;
                     return retcode ;
@@ -363,31 +363,31 @@ static int readcontrol_v2 (int msgcode,int msglen)
            case S_WAITING_FILENAME_STORE : {
             switch (msgcode) {
                 case MSG_FILENAME :{
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_FILENAME in S_WAITING_FILENAME_STORE state") ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_FILENAME in S_WAITING_FILENAME_STORE state") ;
                     if ( msglen == 0 ) {
-                         bbftpd_syslog(BBFTPD_ERR,"Filename length null") ;
+                         bbftpd_log(BBFTPD_ERR,"Filename length null") ;
                          return -1 ;
                     }
                     if ( (curfilename = (char *) malloc (msglen+1)) == NULL ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error allocating memory for filename : %s",strerror(errno)) ;
+                        bbftpd_log(BBFTPD_ERR,"Error allocating memory for filename : %s",strerror(errno)) ;
                         return -1 ;
                     }
 		    /* tmp name = <name>.bbftp.tmp.<hostname in 10 chars>.<pid in 5 chars> */
                     if ( (realfilename = (char *) malloc (msglen+30)) == NULL ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error allocating memory for realfilename : %s",strerror(errno)) ;
+                        bbftpd_log(BBFTPD_ERR,"Error allocating memory for realfilename : %s",strerror(errno)) ;
                         free_all_var() ;
                         return -1 ;
                     }
                     if ( readmessage(incontrolsock,curfilename,msglen,recvcontrolto) < 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error reading filename") ;
+                        bbftpd_log(BBFTPD_ERR,"Error reading filename") ;
                         free_all_var() ;
                         return -1 ;
                     }
                     curfilename[msglen] = '\0' ;
                     curfilenamelen = msglen ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"Request to store file %s",curfilename) ;
+                    bbftpd_log(BBFTPD_DEBUG,"Request to store file %s",curfilename) ;
                     if ( (retcode = bbftpd_storecheckoptions(logmessage)) < 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR, "%s", logmessage) ;
+                        bbftpd_log(BBFTPD_ERR, "%s", logmessage) ;
                         reply(MSG_BAD_NO_RETRY,logmessage) ;
                         free_all_var() ;
                         state = S_LOGGED ;
@@ -416,13 +416,13 @@ static int readcontrol_v2 (int msgcode,int msglen)
                     ** Create the file
                     */
                     if ( (retcode = bbftpd_storecreatefile(realfilename,logmessage)) < 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"%s", logmessage) ;
+                        bbftpd_log(BBFTPD_ERR,"%s", logmessage) ;
                         reply(MSG_BAD_NO_RETRY,logmessage) ;
                         free_all_var() ;
                         state = S_LOGGED ;
                         return 0 ;
                     } else if ( retcode > 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"%s",logmessage) ;
+                        bbftpd_log(BBFTPD_ERR,"%s",logmessage) ;
                         reply(MSG_BAD,logmessage) ;
                         free_all_var() ;
                         state = S_LOGGED ;
@@ -434,7 +434,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                                 sscanf(lastaccess,"%08lx",&ul); ftime.actime = ul;
                                 sscanf(lastmodif,"%08lx",&ul); ftime.modtime = ul;;
                                 if ( bbftpd_storeutime(realfilename,&ftime,logmessage) < 0 ) {
-                                    bbftpd_syslog(BBFTPD_ERR, "%s", logmessage) ;
+                                    bbftpd_log(BBFTPD_ERR, "%s", logmessage) ;
                                     bbftpd_storeunlink(realfilename) ;
                                     reply(MSG_BAD,logmessage) ;
                                     free_all_var() ;
@@ -444,7 +444,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                            }
                            if ( (transferoption & TROPT_MODE ) == TROPT_MODE ) {
                                 if ( bbftpd_storechmod(realfilename,filemode,logmessage) < 0 ) {
-                                    bbftpd_syslog(BBFTPD_ERR, "%s", logmessage) ;
+                                    bbftpd_log(BBFTPD_ERR, "%s", logmessage) ;
                                     bbftpd_storeunlink(realfilename) ;
                                     reply(MSG_BAD,logmessage) ;
                                     free_all_var() ;
@@ -454,7 +454,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                             }
                             if ( (transferoption & TROPT_TMP ) == TROPT_TMP ) {
                                 if ( bbftpd_storerename(realfilename,curfilename,logmessage) < 0 ) {
-                                    bbftpd_syslog(BBFTPD_ERR, "%s", logmessage) ;
+                                    bbftpd_log(BBFTPD_ERR, "%s", logmessage) ;
                                     bbftpd_storeunlink(realfilename) ;
                                     reply(MSG_BAD,logmessage) ;
                                     free_all_var() ;
@@ -473,7 +473,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                             if ( (myports = (int *) malloc (requestedstreamnumber*sizeof(int))) == NULL ) {
                                 bbftpd_storeunlink(realfilename) ;
                                 free_all_var() ;
-                                bbftpd_syslog(BBFTPD_ERR,"Unable to allocate memory for myports") ;
+                                bbftpd_log(BBFTPD_ERR,"Unable to allocate memory for myports") ;
                                 sprintf(logmessage,"Unable to allocate memory for myports") ;
                                 reply(MSG_BAD,logmessage) ;
                                 state = S_LOGGED ;
@@ -485,7 +485,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                             if ( (mychildren = (int *) malloc (requestedstreamnumber*sizeof(int))) == NULL) {
                                 bbftpd_storeunlink(realfilename) ;
                                 free_all_var() ;
-                                bbftpd_syslog(BBFTPD_ERR,"Unable to allocate memory for mychildren") ;
+                                bbftpd_log(BBFTPD_ERR,"Unable to allocate memory for mychildren") ;
                                 sprintf(logmessage,"Unable to allocate memory for mychildren") ;
                                 reply(MSG_BAD,logmessage) ;
                                 state = S_LOGGED ;
@@ -497,7 +497,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                             if ( (readbuffer = (char *) malloc (buffersizeperstream*1024)) == NULL) {
                                 bbftpd_storeunlink(realfilename) ;
                                 free_all_var() ;
-                                bbftpd_syslog(BBFTPD_ERR,"Unable to allocate memory for readbuffer") ;
+                                bbftpd_log(BBFTPD_ERR,"Unable to allocate memory for readbuffer") ;
                                 sprintf(logmessage,"Unable to allocate memory for readbuffer") ;
                                 reply(MSG_BAD,logmessage) ;
                                 state = S_LOGGED ;
@@ -511,7 +511,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                                 if ( (compbuffer = (char *) malloc (buffersizeperstream*1024)) == NULL) {
                                     bbftpd_storeunlink(realfilename) ;
                                     free_all_var() ;
-                                    bbftpd_syslog(BBFTPD_ERR,"Unable to allocate memory for compbuffer") ;
+                                    bbftpd_log(BBFTPD_ERR,"Unable to allocate memory for compbuffer") ;
                                     sprintf(logmessage,"Unable to allocate memory for compbuffer") ;
                                     reply(MSG_BAD,logmessage) ;
                                     state = S_LOGGED ;
@@ -520,7 +520,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                             }
                             if ( (receive_buffer = (char *) malloc (STORMESSLEN_V2)) == NULL ) {
                                 bbftpd_storeunlink(realfilename) ;
-                                bbftpd_syslog(BBFTPD_ERR,"Error allocating memory for MSG_TRANS_OK_V2 : %s",strerror(errno)) ;
+                                bbftpd_log(BBFTPD_ERR,"Error allocating memory for MSG_TRANS_OK_V2 : %s",strerror(errno)) ;
                                 free_all_var() ;
                                 sprintf(logmessage,"Unable to allocate memory for message MSG_TRANS_OK_V2") ;
                                 reply(MSG_BAD,logmessage) ;
@@ -539,7 +539,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                             msg->msglen = STORMESSLEN_V2 ;
 #endif
                             if ( writemessage(outcontrolsock,receive_buffer,MINMESSLEN,sendcontrolto) < 0 ) {
-                                bbftpd_syslog(BBFTPD_ERR,"Error wtiting MSG_TRANS_OK_V2 first part") ;
+                                bbftpd_log(BBFTPD_ERR,"Error wtiting MSG_TRANS_OK_V2 first part") ;
                                 bbftpd_storeunlink(realfilename) ;
                                 free_all_var() ;
                                 FREE(receive_buffer) ;
@@ -575,7 +575,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                             msg_store_v2->filesize             = filesize ;
 #endif
                             if ( writemessage(outcontrolsock,receive_buffer,STORMESSLEN_V2,sendcontrolto) < 0 ) {
-                                bbftpd_syslog(BBFTPD_ERR,"Error wtiting MSG_TRANS_OK_V2 second part") ;
+                                bbftpd_log(BBFTPD_ERR,"Error wtiting MSG_TRANS_OK_V2 second part") ;
                                 bbftpd_storeunlink(realfilename) ;
                                 free_all_var() ;
                                 FREE(receive_buffer) ;
@@ -587,14 +587,14 @@ static int readcontrol_v2 (int msgcode,int msglen)
                               ** We are reserving the memory for the ports
                               */
                               if ( (mysockets = (int *) malloc (requestedstreamnumber*sizeof(int))) == NULL ) {
-                                bbftpd_syslog(BBFTPD_ERR,"Error allocating space for sockets") ;
+                                bbftpd_log(BBFTPD_ERR,"Error allocating space for sockets") ;
                                 bbftpd_storeunlink(realfilename) ;
                                 free_all_var() ;
                                 FREE(receive_buffer) ;
                                 return -1 ;
                               }
                               if ( bbftpd_getdatasock(requestedstreamnumber) < 0 ) {
-                                bbftpd_syslog(BBFTPD_ERR,"Error creating data sockets") ;
+                                bbftpd_log(BBFTPD_ERR,"Error creating data sockets") ;
                                 bbftpd_storeunlink(realfilename) ;
                                 free_all_var() ;
                                 FREE(receive_buffer) ;
@@ -609,9 +609,9 @@ static int readcontrol_v2 (int msgcode,int msglen)
                                 *portfree++ = *porttosend++ ;
 #endif
                               }
-/*          bbftpd_syslog(BBFTPD_INFO,"Port=%d,socket=%d\n",*myports,*mysockets) ;*/
+/*          bbftpd_log(BBFTPD_INFO,"Port=%d,socket=%d\n",*myports,*mysockets) ;*/
                               if ( writemessage(outcontrolsock,receive_buffer,requestedstreamnumber*sizeof(int),sendcontrolto) < 0) {
-                                bbftpd_syslog(BBFTPD_ERR,"Error writing MSG_TRANS_OK_V3 (ports)") ;
+                                bbftpd_log(BBFTPD_ERR,"Error writing MSG_TRANS_OK_V3 (ports)") ;
                                 bbftpd_storeunlink(realfilename) ;
                                 free_all_var() ;
                                 FREE(receive_buffer) ;
@@ -625,7 +625,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                     }
                 }
                 default :{
-                    bbftpd_syslog(BBFTPD_ERR,"Unkown message in S_WAITING_FILENAME_STORE state : %d",msgcode) ;
+                    bbftpd_log(BBFTPD_ERR,"Unkown message in S_WAITING_FILENAME_STORE state : %d",msgcode) ;
                     return -1 ;
                 }
             }
@@ -638,34 +638,34 @@ static int readcontrol_v2 (int msgcode,int msglen)
            case S_WAITING_FILENAME_RETR : {
             switch (msgcode) {
                 case MSG_FILENAME :{
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_FILENAME in S_WAITING_FILENAME_RETR state") ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_FILENAME in S_WAITING_FILENAME_RETR state") ;
                     if ( msglen == 0 ) {
-                         bbftpd_syslog(BBFTPD_ERR,"Filename length null") ;
+                         bbftpd_log(BBFTPD_ERR,"Filename length null") ;
                          return -1 ;
                     }
                     if ( (curfilename = (char *) malloc (msglen+1)) == NULL ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error allocating memory for filename : %s",strerror(errno)) ;
+                        bbftpd_log(BBFTPD_ERR,"Error allocating memory for filename : %s",strerror(errno)) ;
                         return -1 ;
                     }
                     if ( readmessage(incontrolsock,curfilename,msglen,recvcontrolto) < 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error reading filename") ;
+                        bbftpd_log(BBFTPD_ERR,"Error reading filename") ;
                         free_all_var() ;
                         return -1 ;
                     }
                     curfilename[msglen] = '\0' ;
                     curfilenamelen = msglen ;
-                    bbftpd_syslog(BBFTPD_DEBUG,"Request to retreive file %s",curfilename) ;
+                    bbftpd_log(BBFTPD_DEBUG,"Request to retreive file %s",curfilename) ;
                     /*
                     ** Create the file
                     */
                     if ( (retcode = bbftpd_retrcheckfile(curfilename,logmessage)) < 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR, "%s", logmessage) ;
+                        bbftpd_log(BBFTPD_ERR, "%s", logmessage) ;
                         reply(MSG_BAD_NO_RETRY,logmessage) ;
                         free_all_var() ;
                         state = S_LOGGED ;
                         return 0 ;
                     } else if ( retcode > 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR, "%s", logmessage) ;
+                        bbftpd_log(BBFTPD_ERR, "%s", logmessage) ;
                         reply(MSG_BAD,logmessage) ;
                         free_all_var() ;
                         state = S_LOGGED ;
@@ -677,7 +677,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                             */
                             if ( (myports = (int *) malloc (requestedstreamnumber*sizeof(int))) == NULL ) {
                                 free_all_var() ;
-                                bbftpd_syslog(BBFTPD_ERR,"Unable to allocate memory for myports") ;
+                                bbftpd_log(BBFTPD_ERR,"Unable to allocate memory for myports") ;
                                 sprintf(logmessage,"Unable to allocate memory for myports") ;
                                 reply(MSG_BAD,logmessage) ;
                                 state = S_LOGGED ;
@@ -688,7 +688,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                             */
                             if ( (mychildren = (int *) malloc (requestedstreamnumber*sizeof(int))) == NULL) {
                                 free_all_var() ;
-                                bbftpd_syslog(BBFTPD_ERR,"Unable to allocate memory for mychildren") ;
+                                bbftpd_log(BBFTPD_ERR,"Unable to allocate memory for mychildren") ;
                                 sprintf(logmessage,"Unable to allocate memory for mychildren") ;
                                 reply(MSG_BAD,logmessage) ;
                                 state = S_LOGGED ;
@@ -699,7 +699,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                             */
                             if ( (readbuffer = (char *) malloc (buffersizeperstream*1024)) == NULL) {
                                 free_all_var() ;
-                                bbftpd_syslog(BBFTPD_ERR,"Unable to allocate memory for readbuffer") ;
+                                bbftpd_log(BBFTPD_ERR,"Unable to allocate memory for readbuffer") ;
                                 sprintf(logmessage,"Unable to allocate memory for readbuffer") ;
                                 reply(MSG_BAD,logmessage) ;
                                 state = S_LOGGED ;
@@ -713,7 +713,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
 #ifdef WITH_GZIP
                                 if ( (compbuffer = (char *) malloc (buffersizeperstream*1024)) == NULL) {
                                     free_all_var() ;
-                                    bbftpd_syslog(BBFTPD_ERR,"Unable to allocate memory for compbuffer") ;
+                                    bbftpd_log(BBFTPD_ERR,"Unable to allocate memory for compbuffer") ;
                                     sprintf(logmessage,"Unable to allocate memory for compbuffer") ;
                                     reply(MSG_BAD,logmessage) ;
                                     state = S_LOGGED ;
@@ -725,7 +725,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                             }
                         }
                         if ( (receive_buffer = (char *) malloc (STORMESSLEN_V2)) == NULL ) {
-                            bbftpd_syslog(BBFTPD_ERR,"Error allocating memory for MSG_TRANS_OK_V2 : %s",strerror(errno)) ;
+                            bbftpd_log(BBFTPD_ERR,"Error allocating memory for MSG_TRANS_OK_V2 : %s",strerror(errno)) ;
                             free_all_var() ;
                             sprintf(logmessage,"Unable to allocate memory for message MSG_TRANS_OK_V2") ;
                             reply(MSG_BAD,logmessage) ;
@@ -744,7 +744,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                         msg->msglen = STORMESSLEN_V2 ;
 #endif
                         if ( writemessage(outcontrolsock,receive_buffer,MINMESSLEN,sendcontrolto) < 0 ) {
-                            bbftpd_syslog(BBFTPD_ERR,"Error writing MSG_TRANS_OK_V2 first part") ;
+                            bbftpd_log(BBFTPD_ERR,"Error writing MSG_TRANS_OK_V2 first part") ;
                             free_all_var() ;
                             FREE(receive_buffer) ;
                             return -1 ;
@@ -779,7 +779,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                         msg_store_v2->filesize             = filesize ;
 #endif
                         if ( writemessage(outcontrolsock,receive_buffer,STORMESSLEN_V2,sendcontrolto) < 0 ) {
-                            bbftpd_syslog(BBFTPD_ERR,"Error writing MSG_TRANS_OK_V2 second part") ;
+                            bbftpd_log(BBFTPD_ERR,"Error writing MSG_TRANS_OK_V2 second part") ;
                             bbftpd_storeunlink(realfilename) ;
                             free_all_var() ;
                             FREE(receive_buffer) ;
@@ -789,7 +789,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
 	                    char statmessage[1024];
                             state = S_WAITING_CREATE_ZERO ;
                             sprintf(statmessage,"GET %s %s 0 0 0.0 0.0", currentusername, curfilename);
-                            bbftpd_syslog(BBFTPD_NOTICE,"%s",statmessage);
+                            bbftpd_log(BBFTPD_NOTICE,"%s",statmessage);
                             free_all_var() ;
                         } else {
                             /* PASSIVE MODE: send ports */
@@ -798,14 +798,14 @@ static int readcontrol_v2 (int msgcode,int msglen)
                               ** We are reserving the memory for the ports
                               */
                               if ( (mysockets = (int *) malloc (requestedstreamnumber*sizeof(int))) == NULL ) {
-                                bbftpd_syslog(BBFTPD_ERR,"Error allocating space for sockets") ;
+                                bbftpd_log(BBFTPD_ERR,"Error allocating space for sockets") ;
                                 bbftpd_storeunlink(realfilename) ;
                                 free_all_var() ;
                                 FREE(receive_buffer) ;
                                 return -1 ;
                               }
                               if ( bbftpd_getdatasock(requestedstreamnumber) < 0 ) {
-                                bbftpd_syslog(BBFTPD_ERR,"Error creating data sockets") ;
+                                bbftpd_log(BBFTPD_ERR,"Error creating data sockets") ;
                                 bbftpd_storeunlink(realfilename) ;
                                 free_all_var() ;
                                 FREE(receive_buffer) ;
@@ -820,9 +820,9 @@ static int readcontrol_v2 (int msgcode,int msglen)
                                 *portfree++ = *porttosend++ ;
 #endif
                               }
-/*          bbftpd_syslog(BBFTPD_INFO,"Port=%d,socket=%d\n",*myports,*mysockets) ;*/
+/*          bbftpd_log(BBFTPD_INFO,"Port=%d,socket=%d\n",*myports,*mysockets) ;*/
                               if ( writemessage(outcontrolsock,receive_buffer,requestedstreamnumber*sizeof(int),sendcontrolto) < 0) {
-                                bbftpd_syslog(BBFTPD_ERR,"Error writing MSG_TRANS_OK_V3 (ports)") ;
+                                bbftpd_log(BBFTPD_ERR,"Error writing MSG_TRANS_OK_V3 (ports)") ;
                                 bbftpd_storeunlink(realfilename) ;
                                 free_all_var() ;
                                 FREE(receive_buffer) ;
@@ -836,7 +836,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                     }
                 }
                 default :{
-                    bbftpd_syslog(BBFTPD_ERR,"Unkown message in S_WAITING_FILENAME state : %d",msgcode) ;
+                    bbftpd_log(BBFTPD_ERR,"Unkown message in S_WAITING_FILENAME state : %d",msgcode) ;
                     return -1 ;
                 }
             }
@@ -856,12 +856,12 @@ static int readcontrol_v2 (int msgcode,int msglen)
                 case MSG_TRANS_START_V3 :
                 case MSG_TRANS_SIMUL_V3 :{
                     int simulation = ((msgcode == MSG_TRANS_SIMUL) || (msgcode == MSG_TRANS_SIMUL_V3)?1:0);
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_TRANS_START_V2") ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_TRANS_START_V2") ;
                     if ( (unsigned long)msglen != requestedstreamnumber * sizeof(int)) {
                         bbftpd_storeunlink(realfilename) ;
                         free_all_var() ;
                         reply(MSG_BAD,"Inconsistency between MSG_TRANS_START_V2 and message length") ;
-                        bbftpd_syslog(BBFTPD_ERR,"Inconsistency between MSG_TRANS_START_V2 and message length") ;
+                        bbftpd_log(BBFTPD_ERR,"Inconsistency between MSG_TRANS_START_V2 and message length") ;
                         return -1 ;
                     }
                     if (msgcode == MSG_TRANS_START_V2 || msgcode == MSG_TRANS_SIMUL) { /* ACTIVE MODE */
@@ -871,7 +871,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                       if ( readmessage(incontrolsock,(char *) myports,msglen,recvcontrolto) < 0 ) {
                         bbftpd_storeunlink(realfilename) ;
                         free_all_var() ;
-                        bbftpd_syslog(BBFTPD_ERR,"Error reading MSG_TRANS_START_V2") ;
+                        bbftpd_log(BBFTPD_ERR,"Error reading MSG_TRANS_START_V2") ;
                         return -1 ;
                       } else {
 #ifndef WORDS_BIGENDIAN
@@ -911,14 +911,14 @@ static int readcontrol_v2 (int msgcode,int msglen)
                     return -1 ;
                 }
                 case MSG_ABORT : {
-                    bbftpd_syslog(BBFTPD_ERR,"Receive ABORT message") ;
+                    bbftpd_log(BBFTPD_ERR,"Receive ABORT message") ;
                     bbftpd_storeunlink(realfilename) ;
                     free_all_var() ;
                     state = S_LOGGED ;
                     return 0 ;
                 }
                 default :{
-                    bbftpd_syslog(BBFTPD_ERR,"Unkown message in S_WAITING_STORE_START state : %d",msgcode) ;
+                    bbftpd_log(BBFTPD_ERR,"Unkown message in S_WAITING_STORE_START state : %d",msgcode) ;
                     bbftpd_storeunlink(realfilename) ;
                     free_all_var() ;
                     return -1 ;
@@ -934,17 +934,17 @@ static int readcontrol_v2 (int msgcode,int msglen)
         case S_WAITING_CREATE_ZERO : {
              switch (msgcode) {
                 case MSG_CREATE_ZERO : {
-                    bbftpd_syslog(BBFTPD_ERR,"Receive MSG_CREATE_ZERO message ") ;
+                    bbftpd_log(BBFTPD_ERR,"Receive MSG_CREATE_ZERO message ") ;
                     state = S_LOGGED ;
                     return 0 ;
                 }
                 case MSG_ABORT : {
-                    bbftpd_syslog(BBFTPD_ERR,"Receive ABORT message") ;
+                    bbftpd_log(BBFTPD_ERR,"Receive ABORT message") ;
                     state = S_LOGGED ;
                     return 0 ;
                 }
                 default :{
-                    bbftpd_syslog(BBFTPD_ERR,"Unkown message in S_WAITING_CREATE_ZERO state : %d",msgcode) ;
+                    bbftpd_log(BBFTPD_ERR,"Unkown message in S_WAITING_CREATE_ZERO state : %d",msgcode) ;
                     return -1 ;
                 }
             }
@@ -963,11 +963,11 @@ static int readcontrol_v2 (int msgcode,int msglen)
                 case MSG_TRANS_START_V3 :
                 case MSG_TRANS_SIMUL_V3 :{
                     int simulation = ((msgcode == MSG_TRANS_SIMUL) || (msgcode == MSG_TRANS_SIMUL_V3)?1:0);
-                    bbftpd_syslog(BBFTPD_DEBUG,"Receiving MSG_TRANS_START_V2") ;
+                    bbftpd_log(BBFTPD_DEBUG,"Receiving MSG_TRANS_START_V2") ;
                     if ( (unsigned long) msglen != requestedstreamnumber*sizeof(int)) {
                         free_all_var() ;
                         reply(MSG_BAD,"Inconsistency between MSG_TRANS_START_V2 and message length") ;
-                        bbftpd_syslog(BBFTPD_ERR,"Inconsistency between MSG_TRANS_START_V2 and message length") ;
+                        bbftpd_log(BBFTPD_ERR,"Inconsistency between MSG_TRANS_START_V2 and message length") ;
                         return -1 ;
                     }
                     if (msgcode == MSG_TRANS_START_V2 || msgcode == MSG_TRANS_SIMUL) { /* ACTIVE MODE */
@@ -976,7 +976,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                       */
                       if ( readmessage(incontrolsock,(char *) myports,msglen,recvcontrolto) < 0 ) {
                         free_all_var() ;
-                        bbftpd_syslog(BBFTPD_ERR,"Error reading MSG_TRANS_START_V2") ;
+                        bbftpd_log(BBFTPD_ERR,"Error reading MSG_TRANS_START_V2") ;
                         return -1 ;
                       } else {
 #ifndef WORDS_BIGENDIAN
@@ -1002,7 +1002,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
                         /*
                         ** Something goes wrong
                         */
-                        bbftpd_syslog(BBFTPD_ERR,"retrtransferfile retcode > 0") ;
+                        bbftpd_log(BBFTPD_ERR,"retrtransferfile retcode > 0") ;
                         free_all_var() ;
                         state = S_LOGGED ;
                         return 0 ;
@@ -1010,19 +1010,19 @@ static int readcontrol_v2 (int msgcode,int msglen)
                     /*
                     ** 
                     */
-                    bbftpd_syslog(BBFTPD_ERR,"retrtransferfile retcode < 0") ;
+                    bbftpd_log(BBFTPD_ERR,"retrtransferfile retcode < 0") ;
                     free_all_var() ;
                     state = S_LOGGED ;
                     return -1 ;
                 }
                 case MSG_ABORT : {
-                    bbftpd_syslog(BBFTPD_ERR,"Receive ABORT message") ;
+                    bbftpd_log(BBFTPD_ERR,"Receive ABORT message") ;
                     free_all_var() ;
                     state = S_LOGGED ;
                     return 0 ;
                 }
                 default :{
-                    bbftpd_syslog(BBFTPD_ERR,"Unkown message in S_WAITING_RETR_START state : %d",msgcode) ;
+                    bbftpd_log(BBFTPD_ERR,"Unkown message in S_WAITING_RETR_START state : %d",msgcode) ;
                     return -1 ;
                 }
             }
@@ -1033,11 +1033,11 @@ static int readcontrol_v2 (int msgcode,int msglen)
         case S_SENDING : {
               switch (msgcode) {
                 case MSG_ABORT :{
-                    bbftpd_syslog(BBFTPD_ERR,"Receive MSG_ABORT while sending") ;
+                    bbftpd_log(BBFTPD_ERR,"Receive MSG_ABORT while sending") ;
                     return -1 ;
                 }
                 default :{
-                    bbftpd_syslog(BBFTPD_ERR,"Unkown message in S_SENDING state: %d",msgcode) ;
+                    bbftpd_log(BBFTPD_ERR,"Unkown message in S_SENDING state: %d",msgcode) ;
                     return -1 ;
                 }    
             }
@@ -1045,13 +1045,13 @@ static int readcontrol_v2 (int msgcode,int msglen)
         case S_RECEIVING : {
               switch (msgcode) {
                 case MSG_ABORT :{
-                    bbftpd_syslog(BBFTPD_ERR,"Receive MSG_ABORT while receiving") ;
+                    bbftpd_log(BBFTPD_ERR,"Receive MSG_ABORT while receiving") ;
                     bbftpd_storeclosecastfile(realfilename,logmessage) ;
                     bbftpd_storeunlink(realfilename) ;
                     return -1 ;
                 }
                 default :{
-                    bbftpd_syslog(BBFTPD_ERR,"Unkown message in S_RECEIVING state : %d",msgcode) ;
+                    bbftpd_log(BBFTPD_ERR,"Unkown message in S_RECEIVING state : %d",msgcode) ;
                     bbftpd_storeclosecastfile(realfilename,logmessage) ;
                     bbftpd_storeunlink(realfilename) ;
                     return -1 ;
@@ -1062,7 +1062,7 @@ static int readcontrol_v2 (int msgcode,int msglen)
         ** Any other state
         */
         default : {
-            bbftpd_syslog(BBFTPD_ERR,"Receive message in state %d",state) ;
+            bbftpd_log(BBFTPD_ERR,"Receive message in state %d",state) ;
             return -1 ;
         }
     }
@@ -1138,7 +1138,7 @@ int bbftp_run_protocol_2 (void)
 	  }
 
 	/* Otherwise there is input on the channel */
-	if (-1 == bbftpd_msgrecv_msg (&msg))
+	if (-1 == bbftpd_msgread_msg (&msg))
 	  {
 	     if ( state == S_WAITING_STORE_START  || state == S_RECEIVING) 
 	       {

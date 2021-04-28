@@ -102,29 +102,29 @@ int bbftpd_cert_receive_connection(int msglen)
         strcat(logmessage, " : ");
         strcat(logmessage, messages->msg);
         while (messages != NULL) {
-            bbftpd_syslog(BBFTPD_ERR,"gfw_accept_sec_context failed: %s", messages->msg) ;
+            bbftpd_log(BBFTPD_ERR,"gfw_accept_sec_context failed: %s", messages->msg) ;
             messages = messages->next;
         }
         reply(MSG_BAD_NO_RETRY,logmessage) ;
         return -1;
 	}
 	
-    bbftpd_syslog(BBFTPD_INFO,"Checked certificate : \"%s\"",(char *)client_name.value) ;
+    bbftpd_log(BBFTPD_INFO,"Checked certificate : \"%s\"",(char *)client_name.value) ;
 	/*
 	** Map cert with local user
 	*/
 	if (globus_gss_assist_gridmap((char *)client_name.value, &username) != 0) {
-        bbftpd_syslog(BBFTPD_ERR,"mapping failed for: %s",(char *)client_name.value) ;
+        bbftpd_log(BBFTPD_ERR,"mapping failed for: %s",(char *)client_name.value) ;
 		strcat(logmessage, " : grid mapping failed");
         reply(MSG_BAD_NO_RETRY,logmessage) ;
         return -1 ;
 	}
-	bbftpd_syslog(BBFTPD_INFO, "Mapfile user is:%s", username);
+	bbftpd_log(BBFTPD_INFO, "Mapfile user is:%s", username);
     /*
     ** Here we check the username and pass and set the default dir
     */
     if ( (uspass = getpwnam(username)) == NULL ) {
-        bbftpd_syslog(BBFTPD_ERR,"%s is not a local user",username) ;
+        bbftpd_log(BBFTPD_ERR,"%s is not a local user",username) ;
         strcat(logmessage," : You need an account on the server") ;
         reply(MSG_BAD_NO_RETRY,logmessage) ;
         return -1 ;
@@ -133,21 +133,21 @@ int bbftpd_cert_receive_connection(int msglen)
     ** Set the uid and gid of the process
     */
     if ( setgid(uspass->pw_gid) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error setgid user %s : %s",username,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error setgid user %s : %s",username,strerror(errno)) ;
         strcat(logmessage," : Cannot set gid: ") ;
 	strcat(logmessage,strerror(errno));
         reply(MSG_BAD,logmessage) ;
         return -1 ;
     }
     if ( setuid(uspass->pw_uid) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error setuid user %s : %s",username,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error setuid user %s : %s",username,strerror(errno)) ;
         strcat(logmessage," : Cannot set uid: ") ;
 	strcat(logmessage,strerror(errno));
         reply(MSG_BAD,logmessage) ;
         return -1 ;
     }
     if ( uspass->pw_dir == NULL ) {
-        bbftpd_syslog(BBFTPD_ERR,"No home directory for user %s : %s",username,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"No home directory for user %s : %s",username,strerror(errno)) ;
         strcat(logmessage," : You need a home directory on the server") ;
         reply(MSG_BAD,logmessage) ;
         return -1 ;
@@ -158,20 +158,20 @@ int bbftpd_cert_receive_connection(int msglen)
     */
     if ( chdir(uspass->pw_dir) < 0) {
         if ( errno == EACCES) {
-            bbftpd_syslog(BBFTPD_WARNING,"Permission denied on user %s home directory: using /tmp",username) ;
+            bbftpd_log(BBFTPD_WARNING,"Permission denied on user %s home directory: using /tmp",username) ;
             if ( chdir("/tmp") < 0) {
-                bbftpd_syslog(BBFTPD_ERR,"Cannot cd into /tmp: %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"Cannot cd into /tmp: %s",strerror(errno)) ;
                 strcat(logmessage," : Cannot access home directory nor /tmp") ;
                 reply(MSG_BAD,logmessage) ;
                 return -1 ;
             }
             strcat(logmessage," : Home directory not accessible, /tmp used instead") ;
-            bbftpd_syslog(BBFTPD_INFO,"User %s connected",username) ;
+            bbftpd_log(BBFTPD_INFO,"User %s connected",username) ;
             strcpy(currentusername,username) ;
             reply(MSG_WARN,logmessage) ;
             return 1 ;
         } else {
-            bbftpd_syslog(BBFTPD_ERR,"Cannot cd into user %s home directory: %s",username,strerror(errno)) ;
+            bbftpd_log(BBFTPD_ERR,"Cannot cd into user %s home directory: %s",username,strerror(errno)) ;
             strcat(logmessage," : Cannot access home directory: ") ;
 	    strcat(logmessage,strerror(errno));
             reply(MSG_BAD,logmessage) ;
@@ -179,7 +179,7 @@ int bbftpd_cert_receive_connection(int msglen)
         }
     }
                 
-    bbftpd_syslog(BBFTPD_INFO,"User %s connected",username) ;
+    bbftpd_log(BBFTPD_INFO,"User %s connected",username) ;
     strcpy(currentusername,username) ;
     return 0 ;
 }

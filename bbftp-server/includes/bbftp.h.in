@@ -20,6 +20,9 @@
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  */ 
 
+#ifndef BBFTP_H_INCLUDED_
+#define BBFTP_H_INCLUDED_
+
 /****************************************************************************
 
   
@@ -309,3 +312,4 @@
 
 #include <port_sys.h>
 
+#endif				       /* BBFTP_H_INCLUDED_ */

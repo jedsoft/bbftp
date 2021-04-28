@@ -125,7 +125,7 @@ char *bbftpd_strcat (const char *a, const char *b)
    lenb = strlen(b);
    if (NULL == (c = (char *)malloc (lena+lenb+1)))
      {
-	bbftpd_syslog(BBFTPD_ERR, "Unable to allocate space for strcat\n");
+	bbftpd_log(BBFTPD_ERR, "Unable to allocate space for strcat\n");
 	return NULL;
      }
    memcpy (c, a, lena);
@@ -146,20 +146,20 @@ char *bbftpd_read_file (const char *file, size_t *sizep)
      {
 	if (errno == EINTR) continue;
 
-	bbftpd_syslog (BBFTPD_ERR, "Error opening file (%s) : %s \n", file, strerror(errno));
+	bbftpd_log (BBFTPD_ERR, "Error opening file (%s) : %s \n", file, strerror(errno));
 	return NULL;
      }
 
    if (-1 == fstat (fd, &st))
      {
-	bbftpd_syslog (BBFTPD_ERR, "Unable to stat (%s) : %s \n", file, strerror(errno));
+	bbftpd_log (BBFTPD_ERR, "Unable to stat (%s) : %s \n", file, strerror(errno));
 	(void) close (fd);
 	return NULL;
      }
 
    if (NULL == (buf = (char *) malloc(1+st.st_size)))
      {
-	bbftpd_syslog (BBFTPD_ERR, "Unable to allocate space to read file (%s)\n", file);
+	bbftpd_log (BBFTPD_ERR, "Unable to allocate space to read file (%s)\n", file);
 	(void) close (fd);
 	return NULL;
      }
@@ -175,7 +175,7 @@ char *bbftpd_read_file (const char *file, size_t *sizep)
 	       continue;
 
 	     free (buf);
-	     bbftpd_syslog(BBFTPD_ERR, "Error reading file (%s): %s\n", file, strerror(errno));
+	     bbftpd_log(BBFTPD_ERR, "Error reading file (%s): %s\n", file, strerror(errno));
 	  }
 	nread += dn;
 	if (dn == 0)

@@ -928,7 +928,7 @@ int bbftpd_storecreatefile_rfio(char *filename, char *logmessage)
         }
         rfio_close(fd) ;
         sprintf(statmessage,"PUT %s %s 0 0 0.0 0.0", currentusername, filepath);
-        bbftpd_syslog(BBFTPD_NOTICE,statmessage);
+        bbftpd_log(BBFTPD_NOTICE,statmessage);
         FREE(filepath) ;
         return 0 ;
     }
@@ -1146,7 +1146,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
             i = 57 ;
         }
         sprintf(logmessage,"Error creation file %s : %s ",filename,rfio_serror()) ;
-        bbftpd_syslog(BBFTPD_ERR,"Error creation file %s : %s ",filename,rfio_serror()) ;
+        bbftpd_log(BBFTPD_ERR,"Error creation file %s : %s ",filename,rfio_serror()) ;
         /*
         ** We tell the client not to retry in the following case (even in waiting
         ** WAITRETRYTIME the problem will not be solved) :
@@ -1192,7 +1192,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                 */
                 i = 57 ;
             }
-            bbftpd_syslog(BBFTPD_ERR,"Error stating file %s : %s ",filename,rfio_serror()) ;
+            bbftpd_log(BBFTPD_ERR,"Error stating file %s : %s ",filename,rfio_serror()) ;
             close(recsock) ;
             exit(i) ;
         }
@@ -1203,7 +1203,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
             fprintf(stdout,"**In storetransferfile_rfio : HsmIf_FindPhysicalPath(filename,&castfilename) (%s)\n",filename) ;
         }
         if (  rfio_HsmIf_FindPhysicalPath(filename,&castfilename) == 0 ) {
-            bbftpd_syslog(BBFTPD_ERR,"Error finding castor physical path %s : %s ",filename,rfio_serror()) ;
+            bbftpd_log(BBFTPD_ERR,"Error finding castor physical path %s : %s ",filename,rfio_serror()) ;
             sprintf(logmessage,"Error finding castor physical path %s : %s ",filename,rfio_serror()) ;
             if ( debug ) {
                 fprintf(stdout,"**In storecreatefile_rfio : rfio_close(castfd) (%s)\n",fd) ;
@@ -1240,7 +1240,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
             i = 57 ;
         }
         sprintf(logmessage,"Error writing file %s : %s ",filename,rfio_serror()) ;
-        bbftpd_syslog(BBFTPD_ERR,"Error writing file %s : %s ",filename,rfio_serror()) ;
+        bbftpd_log(BBFTPD_ERR,"Error writing file %s : %s ",filename,rfio_serror()) ;
         if ( debug ) {
             fprintf(stdout,"**In storetransferfile_rfio : rfio_close(fd) (%d)\n",fd) ;
         }
@@ -1329,7 +1329,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                 select(nfds2,0,0,0,&wait_timer) ;
                 waitedtime = waitedtime + 1 ;
             }
-            bbftpd_syslog(BBFTPD_DEBUG,"Child %d starting",getpid()) ;
+            bbftpd_log(BBFTPD_DEBUG,"Child %d starting",getpid()) ;
             /*
             ** Close all unnecessary stuff
             */
@@ -1380,9 +1380,9 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                     i = 57 ;
                 }
 #ifdef CASTOR
-                bbftpd_syslog(BBFTPD_ERR,"Error stating file %s : %s ",castfilename,rfio_serror()) ;
+                bbftpd_log(BBFTPD_ERR,"Error stating file %s : %s ",castfilename,rfio_serror()) ;
 #else 
-                bbftpd_syslog(BBFTPD_ERR,"Error stating file %s : %s ",filename,rfio_serror()) ;
+                bbftpd_log(BBFTPD_ERR,"Error stating file %s : %s ",filename,rfio_serror()) ;
 #endif
                 close(recsock) ;
                 exit(i) ;
@@ -1423,9 +1423,9 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                     i = 57 ;
                 }
 #ifdef CASTOR
-                bbftpd_syslog(BBFTPD_ERR,"Error opening file %s : %s ",castfilename,rfio_serror()) ;
+                bbftpd_log(BBFTPD_ERR,"Error opening file %s : %s ",castfilename,rfio_serror()) ;
 #else 
-                bbftpd_syslog(BBFTPD_ERR,"Error opening file %s : %s ",filename,rfio_serror()) ;
+                bbftpd_log(BBFTPD_ERR,"Error opening file %s : %s ",filename,rfio_serror()) ;
 #endif
                 /*
                 ** At this point a non recoverable error is 
@@ -1461,7 +1461,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                     */
                     i = 57 ;
                 }
-                bbftpd_syslog(BBFTPD_ERR,"error seeking file : %s",rfio_serror()) ;
+                bbftpd_log(BBFTPD_ERR,"error seeking file : %s",rfio_serror()) ;
                 if ( debug ) {
                     fprintf(stdout,"**In storetransferfile_rfio : rfio_close(fd) (%s)\n",fd) ;
                 }
@@ -1473,7 +1473,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
               if ( (ns = accept(recsock,0,0) ) < 0 ) {
                 i = errno ;
                 rfio_close(fd) ;
-                bbftpd_syslog(BBFTPD_ERR,"Error accept socket : %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"Error accept socket : %s",strerror(errno)) ;
                 close(recsock) ;
                 exit(i)  ;
               }
@@ -1493,7 +1493,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                     ** Receive the header first 
                     */
                     if (readmessage(ns,readbuffer,COMPMESSLEN,datato) < 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error reading compression header") ;
+                        bbftpd_log(BBFTPD_ERR,"Error reading compression header") ;
                         if ( debug ) {
                             fprintf(stdout,"**In storetransferfile_rfio : rfio_close(fd) (%s)\n",fd) ;
                         }
@@ -1536,7 +1536,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                         ** Select error
                         */
                         i = errno ;
-                        bbftpd_syslog(BBFTPD_ERR,"Error select while receiving : %s",strerror(errno)) ;
+                        bbftpd_log(BBFTPD_ERR,"Error select while receiving : %s",strerror(errno)) ;
                         if ( debug ) {
                             fprintf(stdout,"**In storetransferfile_rfio : rfio_close(fd) (%s)\n",fd) ;
                         }
@@ -1544,7 +1544,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                         close(ns) ;
                         exit(i) ;
                     } else if ( retcode == 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Time out while receiving") ;
+                        bbftpd_log(BBFTPD_ERR,"Time out while receiving") ;
                         if ( debug ) {
                             fprintf(stdout,"**In storetransferfile_rfio : rfio_close(fd) (%s)\n",fd) ;
                         }
@@ -1556,7 +1556,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                         retcode = recv(ns,&readbuffer[dataonone],datatoreceive-dataonone,0) ;
                         if ( retcode < 0 ) {
                             i = errno ;
-                            bbftpd_syslog(BBFTPD_ERR,"Error while receiving : %s",strerror(errno)) ;
+                            bbftpd_log(BBFTPD_ERR,"Error while receiving : %s",strerror(errno)) ;
                             if ( debug ) {
                                 fprintf(stdout,"**In storetransferfile_rfio : rfio_close(fd) (%s)\n",fd) ;
                             }
@@ -1565,7 +1565,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                             exit(i) ;
                         } else if ( retcode == 0 ) {
                             i = ECONNRESET ;
-                            bbftpd_syslog(BBFTPD_ERR,"Connexion breaks") ;
+                            bbftpd_log(BBFTPD_ERR,"Connexion breaks") ;
                             if ( debug ) {
                                 fprintf(stdout,"**In storetransferfile_rfio : rfio_close(fd) (%s)\n",fd) ;
                             }
@@ -1588,7 +1588,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                         retcode = uncompress((Bytef *) compbuffer, &bufcomplen, (Bytef *) readbuffer, buflen) ;
                         if ( retcode != 0 ) {
                             i = EILSEQ ;
-                            bbftpd_syslog(BBFTPD_ERR,"Error while decompressing %d ",retcode) ;
+                            bbftpd_log(BBFTPD_ERR,"Error while decompressing %d ",retcode) ;
                             if ( debug ) {
                                 fprintf(stdout,"**In storetransferfile_rfio : rfio_close(fd) (%s)\n",fd) ;
                             }
@@ -1628,7 +1628,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                             */
                             i = 57 ;
                         }
-                        bbftpd_syslog(BBFTPD_ERR,"error writing file : %s",rfio_serror()) ;
+                        bbftpd_log(BBFTPD_ERR,"error writing file : %s",rfio_serror()) ;
                         if ( debug ) {
                             fprintf(stdout,"**In storetransferfile_rfio : rfio_close(fd) (%s)\n",fd) ;
                         }
@@ -1657,12 +1657,12 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                     fprintf(stdout,"**In storetransferfile_rfio : rfio_close(fd) (%s)\n",fd) ;
                 }
                 rfio_close(fd) ;
-                bbftpd_syslog(BBFTPD_ERR,"Error sending ACK ") ;
+                bbftpd_log(BBFTPD_ERR,"Error sending ACK ") ;
                 close(ns) ;
                 exit(ETIMEDOUT) ;
               }
               toprint64 = nbget ;
-              bbftpd_syslog(BBFTPD_DEBUG,"Child received %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
+              bbftpd_log(BBFTPD_DEBUG,"Child received %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
               if ( debug ) {
                 fprintf(stdout,"**In storetransferfile_rfio : rfio_close(fd) (%s)\n",fd) ;
               }
@@ -1678,7 +1678,7 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
                 /*
                 ** Fork failed ...
                 */
-                bbftpd_syslog(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
                 bbftpd_storeunlink_rfio(filename) ;
                 sprintf(logmessage,"fork failed : %s ",strerror(errno)) ;
                 if ( childendinerror == 0 ) {

@@ -27,7 +27,7 @@
                                     - Correct indentation
                                     - Port to IRIX
                 v 2.0.2 2001/05/04  - Correct include for RFIO
-                v 2.1.0 2001/05/30  - Correct bbftpd_syslog level
+                v 2.1.0 2001/05/30  - Correct bbftpd_log level
                                     - Reorganise routines as in bbftp_
               
 *****************************************************************************/
@@ -652,7 +652,7 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage)
                 select(nfds2,0,0,0,&wait_timer) ;
                 waitedtime = waitedtime + 1 ;
             }
-            bbftpd_syslog(BBFTPD_DEBUG,"Child %d starting",getpid()) ;
+            bbftpd_log(BBFTPD_DEBUG,"Child %d starting",getpid()) ;
             /*
             ** Close all unnecessary stuff
             */
@@ -672,7 +672,7 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage)
                 ** on errno
                 */
                 i = errno ;
-                bbftpd_syslog(BBFTPD_ERR,"Error opening local file %s : %s",filename,strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"Error opening local file %s : %s",filename,strerror(errno)) ;
                 close(sendsock) ;
                 exit(i) ;
             }
@@ -683,7 +683,7 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage)
 #endif
                 i = errno ;
                 close(fd) ;
-                bbftpd_syslog(BBFTPD_ERR,"Error seeking file : %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"Error seeking file : %s",strerror(errno)) ;
                 close(sendsock) ;
                 exit(i)  ;
             }
@@ -694,7 +694,7 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage)
               if ( (ns = accept(sendsock,0,0) ) < 0 ) {
                 i = errno ;
                 close(fd) ;
-                bbftpd_syslog(BBFTPD_ERR,"Error accept socket : %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"Error accept socket : %s",strerror(errno)) ;
                 close(sendsock) ;
                 exit(i)  ;
               }
@@ -767,7 +767,7 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage)
                         */
                         if ( writemessage(ns,compbuffer,COMPMESSLEN,datato) < 0 ) {
                             i = ETIMEDOUT ;
-                            bbftpd_syslog(BBFTPD_ERR,"Error sending header data") ;
+                            bbftpd_log(BBFTPD_ERR,"Error sending header data") ;
                             close(ns) ;
                             exit(i) ;
                         }
@@ -790,12 +790,12 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage)
                             ** Select error
                             */
                             i = errno ;
-                            bbftpd_syslog(BBFTPD_ERR,"Error select while sending : %s",strerror(errno)) ;
+                            bbftpd_log(BBFTPD_ERR,"Error select while sending : %s",strerror(errno)) ;
                             close(fd) ;
                             close(ns) ;
                             exit(i) ;
                         } else if ( retcode == 0 ) {
-                            bbftpd_syslog(BBFTPD_ERR,"Time out while selecting") ;
+                            bbftpd_log(BBFTPD_ERR,"Time out while selecting") ;
                             close(fd) ;
                             i=ETIMEDOUT ;
                             close(ns) ;
@@ -804,12 +804,12 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage)
                             retcode = send(ns,&readbuffer[nbsent],lentosend,0) ;
                             if ( retcode < 0 ) {
                                 i = errno ;
-                                bbftpd_syslog(BBFTPD_ERR,"Error while sending %s",strerror(i)) ;
+                                bbftpd_log(BBFTPD_ERR,"Error while sending %s",strerror(i)) ;
                                 close(ns) ;
                                 exit(i) ;
                             } else if ( retcode == 0 ) {
                                 i = ECONNRESET ;
-                                bbftpd_syslog(BBFTPD_ERR,"Connexion breaks") ;
+                                bbftpd_log(BBFTPD_ERR,"Connexion breaks") ;
                                 close(fd) ;
                                 close(ns) ;
                                 exit(i) ;
@@ -820,7 +820,7 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage)
                     }
                 } else {
                     i = errno ;
-                    bbftpd_syslog(BBFTPD_ERR,"Child Error reading : %s",strerror(errno)) ;
+                    bbftpd_log(BBFTPD_ERR,"Child Error reading : %s",strerror(errno)) ;
                     close(ns) ;
                     close(fd) ;
                     exit(i) ;
@@ -830,18 +830,18 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage)
               ** All data has been sent so wait for the acknoledge
               */
               if ( readmessage(ns,readbuffer,MINMESSLEN,ackto) < 0 ) {
-                bbftpd_syslog(BBFTPD_ERR,"Error waiting ACK") ;
+                bbftpd_log(BBFTPD_ERR,"Error waiting ACK") ;
                 close(ns) ;
                 exit(ETIMEDOUT) ;
               }
               msg = (struct message *) readbuffer ;
               if ( msg->code != MSG_ACK) {
-                bbftpd_syslog(BBFTPD_ERR,"Error unknown messge while waiting ACK %d",msg->code) ;
+                bbftpd_log(BBFTPD_ERR,"Error unknown messge while waiting ACK %d",msg->code) ;
                 close(ns) ;
                 exit(1) ;
               }
               toprint64 = nbtosend ;
-              bbftpd_syslog(BBFTPD_DEBUG,"Child send %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
+              bbftpd_log(BBFTPD_DEBUG,"Child send %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
             }
             close(fd) ;
             close(ns) ;
@@ -854,7 +854,7 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage)
                 /*
                 ** Fork failed ...
                 */
-                bbftpd_syslog(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
                 sprintf(logmessage,"fork failed : %s ",strerror(errno)) ;
                 if ( childendinerror == 0 ) {
                     childendinerror = 1 ;

@@ -268,7 +268,7 @@ int bbftpd_storecheckoptions(char *logmessage)
     ** Check if Compress is available int    case of GZIP option
     */
     if ( (transferoption & TROPT_GZIP) == TROPT_GZIP ) {
-        bbftpd_syslog(BBFTPD_WARNING,"Compression is not available for this server: option ignored") ;
+        bbftpd_log(BBFTPD_WARNING,"Compression is not available for this server: option ignored") ;
         transferoption = transferoption & ~TROPT_GZIP ;
     }
 #endif
@@ -726,7 +726,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage)
 	char statmessage[1024];
         close(fd) ;
         sprintf(statmessage,"PUT %s %s 0 0 0.0 0.0", currentusername, filepath);
-        bbftpd_syslog(BBFTPD_NOTICE,"%s",statmessage);
+        bbftpd_log(BBFTPD_NOTICE,"%s",statmessage);
         FREE(filepath) ;
         return 0 ;
     }
@@ -937,7 +937,7 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
                 select(nfds,0,0,0,&wait_timer) ;
                 waitedtime = waitedtime + 1 ;
             }
-            bbftpd_syslog(BBFTPD_DEBUG,"Child %d starting",getpid()) ;
+            bbftpd_log(BBFTPD_DEBUG,"Child %d starting",getpid()) ;
             /*
             ** Close all unnecessary stuff
             */
@@ -956,7 +956,7 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
                 ** child has detroyed it
                 */ 
                 i = errno ;
-                bbftpd_syslog(BBFTPD_ERR,"Error stating file %s : %s ",filename,strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"Error stating file %s : %s ",filename,strerror(errno)) ;
                 close(recsock) ;
                 exit(i) ;
             }
@@ -970,7 +970,7 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
 #endif
                 i = errno ;
                 unlink(filename) ;
-                bbftpd_syslog(BBFTPD_ERR,"Error opening file %s : %s ",filename,strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"Error opening file %s : %s ",filename,strerror(errno)) ;
                 /*
                 ** At this point a non recoverable error is 
                 **        EDQUOT        : No more quota 
@@ -993,7 +993,7 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
                 i = errno ;
                 close(fd) ;
                 unlink(filename) ;
-                bbftpd_syslog(BBFTPD_ERR,"error seeking file : %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"error seeking file : %s",strerror(errno)) ;
                 close(recsock) ;
                 exit(i)  ;
             }
@@ -1002,7 +1002,7 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
                 i = errno ;
                 close(fd) ;
                 unlink(filename) ;
-                bbftpd_syslog(BBFTPD_ERR,"Error accept socket : %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"Error accept socket : %s",strerror(errno)) ;
                 close(recsock) ;
                 exit(i)  ;
               }
@@ -1022,7 +1022,7 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
                     ** Receive the header first 
                     */
                     if (readmessage(ns,readbuffer,COMPMESSLEN,datato) < 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error reading compression header") ;
+                        bbftpd_log(BBFTPD_ERR,"Error reading compression header") ;
                         close(fd) ;
                         unlink(filename) ;
                         i = ETIMEDOUT ;
@@ -1063,13 +1063,13 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
                         ** Select error
                         */
                         i = errno ;
-                        bbftpd_syslog(BBFTPD_ERR,"Error select while receiving : %s",strerror(errno)) ;
+                        bbftpd_log(BBFTPD_ERR,"Error select while receiving : %s",strerror(errno)) ;
                         close(fd) ;
                         unlink(filename) ;
                         close(ns) ;
                         exit(i) ;
                     } else if ( retcode == 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Time out while receiving") ;
+                        bbftpd_log(BBFTPD_ERR,"Time out while receiving") ;
                         close(fd) ;
                         unlink(filename) ;
                         i=ETIMEDOUT ;
@@ -1079,14 +1079,14 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
                         retcode = recv(ns,&readbuffer[dataonone],datatoreceive-dataonone,0) ;
                         if ( retcode < 0 ) {
                             i = errno ;
-                            bbftpd_syslog(BBFTPD_ERR,"Error while receiving : %s",strerror(errno)) ;
+                            bbftpd_log(BBFTPD_ERR,"Error while receiving : %s",strerror(errno)) ;
                             close(fd) ;
                             unlink(filename) ;
                             close(ns) ;
                             exit(i) ;
                         } else if ( retcode == 0 ) {
                             i = ECONNRESET ;
-                            bbftpd_syslog(BBFTPD_ERR,"Connexion breaks") ;
+                            bbftpd_log(BBFTPD_ERR,"Connexion breaks") ;
                             close(fd) ;
                             unlink(filename) ;
                             close(ns) ;
@@ -1107,7 +1107,7 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
                         retcode = uncompress((Bytef *) compbuffer, &bufcomplen, (Bytef *) readbuffer, buflen) ;
                         if ( retcode != 0 ) {
                             i = EILSEQ ;
-                            bbftpd_syslog(BBFTPD_ERR,"Error while decompressing %d ",retcode) ;
+                            bbftpd_log(BBFTPD_ERR,"Error while decompressing %d ",retcode) ;
                             close(fd) ;
                             unlink(filename) ;
                             close(ns) ;
@@ -1131,7 +1131,7 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
                 while ( lenwrited < lentowrite ) {
                     if ( (retcode = write(fd,&readbuffer[lenwrited],lentowrite-lenwrited)) < 0 ) {
                         i = errno ;
-                        bbftpd_syslog(BBFTPD_ERR,"error writing file : %s",strerror(errno)) ;
+                        bbftpd_log(BBFTPD_ERR,"error writing file : %s",strerror(errno)) ;
                         close(fd) ;
                         unlink(filename) ;
                         if ( i == EDQUOT ||
@@ -1156,12 +1156,12 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
               if ( writemessage(ns,readbuffer,MINMESSLEN,sendcontrolto) < 0 ) {
                 close(fd) ;
                 unlink(filename) ;
-                bbftpd_syslog(BBFTPD_ERR,"Error sending ACK ") ;
+                bbftpd_log(BBFTPD_ERR,"Error sending ACK ") ;
                 close(ns) ;
                 exit(ETIMEDOUT) ;
               }
               toprint64 = nbget ;
-              bbftpd_syslog(BBFTPD_DEBUG,"Child received %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
+              bbftpd_log(BBFTPD_DEBUG,"Child received %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
             }
             close(fd) ;
             close(ns) ;
@@ -1174,7 +1174,7 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
                 /*
                 ** Fork failed ...
                 */
-                bbftpd_syslog(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
                 unlink(filename) ;
                 sprintf(logmessage,"fork failed : %s ",strerror(errno)) ;
                 if ( childendinerror == 0 ) {

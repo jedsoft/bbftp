@@ -58,162 +58,127 @@
 #include <client.h>
 #include <client_proto.h>
 
-int readmessage(int sock,char *buffer,int msglen,int to)
+static int try_select (int fd, int is_read, int to)
 {
-   int     retcode ;
-   fd_set  selectmask ; /* Select mask */
-   struct timeval    wait_timer;
-   int     msgsize ;
-   int     msgget ;
-   int     nbget ;
+   struct timeval wait_timer, *wait_timerp;
+   fd_set *read_mask = NULL, *write_mask = NULL;
+   fd_set mask;
+
+   FD_ZERO(&mask) ;
+   FD_SET(fd, &mask);
+
+   if (is_read)
+     read_mask = &mask;
+   else
+     write_mask = &mask;
+
+   wait_timerp = &wait_timer;
+   if (to < 0) wait_timerp = NULL;
+
+   while (1)
+     {
+	int status;
+
+	if (to > 0)
+	  {
+	     wait_timer.tv_sec  = to ;
+	     wait_timer.tv_usec = 0 ;
+	  }
+
+	if ((-1 == (status = select(fd+1, read_mask, write_mask, NULL, wait_timerp)))
+	    && ((errno == EINTR) || (errno == EAGAIN)))
+	  continue;
+
+	return status;
+     }
+}
+
+int readmessage (int sock, char *buffer, int msglen, int to)
+{
+   int    nbget ;
+   int    retcode ;
 
    nbget = 0 ;
-   msgsize = msglen ;
    /*
     ** start the reading loop
     */
-   while ( nbget < msgsize )
+   while ( nbget < msglen )
      {
-        /* int nfds = sysconf(_SC_OPEN_MAX) ;       (void) nfds; */
-        FD_ZERO(&selectmask) ;
-        FD_SET(sock,&selectmask) ;
-        wait_timer.tv_sec  = to ;
-        wait_timer.tv_usec = 0 ;
-	if (-1 == (retcode = select(FD_SETSIZE,&selectmask,0,0,&wait_timer)))
+	if (-1 == (retcode = try_select (sock, 1, to)))
+	  {
+	     if (BBftp_Debug )
+	       printmessage(stderr,CASE_NORMAL,0, "Read message : Select error : MSG (%d,%d)\n",msglen,nbget) ;
+	     return -1;
+	  }
+	if ( retcode == 0 )
+	  {
+	     if (BBftp_Debug )
+	       printmessage(stderr,CASE_NORMAL,0, "Read message : Time out : MSG (%d,%d)\n", msglen,nbget) ;
+	     return -1 ;
+	  }
+
+	while (-1 == (retcode = read(sock, &buffer[nbget], msglen-nbget)))
 	  {
 	     if (errno == EINTR)
 	       continue;
-	     /*
-	      ** Select error
-	      */
 	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "Read message : Select error : MSG (%d,%d)\n",msglen,nbget) ;
+	       printmessage(stderr,CASE_NORMAL,0, "Read message : Receive error : MSG (%d,%d) %s\n",msglen,nbget,strerror(errno)) ;
 	     return -1 ;
 	  }
 
 	if ( retcode == 0 )
-	  {
-	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "Read message : Time out : MSG (%d,%d)", msglen,nbget) ;
-	     return -1 ;
-	  }
-
-	while (-1 == (msgget = read(sock,&buffer[nbget],msgsize-nbget)))
-	  {
-	     if (errno == EINTR)
-	       continue;
-
-	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "Read message : Receive error : MSG (%d,%d) %s",msglen,nbget,strerror(errno)) ;
-	     return -1 ;
-	  }
-
-	if ( msgget == 0 )
 	  {
 	     if (BBftp_Debug )
 	       printmessage(stderr,CASE_NORMAL,0, "Read message : Connection breaks : MSG (%d,%d)\n",msglen,nbget) ;
 	     return -1 ;
 	  }
-	nbget = nbget + msgget ;
-     }
-   return(0) ;
-}
 
-int discardmessage(int sock,int msglen,int to)
-{
-   int    nbget ;
-   int    retcode ;
-   fd_set selectmask ; /* Select mask */
-   struct timeval    wait_timer;
-   char    buffer[256] ;
-
-   /*
-    ** We are going to read buflen by buflen till the message
-    ** is exhausted
-    */
-   nbget = 0 ;
-   while ( nbget < msglen )
-     {
-	/* int nfds = sysconf(_SC_OPEN_MAX) ;	(void) nfds; */
-	FD_ZERO(&selectmask) ;
-	FD_SET(sock,&selectmask) ;
-	wait_timer.tv_sec  = to ;
-	wait_timer.tv_usec = 0 ;
-	if ( (retcode = select(FD_SETSIZE,&selectmask,0,0,&wait_timer) ) == -1 )
-	  {
-	     if (errno == EINTR) continue;
-
-	     /*
-	      ** Select error
-	      */
-	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "Discard message :Discard message : Select error : MSG (%d,%d)",msglen,nbget) ;
-	     return -1 ;
-	  }
-
-	if ( retcode == 0 )
-	  {
-	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "Discard message :Discard message : Time out : MSG (%d,%d)",msglen,nbget) ;
-	     return -1 ;
-	  }
-
-	while (-1 == (retcode = read(sock,buffer,sizeof(buffer))))
-	  {
-	     if (errno == EINTR)
-	       continue;
-
-	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "Discard message :Discard message : Receive error : MSG (%d,%d) : %s",msglen,nbget,strerror(errno)) ;
-	     return -1 ;
-	  }
-
-	if ( retcode == 0 )
-	  {
-	     if (BBftp_Debug )
-	       printmessage(stderr,CASE_NORMAL,0, "Discard message :Discard message : Connexion breaks") ;
-	     return -1 ;
-	  }
 	nbget = nbget + retcode ;
      }
-   return(0) ;
+
+   return 0;
 }
 
-int discardandprintmessage(int sock,int to)
+
+int discardmessage (int sock, int msglen, int timeout)
 {
-   int    retcode ;
-   fd_set selectmask ; /* Select mask */
-   struct timeval    wait_timer;
+   int nread;
+   char buffer[256];
 
-   /*
-    ** We are going to read buflen by buflen till the message
-    ** is exhausted
-    */
+   nread = 0;
+   while (nread < msglen)
+     {
+	int dn = msglen - nread;
 
+	if (dn > 256) dn = 256;
+	if (-1 == readmessage (sock, buffer, dn, timeout))
+	  {
+	     if (BBftp_Debug)
+	       printmessage(stderr,CASE_NORMAL,0, "Discard message :Discard message : Receive error : %d/%d bytes read\n", nread, msglen);
+	     return -1;
+	  }
+	nread += dn;
+     }
+   return 0;
+}
+
+/* This is a debugging function that is called prior to closing the sock.
+ * It just writes out everything it reads regardless of the content.
+ * It always returns -1.
+ */
+int discardandprintmessage(int sock,int timeout)
+{
    while (1)
      {
-	/* int nfds = sysconf(_SC_OPEN_MAX) ; (void) nfds; */
 	char buffer[32] ;
-	FD_ZERO(&selectmask) ;
-	FD_SET(sock,&selectmask) ;
-	wait_timer.tv_sec  = to ;
-	wait_timer.tv_usec = 0 ;
-	if ( (retcode = select(FD_SETSIZE,&selectmask,0,0,&wait_timer) ) == -1 )
+	int retcode;
+
+	if (-1 == try_select (sock, 1, timeout))
+	  return -1;
+
+	while (-1 == (retcode = read(sock, buffer,sizeof(buffer)-1)))
 	  {
 	     if (errno == EINTR) continue;
-
-	     /*
-	      ** Select error
-	      */
-	     return -1 ;
-	  }
-
-	if ( retcode == 0 ) return -1;
-
-	while (-1 == (retcode = read(sock,buffer,sizeof(buffer)-1)))
-	  {
-	     if (errno == EINTR) continue;
-
 	     return -1 ;
 	  }
 
@@ -222,4 +187,79 @@ int discardandprintmessage(int sock,int to)
 	buffer[retcode] = '\0' ;
 	printmessage(stdout,CASE_NORMAL,0, "%s",buffer) ;
      }
+}
+
+int bbftp_input_pending (int fd, int timeout)
+{
+   int status = try_select (fd, 1, timeout);
+
+   if (status == -1)
+     {
+	if (BBftp_Debug)
+	  printmessage(stderr,CASE_NORMAL,0, "bbftp_input_pending: select failure: %s\n", strerror(errno));
+	return -1;
+     }
+   return (status != 0);
+}
+
+/* Returns 1 if input available, 0 if not, or -1 upon error */
+int bbftp_msg_pending (int timeout)
+{
+   return bbftp_input_pending (BBftp_Incontrolsock, timeout);
+}
+
+int bbftp_fd_msgread_msg (int fd, struct message *msg)
+{
+   if (-1 == readmessage (fd, (char *)msg, MINMESSLEN, BBftp_Recvcontrolto))
+     return -1;
+
+   msg->msglen = ntohl (msg->msglen);
+   return 0;
+}
+
+/* Returns:
+ *   -1 if read failed
+ *    0 upon success
+ */
+int bbftp_msgread_msg (struct message *msg)
+{
+   return bbftp_fd_msgread_msg (BBftp_Incontrolsock, msg);
+}
+
+int bbftp_msgread_int32 (int32_t *val)
+{
+   if (-1 == readmessage (BBftp_Incontrolsock, (char *)val, 4, BBftp_Recvcontrolto))
+     return -1;
+
+   *val = ntohl (*val);
+   return 0;
+}
+
+int bbftp_msgread_bytes (char *bytes, int num)
+{
+   return readmessage (BBftp_Incontrolsock, bytes, num, BBftp_Recvcontrolto);
+}
+
+int bbftp_msg_discard (struct message *msg)
+{
+   char buf[256];
+   int len = 0;
+
+   while (len < msg->msglen)
+     {
+	int dlen = msg->msglen - len;
+	if (dlen > 255)		       /* 1 less than sizeof(buf) */
+	  dlen = 255;
+
+	if (-1 == readmessage (BBftp_Recvcontrolto, buf, dlen, BBftp_Recvcontrolto))
+	  return -1;
+	if (BBftp_Debug )
+	  {
+	     buf[dlen] = 0;
+	     printmessage(stderr,CASE_NORMAL,0, "%s", buf);
+	  }
+	len += dlen;
+     }
+   printmessage(stderr,CASE_NORMAL,0, "%s", "\n");
+   return 0;
 }

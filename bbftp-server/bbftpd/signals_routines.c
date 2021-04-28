@@ -117,7 +117,7 @@ void in_sigchld_v1( int sig)
                 if ( (retcode = checkendchild(status)) != 0 ) {
                     if ( childendinerror == 0 ) {
                         childendinerror = 1 ;
-                        bbftpd_syslog(BBFTPD_ERR,"Child pid %d ends in error status %d",pid,retcode) ;
+                        bbftpd_log(BBFTPD_ERR,"Child pid %d ends in error status %d",pid,retcode) ;
                         if ( unlinkfile == 1 ) unlink(currentfilename) ;
                         if (retcode == 255) {
                             sprintf(logmessage,"Disk quota excedeed or No Space left on device") ;
@@ -131,7 +131,7 @@ void in_sigchld_v1( int sig)
                             reply(MSG_BAD,logmessage) ;
                         }
                     } else {
-                        bbftpd_syslog(BBFTPD_ERR,"Child pid %d ends in error",pid) ;
+                        bbftpd_log(BBFTPD_ERR,"Child pid %d ends in error",pid) ;
                     }
                 }
                 pid_child[i] = 0 ;
@@ -189,28 +189,28 @@ int set_signals_v1() {
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0   ;
     if ( sigaction(SIGPIPE,&sga,0) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGPIPE : %s",strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error sigaction SIGPIPE : %s",strerror(errno)) ;
         return(-1) ;
     }
     sga.sa_handler = in_sigchld_v1 ;
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0  ;
     if ( sigaction(SIGCHLD,&sga,0) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGCHLD : %s",strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error sigaction SIGCHLD : %s",strerror(errno)) ;
         return(-1) ;
     }
     sga.sa_handler = in_sighup_v1 ;
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0  ;
     if ( sigaction(SIGHUP,&sga,0) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGHUP : %s",strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error sigaction SIGHUP : %s",strerror(errno)) ;
         return(-1) ;
     }
     sga.sa_handler = in_sigterm_v1 ;
     sigemptyset(&(sga.sa_mask));
     sga.sa_flags = 0  ;
     if ( sigaction(SIGTERM,&sga,0) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error sigaction SIGTERM : %s",strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error sigaction SIGTERM : %s",strerror(errno)) ;
         return(-1) ;
     }
     return 0 ;

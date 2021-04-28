@@ -58,39 +58,58 @@
 #include <client.h>
 #include <client_proto.h>
 
-int writemessage(int sock,char *buffer,int msglen,int to)
+static int try_select (int fd, int is_read, int to)
 {
-    int     retcode ;
-    fd_set  selectmask ; /* Select mask */
-    struct timeval    wait_timer;
+   struct timeval wait_timer, *wait_timerp;
+   fd_set *read_mask = NULL, *write_mask = NULL;
+   fd_set mask;
 
-    int     msgsize ;
-    int     msgsend ;
-    int     nbsent ;
+   FD_ZERO(&mask) ;
+   FD_SET(fd, &mask);
 
-    nbsent = 0 ;
-    msgsize = msglen ;
-/*
-** start the writing loop
-*/
-   while ( nbsent < msgsize )
+   if (is_read)
+     read_mask = &mask;
+   else
+     write_mask = &mask;
+
+   wait_timerp = &wait_timer;
+   if (to < 0) wait_timerp = NULL;
+
+   while (1)
      {
-	/* int nfds = sysconf(_SC_OPEN_MAX) ;   (void) nfds; */
-        FD_ZERO(&selectmask) ;
-        FD_SET(sock,&selectmask) ;
-        wait_timer.tv_sec  = to ;
-        wait_timer.tv_usec = 0 ;
-        while (-1 == (retcode = select(FD_SETSIZE,0,&selectmask,0,&wait_timer)))
+	int status;
+
+	if (to > 0)
 	  {
-	     if (errno == EINTR) continue;
-	     /*
-	      ** Select error
-	      */
-	     if (BBftp_Debug ) 
+	     wait_timer.tv_sec  = to ;
+	     wait_timer.tv_usec = 0 ;
+	  }
+
+	if ((-1 == (status = select(fd+1, read_mask, write_mask, NULL, wait_timerp)))
+	    && ((errno == EINTR) || (errno == EAGAIN)))
+	  continue;
+
+	return status;
+     }
+}
+
+int writemessage (int sock, char *buffer, int msglen, int to)
+{
+   int    nbsent ;
+   int    retcode ;
+
+   nbsent = 0 ;
+   /*
+    ** start the writing loop
+    */
+   while ( nbsent < msglen )
+     {
+	if (-1 == (retcode = try_select (sock, 0, to)))
+	  {
+	     if (BBftp_Debug )
 	       printmessage(stderr,CASE_NORMAL,0, "Write message : Select error : MSG (%d,%d)\n",msglen,nbsent) ;
 	     return -1 ;
 	  }
-
 	if ( retcode == 0 )
 	  {
 	     if (BBftp_Debug )
@@ -98,22 +117,88 @@ int writemessage(int sock,char *buffer,int msglen,int to)
 	     return -1 ;
 	  }
 
-	while (-1 == (msgsend = write(sock,&buffer[nbsent],msgsize-nbsent)))
+	while (-1 == (retcode = write(sock, buffer + nbsent, msglen - nbsent)))
 	  {
-	     if (errno == EINTR) continue;
+	     if (errno == EINTR)
+	       continue;
 
 	     if (BBftp_Debug )
 	       printmessage(stderr,CASE_NORMAL,0, "Write message : Send error %d(%s) : MSG (%d,%d)\n",errno,strerror(errno),msglen,nbsent) ;
 	     return -1 ;
 	  }
-
-	if (msgsend == 0)
+	if (retcode == 0)
 	  {
 	     if (BBftp_Debug )
 	       printmessage(stderr,CASE_NORMAL,0, "Write message : Connection breaks : MSG (%d,%d)\n",msglen,nbsent) ;
 	     return -1 ;
 	  }
-	nbsent = nbsent + msgsend ;
+
+	nbsent = nbsent + retcode ;
      }
-    return(0) ;
+
+    return 0;
+}
+
+int bbftp_fd_msgwrite_int32_2 (int fd, int code, int i, int j)
+{
+   int32_t buf[4];
+
+   buf[0] = code;
+   buf[1] = htonl (8);
+   buf[2] = htonl (i);
+   buf[3] = htonl (j);
+
+   return writemessage (fd, (char *)buf, sizeof(buf), BBftp_Sendcontrolto);
+}
+
+int bbftp_fd_msgwrite_int32 (int fd, int code, int i)
+{
+   int32_t buf[3];
+
+   buf[0] = code;
+   buf[1] = htonl (4);
+   buf[2] = htonl (i);
+
+   return writemessage (fd, (char *)buf, sizeof(buf), BBftp_Sendcontrolto);
+}
+
+int bbftp_fd_msgwrite_len (int fd, int code, int len)
+{
+   int32_t buf[2];
+
+   buf[0] = code;
+   buf[1] = htonl(len);
+
+   return writemessage (fd, (char *)buf, sizeof(buf), BBftp_Sendcontrolto);
+}
+
+int bbftp_msgwrite_int32_2 (int code, int i, int j)
+{
+   int32_t buf[4];
+
+   buf[0] = code;
+   buf[1] = htonl(8);
+   buf[2] = htonl(i);
+   buf[3] = htonl(j);
+
+   return writemessage (BBftp_Outcontrolsock, (char *)buf, sizeof(buf), BBftp_Sendcontrolto);
+}
+
+int bbftp_msgwrite_int32 (int code, int i)
+{
+   return bbftp_fd_msgwrite_int32 (BBftp_Outcontrolsock, code, i);
+}
+
+int bbftp_msgwrite_len (int code, int len)
+{
+   return bbftp_fd_msgwrite_len (BBftp_Outcontrolsock, code, len);
+}
+
+int bbftp_msgwrite_bytes (int code, char *bytes, int len)
+{
+   if ((-1 == bbftp_fd_msgwrite_len (BBftp_Outcontrolsock, code, len))
+       || (-1 == writemessage (BBftp_Outcontrolsock, bytes, len, BBftp_Sendcontrolto)))
+     return -1;
+
+   return 0;
 }

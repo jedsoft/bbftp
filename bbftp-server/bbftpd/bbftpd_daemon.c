@@ -95,12 +95,12 @@ void do_daemon (int argc, char **argv)
 
     controlsock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
     if ( controlsock < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR, "Cannot create socket to listen on: %s",strerror(errno));
+        bbftpd_log(BBFTPD_ERR, "Cannot create socket to listen on: %s",strerror(errno));
         fprintf(stderr,"Cannot create socket to listen on: %s\n",strerror(errno)) ;
         exit(1) ;
     }
     if ( setsockopt(controlsock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Cannot set SO_REUSEADDR on control socket : %s",strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Cannot set SO_REUSEADDR on control socket : %s",strerror(errno)) ;
         fprintf(stderr,"Cannot set SO_REUSEADDR on control socket : %s\n ",strerror(errno)) ;
         exit(1) ;
     }
@@ -108,19 +108,19 @@ void do_daemon (int argc, char **argv)
     server.sin_addr.s_addr = INADDR_ANY ;
     server.sin_port = htons(newcontrolport);
     if ( bind (controlsock,(struct sockaddr *) &server, sizeof(server) ) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error binding control socket : %s",strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error binding control socket : %s",strerror(errno)) ;
         fprintf(stderr,"Error binding control socket : %s\n ",strerror(errno)) ;
         exit(1) ;
     }
     if ( listen(controlsock,100) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error listening control socket : %s",strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error listening control socket : %s",strerror(errno)) ;
         fprintf(stderr,"Error listening control socket : %s\n ",strerror(errno)) ;
         exit(1) ;
     }
     /* Fork - so I'm not the owner of the process group any more */
     retcode = fork();
     if (retcode < 0) {
-        bbftpd_syslog(BBFTPD_ERR, "Cannot fork %s",strerror(errno));
+        bbftpd_log(BBFTPD_ERR, "Cannot fork %s",strerror(errno));
         exit(1);
     }
     /* No need for the parent any more */
@@ -129,18 +129,18 @@ void do_daemon (int argc, char **argv)
     prpg = 0 ;
     prpg = setsid () ;     /* disassoiciate from control terminal */
     if ( prpg < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Cannot daemonise: %s",strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Cannot daemonise: %s",strerror(errno)) ;
         exit(1) ;
     }
-    /* Close off all file descriptors and reopen bbftpd_syslog */
+    /* Close off all file descriptors and reopen bbftpd_log */
 
     nfds = sysconf(_SC_OPEN_MAX) ;
 
-    bbftpd_syslog_close();
+    bbftpd_log_close();
     for (i = 0; i <= nfds; i++) {
         if ( i != controlsock) close(i);
     }
-    bbftpd_syslog_open ();
+    bbftpd_log_reopen ();
 
     /* log PID in /var/run/bbftpd.pid */
     {
@@ -153,8 +153,8 @@ void do_daemon (int argc, char **argv)
 
     /* junk stderr */
     (void) freopen("/dev/null", "w", stderr);
-    
-    bbftpd_syslog(BBFTPD_DEBUG,"Starting bbftpd in background mode") ;
+
+    bbftpd_log(BBFTPD_DEBUG,"Starting bbftpd in background mode") ;
     if ( bbftpd_blockallsignals() < 0 ) {
         exit(1) ;
     }
@@ -183,26 +183,26 @@ void do_daemon (int argc, char **argv)
 
         msgsock = accept(controlsock, 0, 0);
         if (msgsock < 0) {
-             bbftpd_syslog(BBFTPD_ERR, "Accept failed: %s",strerror(errno));
+             bbftpd_log(BBFTPD_ERR, "Accept failed: %s",strerror(errno));
             sleep(1);
             continue;
         }
             /* Fork off a handler */
         pid = fork();
         if (pid < 0) {
-            bbftpd_syslog(BBFTPD_ERR, "failed to fork: %s",strerror(errno));
+            bbftpd_log(BBFTPD_ERR, "failed to fork: %s",strerror(errno));
              sleep(1);
             continue;
         }
        if (pid == 0)
 	 {
             /* I am that forked off child */
-	    bbftpd_syslog_close();
+	    bbftpd_log_close();
             /* Make sure that stdin/stdout are the new socket */
             /* Only parent needs controlsock */
             if (controlsock != 0 && controlsock != 1)
 	      close(controlsock);
-	    bbftpd_syslog_open();
+	    bbftpd_log_reopen ();
 	    incontrolsock = msgsock ;
 	    outcontrolsock = msgsock ;
 	    return;

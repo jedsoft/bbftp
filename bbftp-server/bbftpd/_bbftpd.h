@@ -161,29 +161,31 @@ extern int checkstdinto;
 extern int protocolmin;
 extern int protocolmax;
 
-extern void bbftpd_syslog_open (void);
-extern void bbftpd_syslog (int priority, const char *format, ...);
-extern void bbftpd_syslog_close (void);
+extern int bbftpd_log_open (int use_syslog, int log_level, const char *logfile);
+extern int bbftpd_log_reopen (void);
+extern void bbftpd_log (int priority, const char *format, ...);
+extern void bbftpd_log_close (void);
 
 extern char *bbftpd_strdup (const char *in);
 extern char *bbftpd_strcat (const char *a, const char *b);
 extern char *bbftpd_read_file (const char *file, size_t *sizep);
 
 extern int bbftpd_input_pending (int fd, int timeout);
-extern int bbftpd_fd_msgsend_int32 (int fd, int code, int i);
-extern int bbftpd_fd_msgsend_int32_2 (int fd, int code, int i, int j);
-extern int bbftpd_fd_msgsend_len (int fd, int code, int len);
-extern int bbftpd_fd_msgrecv_msg (int fd, struct message *msg);
-extern int bbftpd_fd_msgrecv_int32 (int32_t *valp);
-extern int bbftpd_msgrecv_bytes (char *bytes, int num);
+extern int bbftpd_fd_msgwrite_int32 (int fd, int code, int i);
+extern int bbftpd_fd_msgwrite_int32_2 (int fd, int code, int i, int j);
+extern int bbftpd_fd_msgwrite_len (int fd, int code, int len);
+extern int bbftpd_fd_msgread_msg (int fd, struct message *msg);
+extern int bbftpd_fd_msgread_int32 (int32_t *valp);
 
 /* Like above but use outcontrolsock */
 extern int bbftpd_msg_pending (int timeout);
-extern int bbftpd_msgsend_int32 (int code, int i);
-extern int bbftpd_msgsend_int32_2 (int code, int i, int j);
-extern int bbftpd_msgsend_len (int code, int len);
-extern int bbftpd_msgrecv_msg (struct message *msg);
-extern int bbftpd_msgrecv_int32 (int32_t *valp);
+extern int bbftpd_msgwrite_int32 (int code, int i);
+extern int bbftpd_msgwrite_int32_2 (int code, int i, int j);
+extern int bbftpd_msgwrite_len (int code, int len);
+extern int bbftpd_msgread_msg (struct message *msg);
+extern int bbftpd_msgread_int32 (int32_t *valp);
+extern int bbftpd_msgread_bytes (char *bytes, int num);
+extern int bbftpd_msgwrite_bytes (int code, char *bytes, int len);
 
 extern int bbftp_run_protocol_1 (struct message *msg);
 extern int bbftp_run_protocol_2 (void);

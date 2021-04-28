@@ -115,12 +115,12 @@ int readmessage (int sock, char *buffer, int msglen, int to)
      {
 	if (-1 == (retcode = try_select (sock, 1, to)))
 	  {
-	     bbftpd_syslog(BBFTPD_ERR,"Read message : Select error : MSG (%d,%d)", msglen, nbget);
+	     bbftpd_log(BBFTPD_ERR,"Read message : Select error : MSG (%d,%d)", msglen, nbget);
 	     return -1;
 	  }
 	if ( retcode == 0 )
 	  {
-	     bbftpd_syslog(BBFTPD_ERR,"Read message : Time out : MSG (%d,%d)", msglen, nbget) ;
+	     bbftpd_log(BBFTPD_ERR,"Read message : Time out : MSG (%d,%d)", msglen, nbget) ;
 	     return -1 ;
 	  }
 
@@ -129,13 +129,13 @@ int readmessage (int sock, char *buffer, int msglen, int to)
 	     if (errno == EINTR)
 	       continue;
 
-	     bbftpd_syslog(BBFTPD_ERR,"Read message : Receive error : MSG (%d,%d) : %s", msglen, nbget, strerror(errno)) ;
+	     bbftpd_log(BBFTPD_ERR,"Read message : Receive error : MSG (%d,%d) : %s", msglen, nbget, strerror(errno)) ;
 	     return -1 ;
 	  }
 
 	if ( retcode == 0 )
 	  {
-	     bbftpd_syslog(BBFTPD_ERR,"Read message : Connexion breaks") ;
+	     bbftpd_log(BBFTPD_ERR,"Read message : Connexion breaks") ;
 	     return -1 ;
 	  }
 
@@ -161,13 +161,13 @@ int discardmessage (int sock, int msglen, int to)
      {
 	if (-1 == (retcode = try_select (sock, 1, to)))
 	  {
-	     bbftpd_syslog(BBFTPD_ERR,"Discard message : Select error : MSG (%d,%d)",msglen,nbget) ;
+	     bbftpd_log(BBFTPD_ERR,"Discard message : Select error : MSG (%d,%d)",msglen,nbget) ;
 	     return -1 ;
 	  }
 
 	if ( retcode == 0 )
 	  {
-	     bbftpd_syslog(BBFTPD_ERR,"Discard message : Time out : MSG (%d,%d)",msglen,nbget) ;
+	     bbftpd_log(BBFTPD_ERR,"Discard message : Time out : MSG (%d,%d)",msglen,nbget) ;
 	     return -1 ;
 	  }
 
@@ -176,13 +176,13 @@ int discardmessage (int sock, int msglen, int to)
 	     if (errno == EINTR)
 	       continue;
 
-	     bbftpd_syslog(BBFTPD_ERR,"Discard message : Receive error : MSG (%d,%d) : %s",msglen,nbget,strerror(errno)) ;
+	     bbftpd_log(BBFTPD_ERR,"Discard message : Receive error : MSG (%d,%d) : %s",msglen,nbget,strerror(errno)) ;
 	     return -1 ;
 	  }
 
 	if ( retcode == 0 )
 	  {
-	     bbftpd_syslog(BBFTPD_ERR,"Discard message : Connexion breaks") ;
+	     bbftpd_log(BBFTPD_ERR,"Discard message : Connexion breaks") ;
 	     return -1 ;
 	  }
 
@@ -205,12 +205,12 @@ int writemessage (int sock, char *buffer, int msglen, int to)
      {
 	if (-1 == (retcode = try_select (sock, 0, to)))
 	  {
-	     bbftpd_syslog(BBFTPD_ERR,"Write message : Select error : MSG (%d,%d)",msglen,nbsent) ;
+	     bbftpd_log(BBFTPD_ERR,"Write message : Select error : MSG (%d,%d)",msglen,nbsent) ;
 	     return -1 ;
 	  }
 	if ( retcode == 0 )
 	  {
-	     bbftpd_syslog(BBFTPD_ERR,"Write message : Time out : MSG (%d,%d)",msglen,nbsent) ;
+	     bbftpd_log(BBFTPD_ERR,"Write message : Time out : MSG (%d,%d)",msglen,nbsent) ;
 		  return -1 ;
 	  }
 
@@ -219,12 +219,12 @@ int writemessage (int sock, char *buffer, int msglen, int to)
 	     if (errno == EINTR)
 	       continue;
 
-	     bbftpd_syslog(BBFTPD_ERR,"Write message : write error : MSG (%d,%d) : %s",msglen,nbsent,strerror(errno)) ;
+	     bbftpd_log(BBFTPD_ERR,"Write message : write error : MSG (%d,%d) : %s",msglen,nbsent,strerror(errno)) ;
 	     return -1 ;
 	  }
 	if (retcode == 0)
 	  {
-	     bbftpd_syslog(BBFTPD_ERR,"Write message : Connexion breaks") ;
+	     bbftpd_log(BBFTPD_ERR,"Write message : Connexion breaks") ;
 	     return -1 ;
 	  }
 
@@ -234,7 +234,7 @@ int writemessage (int sock, char *buffer, int msglen, int to)
     return(0) ;
 }
 
-int bbftpd_fd_msgsend_int32_2 (int fd, int code, int i, int j)
+int bbftpd_fd_msgwrite_int32_2 (int fd, int code, int i, int j)
 {
    int32_t buf[4];
 
@@ -246,7 +246,7 @@ int bbftpd_fd_msgsend_int32_2 (int fd, int code, int i, int j)
    return writemessage (fd, (char *)buf, sizeof(buf), sendcontrolto);
 }
 
-int bbftpd_fd_msgsend_int32 (int fd, int code, int i)
+int bbftpd_fd_msgwrite_int32 (int fd, int code, int i)
 {
    int32_t buf[3];
 
@@ -257,7 +257,7 @@ int bbftpd_fd_msgsend_int32 (int fd, int code, int i)
    return writemessage (fd, (char *)buf, sizeof(buf), sendcontrolto);
 }
 
-int bbftpd_fd_msgsend_len (int fd, int code, int len)
+int bbftpd_fd_msgwrite_len (int fd, int code, int len)
 {
    int32_t buf[2];
 
@@ -267,7 +267,7 @@ int bbftpd_fd_msgsend_len (int fd, int code, int len)
    return writemessage (fd, (char *)buf, sizeof(buf), sendcontrolto);
 }
 
-int bbftpd_msgsend_int32_2 (int code, int i, int j)
+int bbftpd_msgwrite_int32_2 (int code, int i, int j)
 {
    int32_t buf[4];
 
@@ -279,14 +279,23 @@ int bbftpd_msgsend_int32_2 (int code, int i, int j)
    return writemessage (outcontrolsock, (char *)buf, sizeof(buf), sendcontrolto);
 }
 
-int bbftpd_msgsend_int32 (int code, int i)
+int bbftpd_msgwrite_int32 (int code, int i)
 {
-   return bbftpd_fd_msgsend_int32 (outcontrolsock, code, i);
+   return bbftpd_fd_msgwrite_int32 (outcontrolsock, code, i);
 }
 
-int bbftpd_msgsend_len (int code, int len)
+int bbftpd_msgwrite_len (int code, int len)
 {
-   return bbftpd_fd_msgsend_len (outcontrolsock, code, len);
+   return bbftpd_fd_msgwrite_len (outcontrolsock, code, len);
+}
+
+int bbftpd_msgwrite_bytes (int code, char *bytes, int len)
+{
+   if ((-1 == bbftpd_fd_msgwrite_len (outcontrolsock, code, len))
+       || (-1 == writemessage (outcontrolsock, bytes, len, sendcontrolto)))
+     return -1;
+
+   return 0;
 }
 
 void reply (int code, char *str)
@@ -294,10 +303,10 @@ void reply (int code, char *str)
    int len;
 
    len = strlen (str);
-   if ((-1 == bbftpd_msgsend_len (code, len))
+   if ((-1 == bbftpd_msgwrite_len (code, len))
        || (-1 == writemessage (outcontrolsock, str, len, sendcontrolto)))
      {
-        bbftpd_syslog(BBFTPD_ERR,"Error on reply") ;
+        bbftpd_log(BBFTPD_ERR,"Error on reply") ;
         clean_child() ;
         exit(1) ;
     }
@@ -329,7 +338,7 @@ int bbftpd_input_pending (int fd, int timeout)
 	if ((errno == EINTR) || (errno == EAGAIN))
 	  continue;
 
-	bbftpd_syslog (BBFTPD_ERR, "Error in select: %s", strerror(errno));
+	bbftpd_log (BBFTPD_ERR, "Error in select: %s", strerror(errno));
 	return -1;
      }
 }
@@ -340,7 +349,7 @@ int bbftpd_msg_pending (int timeout)
    return bbftpd_input_pending (incontrolsock, timeout);
 }
 
-int bbftpd_fd_msgrecv_msg (int fd, struct message *msg)
+int bbftpd_fd_msgread_msg (int fd, struct message *msg)
 {
    if (-1 == readmessage (fd, (char *)msg, MINMESSLEN, recvcontrolto))
      return -1;
@@ -353,12 +362,12 @@ int bbftpd_fd_msgrecv_msg (int fd, struct message *msg)
  *   -1 if read failed
  *    0 upon success
  */
-int bbftpd_msgrecv_msg (struct message *msg)
+int bbftpd_msgread_msg (struct message *msg)
 {
-   return bbftpd_fd_msgrecv_msg (incontrolsock, msg);
+   return bbftpd_fd_msgread_msg (incontrolsock, msg);
 }
 
-int bbftpd_msgrecv_int32 (int32_t *val)
+int bbftpd_msgread_int32 (int32_t *val)
 {
    if (-1 == readmessage (incontrolsock, (char *)val, 4, recvcontrolto))
      return -1;
@@ -367,63 +376,8 @@ int bbftpd_msgrecv_int32 (int32_t *val)
    return 0;
 }
 
-int bbftpd_msgrecv_bytes (char *bytes, int num)
+int bbftpd_msgread_bytes (char *bytes, int num)
 {
    return readmessage (incontrolsock, bytes, num, recvcontrolto);
 }
 
-#include <stdio.h>
-#include <sys/stat.h>
-#include <stdarg.h>
-
-#define BBFTP_LOG_TO_FILE (1)
-
-static FILE *_pBBftp_Log_Fp;
-
-void bbftpd_syslog_open (void)
-{
-   static char ident[64];
-
-#if BBFTP_LOG_TO_FILE
-   char file[256];
-   snprintf (file, sizeof(file), "/tmp/bbftp.log.%u.%lu", getpid(), time(NULL));
-   if (NULL != (_pBBftp_Log_Fp = fopen (file, "w")))
-     {
-	(void) chmod (file, 0600);
-     }
-#endif
-
-   /* openlog function requires that this be static */
-   if (ident[0] == 0)
-     (void) snprintf (ident, sizeof(ident), "bbftpd v%s", VERSION) ;
-
-   openlog (ident, LOG_PID | LOG_NDELAY, BBFTPD_FACILITY);
-}
-
-void bbftpd_syslog (int priority, const char *format, ...)
-{
-   char msg[4096];
-   va_list ap;
-
-   va_start(ap, format);
-   (void) vsnprintf (msg, sizeof(msg), format, ap);
-   va_end(ap);
-   syslog (priority, "%s", msg);
-
-   if (_pBBftp_Log_Fp != NULL)
-     {
-	(void) fputs (msg, _pBBftp_Log_Fp);
-	(void) fputs ("\n", _pBBftp_Log_Fp);
-	(void) fflush (_pBBftp_Log_Fp);
-     }
-}
-
-void bbftpd_syslog_close (void)
-{
-   closelog ();
-   if (_pBBftp_Log_Fp != NULL)
-     {
-	(void) fclose (_pBBftp_Log_Fp);
-	_pBBftp_Log_Fp = NULL;
-     }
-}

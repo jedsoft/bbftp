@@ -71,7 +71,7 @@ int createadir(int code, int msglen) {
         ** In order to avoid buffer overflow we reject message to
         ** big
         */
-        bbftpd_syslog(BBFTPD_ERR,"Message to big in createdir (%d,%lu)",msglen,MAXMESSLEN) ;
+        bbftpd_log(BBFTPD_ERR,"Message to big in createdir (%d,%lu)",msglen,MAXMESSLEN) ;
         reply(MSG_BAD_NO_RETRY,"Directory too long") ;
         return -1 ;
     }
@@ -89,7 +89,7 @@ int createadir(int code, int msglen) {
     */
     receive_buffer[msglen] = '\0' ;
     if ( code == MSG_MKDIR ) {
-        bbftpd_syslog(BBFTPD_DEBUG,"Creating directory %s",receive_buffer) ;
+        bbftpd_log(BBFTPD_DEBUG,"Creating directory %s",receive_buffer) ;
     }
     /*
     ** We create the directory
@@ -101,7 +101,7 @@ int createadir(int code, int msglen) {
         */
         savederrno = errno ;
         sprintf(logmessage,"Error creation directory %s : %s",receive_buffer,strerror(errno)) ;
-        bbftpd_syslog(BBFTPD_ERR,"Error creation directory %s : %s",receive_buffer,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error creation directory %s : %s",receive_buffer,strerror(errno)) ;
         /*
         ** We tell the client not to retry in the following case (even in waiting
         ** WAITRETRYTIME the problem will not be solved) :

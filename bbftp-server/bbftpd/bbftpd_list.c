@@ -80,14 +80,14 @@ int bbftpd_list(char *pattern,char *logmessage)
         msg->msglen = filelistlen ;
 #endif
         if ( writemessage(outcontrolsock,send_buffer,MINMESSLEN,recvcontrolto) < 0 ) {
-            bbftpd_syslog(BBFTPD_ERR,"Error sending LISTREPL_V2 part 1") ;
+            bbftpd_log(BBFTPD_ERR,"Error sending LISTREPL_V2 part 1") ;
             FREE(filelist) ;
             return -1 ;
         }
         if (filelistlen != 0 ) {
             if ( writemessage(outcontrolsock,filelist,filelistlen,recvcontrolto) < 0 ) {
                 FREE(filelist) ;
-                bbftpd_syslog(BBFTPD_ERR,"Error sending filelist") ;
+                bbftpd_log(BBFTPD_ERR,"Error sending filelist") ;
                 return -1 ;
             }
             FREE(filelist) ;

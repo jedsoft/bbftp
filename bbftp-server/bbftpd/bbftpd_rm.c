@@ -54,12 +54,12 @@ int bbftpd_rm(int sock,int msglen)
     int     retcode ;
 
     if ( (buffer = (char *) malloc (msglen+1) ) == NULL ) {
-        bbftpd_syslog(BBFTPD_ERR,"Unable to malloc space for file name (%d)",msglen) ;
+        bbftpd_log(BBFTPD_ERR,"Unable to malloc space for file name (%d)",msglen) ;
         reply(MSG_BAD,"Unable to malloc space for file name") ;
         return 0 ;
     }
     if ( (logmessage = (char *) malloc (msglen+1024) ) == NULL ) {
-        bbftpd_syslog(BBFTPD_ERR,"Unable to malloc space for logmessage ") ;
+        bbftpd_log(BBFTPD_ERR,"Unable to malloc space for logmessage ") ;
         reply(MSG_BAD,"Unable to malloc space for logmessage") ;
         FREE(buffer) ;
         return 0 ;
@@ -71,7 +71,7 @@ int bbftpd_rm(int sock,int msglen)
         /*
         ** Error ...
         */
-        bbftpd_syslog(BBFTPD_ERR,"Error reading file name") ;
+        bbftpd_log(BBFTPD_ERR,"Error reading file name") ;
         FREE(buffer) ;
         FREE(logmessage) ;
         return -1 ;

@@ -164,9 +164,9 @@ int storeafile(int code) {
     msg_store->filesize = ntohll(msg_store->filesize) ;
 #endif
     if ( code == MSG_STORE ) {
-        bbftpd_syslog(BBFTPD_DEBUG,"Storing file %s of size %" LONG_LONG_FORMAT " with %d children",currentfilename,msg_store->filesize,msg_store->nbport) ;
+        bbftpd_log(BBFTPD_DEBUG,"Storing file %s of size %" LONG_LONG_FORMAT " with %d children",currentfilename,msg_store->filesize,msg_store->nbport) ;
     } else {
-        bbftpd_syslog(BBFTPD_DEBUG,"Storing file %s of size %" LONG_LONG_FORMAT " with %d children in compressed mode",currentfilename,msg_store->filesize,msg_store->nbport) ;
+        bbftpd_log(BBFTPD_DEBUG,"Storing file %s of size %" LONG_LONG_FORMAT " with %d children in compressed mode",currentfilename,msg_store->filesize,msg_store->nbport) ;
     }
     /*
     ** First stat the file in order to know if it is a directory
@@ -191,7 +191,7 @@ int storeafile(int code) {
             savederrno == ENAMETOOLONG ||
             savederrno == ENOTDIR ) {
             sprintf(logmessage,"Error stating file %s : %s ",currentfilename,strerror(savederrno)) ;
-            bbftpd_syslog(BBFTPD_ERR,"Error stating file %s : %s ",currentfilename,strerror(savederrno)) ;
+            bbftpd_log(BBFTPD_ERR,"Error stating file %s : %s ",currentfilename,strerror(savederrno)) ;
             reply(MSG_BAD_NO_RETRY,logmessage) ;
             return 0 ;
         } else if (savederrno == ENOENT) {
@@ -200,7 +200,7 @@ int storeafile(int code) {
             */
         } else {
             sprintf(logmessage,"Error stating file %s : %s ",currentfilename,strerror(savederrno)) ;
-            bbftpd_syslog(BBFTPD_ERR,"Error stating file %s : %s ",currentfilename,strerror(savederrno)) ;
+            bbftpd_log(BBFTPD_ERR,"Error stating file %s : %s ",currentfilename,strerror(savederrno)) ;
             reply(MSG_BAD,logmessage) ;
             return 0 ;
         }
@@ -209,7 +209,7 @@ int storeafile(int code) {
         ** The file exists so check if it is a directory
         */
         if ( (statbuf.st_mode & S_IFDIR) == S_IFDIR) {
-            bbftpd_syslog(BBFTPD_ERR,"file %s is a directory",currentfilename) ;
+            bbftpd_log(BBFTPD_ERR,"file %s is a directory",currentfilename) ;
             sprintf(logmessage,"File %s is a directory",currentfilename) ;
             reply(MSG_BAD_NO_RETRY,logmessage) ;
             return 0 ;
@@ -229,7 +229,7 @@ int storeafile(int code) {
         */
         savederrno = errno ;
         sprintf(logmessage,"Error creation file %s : %s ",currentfilename,strerror(errno)) ;
-        bbftpd_syslog(BBFTPD_ERR,"Error creation file %s : %s ",currentfilename,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error creation file %s : %s ",currentfilename,strerror(errno)) ;
         /*
         ** We tell the client not to retry in the following case (even in waiting
         ** WAITRETRYTIME the problem will not be solved) :
@@ -273,7 +273,7 @@ int storeafile(int code) {
         sprintf(logmessage,"Error seeking file %s : %s ",currentfilename,strerror(errno)) ;
         close(fd) ;
         unlink(currentfilename) ;
-        bbftpd_syslog(BBFTPD_ERR,"Error seeking file %s : %s ",currentfilename,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error seeking file %s : %s ",currentfilename,strerror(errno)) ;
         reply(MSG_BAD,logmessage) ;
         return 0 ;
     }
@@ -285,7 +285,7 @@ int storeafile(int code) {
         sprintf(logmessage,"Error writing file %s : %s ",currentfilename,strerror(errno)) ;
         close(fd) ;
         unlink(currentfilename) ;
-        bbftpd_syslog(BBFTPD_ERR,"Error writing file %s : %s ",currentfilename,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error writing file %s : %s ",currentfilename,strerror(errno)) ;
         /*
         ** We tell the client not to retry in the following case (even in waiting
         ** WAITRETRYTIME the problem will not be solved) :
@@ -306,7 +306,7 @@ int storeafile(int code) {
     if ( close(fd) < 0 ) {
         savederrno = errno ;
         unlink(currentfilename) ;
-        bbftpd_syslog(BBFTPD_ERR,"Error closing file %s : %s ",currentfilename,strerror(savederrno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error closing file %s : %s ",currentfilename,strerror(savederrno)) ;
         sprintf(logmessage,"Error closing file %s : %s ",currentfilename,strerror(savederrno)) ;
         if ( savederrno == ENOSPC ) {
             reply(MSG_BAD_NO_RETRY,logmessage) ;
@@ -374,7 +374,7 @@ int storeafile(int code) {
                 nfds = sysconf(_SC_OPEN_MAX) ;
                 select(nfds,0,0,0,&wait_timer) ;
             }
-            bbftpd_syslog(BBFTPD_DEBUG,"Child Starting") ;
+            bbftpd_log(BBFTPD_DEBUG,"Child Starting") ;
             /*
             ** Close all unnecessary stuff
             */
@@ -392,7 +392,7 @@ int storeafile(int code) {
                 ** child has detroyed it
                 */ 
                 i = errno ;
-                bbftpd_syslog(BBFTPD_ERR,"Error stating file %s : %s ",currentfilename,strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"Error stating file %s : %s ",currentfilename,strerror(errno)) ;
                 close(recsock) ;
                 exit(i) ;
             }
@@ -406,7 +406,7 @@ int storeafile(int code) {
 #endif
                 i = errno ;
                 unlink(currentfilename) ;
-                bbftpd_syslog(BBFTPD_ERR,"Error opening file %s : %s ",currentfilename,strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"Error opening file %s : %s ",currentfilename,strerror(errno)) ;
                 /*
                 ** At this point a non recoverable error is 
                 **        EDQUOT        : No more quota 
@@ -429,7 +429,7 @@ int storeafile(int code) {
                 i = errno ;
                 close(fd) ;
                 unlink(currentfilename) ;
-                bbftpd_syslog(BBFTPD_ERR,"error seeking file : %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"error seeking file : %s",strerror(errno)) ;
                 close(recsock) ;
                 exit(i)  ;
             }
@@ -444,7 +444,7 @@ int storeafile(int code) {
                     ** Receive the header first 
                     */
                     if (readmessage(recsock,receive_buffer,COMPMESSLEN,datato) < 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Error reading compression header") ;
+                        bbftpd_log(BBFTPD_ERR,"Error reading compression header") ;
                         close(fd) ;
                         unlink(currentfilename) ;
                         i = ETIMEDOUT ;
@@ -492,13 +492,13 @@ int storeafile(int code) {
                         ** Select error
                         */
                         i = errno ;
-                        bbftpd_syslog(BBFTPD_ERR,"Error select while receiving : %s",strerror(errno)) ;
+                        bbftpd_log(BBFTPD_ERR,"Error select while receiving : %s",strerror(errno)) ;
                         close(fd) ;
                         unlink(currentfilename) ;
                         close(recsock) ;
                         exit(i) ;
                     } else if ( retcode == 0 ) {
-                        bbftpd_syslog(BBFTPD_ERR,"Time out while receiving") ;
+                        bbftpd_log(BBFTPD_ERR,"Time out while receiving") ;
                         close(fd) ;
                         unlink(currentfilename) ;
                         i=ETIMEDOUT ;
@@ -508,14 +508,14 @@ int storeafile(int code) {
                         retcode = recv(recsock,&data_buffer[dataonone],datatoreceive-dataonone,0) ;
                         if ( retcode < 0 ) {
                             i = errno ;
-                            bbftpd_syslog(BBFTPD_ERR,"Error while receiving : %s",strerror(errno)) ;
+                            bbftpd_log(BBFTPD_ERR,"Error while receiving : %s",strerror(errno)) ;
                             close(fd) ;
                             unlink(currentfilename) ;
                             close(recsock) ;
                             exit(i) ;
                         } else if ( retcode == 0 ) {
                             i = ECONNRESET ;
-                            bbftpd_syslog(BBFTPD_ERR,"Connexion breaks") ;
+                            bbftpd_log(BBFTPD_ERR,"Connexion breaks") ;
                             close(fd) ;
                             unlink(currentfilename) ;
                             close(recsock) ;
@@ -536,7 +536,7 @@ int storeafile(int code) {
                         retcode = uncompress((Bytef *) comp_buffer, &bufcomplen, (Bytef *) data_buffer, buflen) ;
                         if ( retcode != 0 ) {
                             i = EILSEQ ;
-                            bbftpd_syslog(BBFTPD_ERR,"Error while decompressing %d ",retcode) ;
+                            bbftpd_log(BBFTPD_ERR,"Error while decompressing %d ",retcode) ;
                             close(fd) ;
                             unlink(currentfilename) ;
                             close(recsock) ;
@@ -560,7 +560,7 @@ int storeafile(int code) {
                 while ( lenwrited < lentowrite ) {
                     if ( (retcode = write(fd,&data_buffer[lenwrited],lentowrite-lenwrited)) < 0 ) {
                         i = errno ;
-                        bbftpd_syslog(BBFTPD_ERR,"error writing file : %s",strerror(errno)) ;
+                        bbftpd_log(BBFTPD_ERR,"error writing file : %s",strerror(errno)) ;
                         close(fd) ;
                         unlink(currentfilename) ;
                         if ( i == EDQUOT ||
@@ -585,12 +585,12 @@ int storeafile(int code) {
             if ( writemessage(recsock,data_buffer,MINMESSLEN,sendcontrolto) < 0 ) {
                 close(fd) ;
                 unlink(currentfilename) ;
-                bbftpd_syslog(BBFTPD_ERR,"Error sending ACK ") ;
+                bbftpd_log(BBFTPD_ERR,"Error sending ACK ") ;
                 close(recsock) ;
                 exit(ETIMEDOUT) ;
             }
             toprint64 = nbget ;
-            bbftpd_syslog(BBFTPD_DEBUG,"Child received %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
+            bbftpd_log(BBFTPD_DEBUG,"Child received %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
             close(recsock) ;
             exit(0) ;
         } else {
@@ -601,7 +601,7 @@ int storeafile(int code) {
                 /*
                 ** Fork failed ...
                 */
-                bbftpd_syslog(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
                 unlink(currentfilename) ;
                 sprintf(logmessage,"fork failed : %s ",strerror(errno)) ;
                 if ( childendinerror == 0 ) {
@@ -615,7 +615,7 @@ int storeafile(int code) {
                 ** Set the parameter telling the sig child routine to unlink
                 ** in case of error 
                 */
-                bbftpd_syslog(BBFTPD_DEBUG,"Started child pid %d",retcode) ;
+                bbftpd_log(BBFTPD_DEBUG,"Started child pid %d",retcode) ;
                 pid_child[i-1] = retcode ;
                 close(recsock) ;
             }

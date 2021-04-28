@@ -55,6 +55,7 @@
 # include <string.h>
 #endif
 
+#include <netdb.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <common.h>
@@ -64,6 +65,137 @@
 #include <version.h>
 
 #include "_bbftpd.h"
+
+static int get_ip_address (const char *host, in_addr_t *ip)
+{
+   char hostbuf[512];
+   struct in_addr addr;
+   struct hostent *h;
+   char **h_addr_list;
+
+   if (host == NULL)
+     {
+	if (-1 == gethostname (hostbuf, sizeof(hostbuf)))
+	  {
+	     bbftpd_log (BBFTPD_ERR, "gethostname failed: %s\n", strerror (errno));
+	     return -1;
+	  }
+	host = hostbuf;
+     }
+
+   if (NULL == (h = gethostbyname (host)))
+     {
+	int save_herrno = h_errno;
+	/* In case of dotted form */
+	if (0 != inet_aton (host, &addr))   /* returns non-0 upon success */
+	  {
+	     *ip = addr.s_addr;
+	     return 0;
+	  }
+	bbftpd_log (BBFTPD_ERR, "gethostbyname(%s) failed: h_errno=%d\n", host, save_herrno);
+	return -1;
+     }
+
+   /* Take the first address */
+   if ((h->h_addrtype != AF_INET) || (h->h_length != 4))
+     {
+	bbftpd_log (BBFTPD_ERR, "%s\n", "AF_INET6 addresses are unsupported");
+	return -1;
+     }
+   /* Default to the first one */
+   h_addr_list = h->h_addr_list;
+   addr = *((struct in_addr *)h_addr_list[0]);
+   /* Avoid the loopback address */
+   while (*h_addr_list != NULL)
+     {
+	unsigned char *bytes = (unsigned char *)h_addr_list[0];
+	/* The loopback address is "0x7F 0x?? 0x?? 0x??" in network byte order */
+	if (bytes[0] == 0x7F)
+	  {
+	     h_addr_list++;
+	     continue;
+	  }
+	addr = *(struct in_addr *)bytes;
+	break;
+     }
+
+   *ip = addr.s_addr;
+   return 0;
+}
+
+/* This function assumes network byte order for ip */
+static char *ip_to_dotted (in_addr_t ip, char *buf, size_t buflen)
+{
+   unsigned char *s;
+
+   s = (unsigned char *)&ip;
+   snprintf (buf, buflen, "%d.%d.%d.%d", s[0], s[1], s[2], s[3]);
+   return buf;
+}
+
+static int exchange_addessses_with_client (void)
+{
+   struct message msg;
+   in_addr_t local, remote;
+   char local_dotted[16], remote_dotted[16];
+
+   if (-1 == get_ip_address (NULL, &local))
+     return -1;
+
+   if (-1 == bbftpd_msgwrite_bytes (MSG_IPADDR, (char *)&local, 4))
+     {
+	bbftpd_log(BBFTPD_ERR,"%s", "Error writing MSG_IPADDR to client\n");
+	reply (MSG_BAD, "Error writing MSG_IPADDR");
+	return -1;
+     }
+
+   if (-1 == bbftpd_msgread_msg (&msg))
+     {
+	bbftpd_log(BBFTPD_ERR, "Time out or error waiting for MSG_IPADDR");
+	reply(MSG_BAD, "Failed to get MSG_IPADDR message");
+	return -1;
+     }
+
+   if (msg.code != MSG_IPADDR_OK)
+     {
+	bbftpd_log (BBFTPD_ERR, "Expected MSG_IPADDR_OK message.  Got %d", msg.code);
+	reply(MSG_BAD, "Expected to see MSG_IPADDR_OK with ipaddress");
+	return -1;
+     }
+   if (msg.msglen != 4)
+     {
+	bbftpd_log (BBFTPD_ERR, "Expected a 32bit IP address to follow MSG_IPADDR_OK");
+	reply(MSG_BAD, "Expected a 32bit IP address to follow MSG_IPADDR_OK");
+	return -1;
+     }
+
+   if (-1 == bbftpd_msgread_bytes ((char *)&remote, 4))
+     {
+	bbftpd_log (BBFTPD_ERR, "Failed to read 32 bit IP address\n");
+	reply (MSG_BAD, "Failed to read 32 bit IP address");
+	return -1;
+     }
+
+   his_addr.sin_addr.s_addr = remote;
+   (void) ip_to_dotted (remote, remote_dotted, sizeof(remote_dotted));
+   (void) ip_to_dotted (local, local_dotted, sizeof(local_dotted));
+   bbftpd_log (BBFTPD_INFO, "Server IP: %s, Client IP: %s\n", local_dotted, remote_dotted);
+
+   return 0;
+}
+
+/*******************************************************************************
+** checkfromwhere :                                                            *
+**                                                                             *
+**      This routine get a socket on a port, send a MSG_LOGGED_STDIN and       *
+**      wait for a connection on that port.                                    *
+**                                                                             *
+**      RETURN:                                                                *
+**          No return but the routine exit in case of error.                   *
+**
+** This function gets used when bbftpd gets started via an ssh connection, and *
+** not running as a daemon.
+*******************************************************************************/
 
 static int try_bind (int port_min, int port_max,
 		     int sockfd, struct sockaddr_in *server)
@@ -85,67 +217,12 @@ static int try_bind (int port_min, int port_max,
 	if (ret == 0) return 0;
      }
 
-   bbftpd_syslog(BBFTPD_ERR, "Cannot bind on data socket : %s", strerror(errno));
+   bbftpd_log(BBFTPD_ERR, "Cannot bind on data socket : %s", strerror(errno));
    reply(MSG_BAD,"Cannot bind checkreceive socket") ;
-   bbftpd_syslog(BBFTPD_INFO,"User %s disconnected", currentusername) ;
+   bbftpd_log(BBFTPD_INFO,"User %s disconnected", currentusername) ;
    return -1;
 }
 
-
-static int ask_remote_for_address (void)
-{
-   struct message msg;
-
-   if (-1 == bbftpd_msgsend_len (MSG_IPADDR, 0))
-     {
-	bbftpd_syslog(BBFTPD_ERR,"Error writing MSG_IPADDR to request address");
-	reply (MSG_BAD, "Error writing MSG_IPADDR");
-	return -1;
-     }
-
-   if (-1 == bbftpd_msgrecv_msg (&msg))
-     {
-	bbftpd_syslog(BBFTPD_ERR, "Time out or error waiting for MSG_IPADDR_OK");
-	reply(MSG_BAD, "Failed to get MSG_IPADDR_OK message");
-	return -1;
-     }
-   if (msg.code != MSG_IPADDR_OK)
-     {
-	bbftpd_syslog (BBFTPD_ERR, "Expected MSG_IPADDR_OK message.  Got %d", msg.code);
-	reply(MSG_BAD, "Expect to see MSG_IPADDR_OK with ipaddress");
-	return -1;
-     }
-   if (msg.msglen != 4)
-     {
-	bbftpd_syslog (BBFTPD_ERR, "Expected a 32bit IP address to follow MSG_IPADDR_OK");
-	reply(MSG_BAD, "Expected a 32bit IP address to follow MSG_IPADDR_OK");
-	return -1;
-     }
-   if (-1 == bbftpd_msgrecv_bytes ((char *)&his_addr.sin_addr.s_addr, 4))
-     {
-	bbftpd_syslog (BBFTPD_ERR, "Failed to read 32 bit IP address");
-	reply (MSG_BAD, "Failed to read 32 bit IP address");
-	return -1;
-     }
-
-   reply (MSG_OK, "IP address received");
-   return 0;
-}
-
-   
-     
-/*******************************************************************************
-** checkfromwhere :                                                            *
-**                                                                             *
-**      This routine get a socket on a port, send a MSG_LOGGED_STDIN and       *
-**      wait for a connection on that port.                                    *
-**                                                                             *
-**      RETURN:                                                                *
-**          No return but the routine exit in case of error.                   *
-**
-** This function gets used when bbftpd gets started via an ssh connection, and *
-** not running as a daemon.
-*******************************************************************************/
 
 void checkfromwhere (int ask_remote)
 {
@@ -159,10 +236,10 @@ void checkfromwhere (int ask_remote)
 
    if (ask_remote)
      {
-	if (-1 == ask_remote_for_address ())
+	if (-1 == exchange_addessses_with_client ())
 	  {
 	     reply (MSG_BAD, "Closing connection");
-	     bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+	     bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
 	  }
 	ctrl_addr.sin_port = htons(newcontrolport) ;
 	return;
@@ -170,24 +247,24 @@ void checkfromwhere (int ask_remote)
 
     sock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
     if ( sock < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR, "Cannot create checkreceive socket : %s",strerror(errno));
+        bbftpd_log(BBFTPD_ERR, "Cannot create checkreceive socket : %s",strerror(errno));
         reply(MSG_BAD,"Cannot create checkreceive socket") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         exit(1) ;
     }
     if ( setsockopt(sock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Cannot set SO_REUSEADDR on checkreceive socket : %s\n",strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Cannot set SO_REUSEADDR on checkreceive socket : %s\n",strerror(errno)) ;
         reply(MSG_BAD,"Cannot set SO_REUSEADDR on checkreceive socket") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(sock) ;
         exit(1) ;
     }
     li.l_onoff = 1 ;
     li.l_linger = 1 ;
     if ( setsockopt(sock,SOL_SOCKET,SO_LINGER,(char *)&li,sizeof(li)) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Cannot set SO_LINGER on checkreceive socket : %s\n",strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Cannot set SO_LINGER on checkreceive socket : %s\n",strerror(errno)) ;
         reply(MSG_BAD,"Cannot set SO_LINGER on checkreceive socket") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(sock) ;
         exit(1) ;
     }
@@ -209,29 +286,29 @@ void checkfromwhere (int ask_remote)
 
    addrlen = sizeof(server);
     if (getsockname(sock,(struct sockaddr *)&server, &addrlen) < 0) {
-        bbftpd_syslog(BBFTPD_ERR,"Error getsockname checkreceive socket : %s",strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error getsockname checkreceive socket : %s",strerror(errno)) ;
         reply(MSG_BAD,"Cannot getsockname checkreceive socket") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(sock) ;
         exit(1) ;
     }
     if ( listen(sock,1) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error listening checkreceive socket : %s",strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error listening checkreceive socket : %s",strerror(errno)) ;
         reply(MSG_BAD,"Error listening checkreceive socket") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(sock) ;
         exit(1) ;
     }
-    bbftpd_syslog(BBFTPD_INFO, "listen port : %d",ntohs(server.sin_port));
+    bbftpd_log(BBFTPD_INFO, "listen port : %d",ntohs(server.sin_port));
 
     /*
     ** Send the MSG_LOGGED_STDIN message
     */
-   if (-1 == bbftpd_msgsend_int32 (MSG_LOGGED_STDIN, ntohs(server.sin_port)))
+   if (-1 == bbftpd_msgwrite_int32 (MSG_LOGGED_STDIN, ntohs(server.sin_port)))
      {
-        bbftpd_syslog(BBFTPD_ERR,"Error writing checkreceive socket port");
+        bbftpd_log(BBFTPD_ERR,"Error writing checkreceive socket port");
         reply(MSG_BAD,"Error writing checkreceive socket port") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(sock) ;
         exit(1) ;
     }
@@ -242,60 +319,60 @@ void checkfromwhere (int ask_remote)
 	close (sock);
 	if (retcode == -1)
 	  {
-	     bbftpd_syslog(BBFTPD_ERR,"Error select checkreceive socket : %s ",strerror(errno)) ;
+	     bbftpd_log(BBFTPD_ERR,"Error select checkreceive socket : %s ",strerror(errno)) ;
 	     reply(MSG_BAD,"Error select checkreceive socket") ;
 	  }
 	else
 	  {
-	     bbftpd_syslog(BBFTPD_ERR,"Time out select checkreceive socket ") ;
+	     bbftpd_log(BBFTPD_ERR,"Time out select checkreceive socket ") ;
 	     reply(MSG_BAD,"Time Out select checkreceive socket") ;
-	     bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+	     bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
 	  }
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         exit(1) ;
     }
 
    if ( (ns = accept(sock,0,0) ) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error accept checkreceive socket ") ;
+        bbftpd_log(BBFTPD_ERR,"Error accept checkreceive socket ") ;
         reply(MSG_BAD,"Error accep checkreceive socket") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(sock) ;
         exit(1) ;
     }
     close(sock) ;
     addrlen = sizeof(his_addr);
     if (getpeername(ns, (struct sockaddr *) &his_addr, &addrlen) < 0) {
-        bbftpd_syslog(BBFTPD_ERR, "getpeername : %s",strerror(errno));
+        bbftpd_log(BBFTPD_ERR, "getpeername : %s",strerror(errno));
         reply(MSG_BAD,"getpeername error") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(ns) ;
         exit(1);
     }
     addrlen = sizeof(ctrl_addr);
     if (getsockname(ns, (struct sockaddr *) &ctrl_addr, &addrlen) < 0) {
-        bbftpd_syslog(BBFTPD_ERR, "getsockname : %s",strerror(errno));
+        bbftpd_log(BBFTPD_ERR, "getsockname : %s",strerror(errno));
         reply(MSG_BAD,"getsockname error") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(ns) ;
         exit(1);
     }
     /*
     ** Now read the message
     */
-   if (-1 == bbftpd_fd_msgrecv_msg (ns, &msg))
+   if (-1 == bbftpd_fd_msgread_msg (ns, &msg))
      {
-        bbftpd_syslog(BBFTPD_ERR,"Error reading checkreceive socket") ;
+        bbftpd_log(BBFTPD_ERR,"Error reading checkreceive socket") ;
         reply(MSG_BAD,"Error reading checkreceive socket") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(ns) ;
         exit(1) ;
      }
 
     if (msg.code != MSG_IPADDR )
      {
-        bbftpd_syslog(BBFTPD_ERR,"Receive unkown message on checkreceive socket") ;
+        bbftpd_log(BBFTPD_ERR,"Receive unkown message on checkreceive socket") ;
         reply(MSG_BAD,"Receive unkown message on checkreceive socket") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(ns) ;
         exit(1);
     }
@@ -304,11 +381,11 @@ void checkfromwhere (int ask_remote)
     ** Everything seems OK so send a MSG_IPADDR_OK on the
     ** control socket and close the connection
     */
-   if (-1 == bbftpd_fd_msgsend_len (ns, MSG_IPADDR_OK, 0))
+   if (-1 == bbftpd_fd_msgwrite_len (ns, MSG_IPADDR_OK, 0))
      {
-        bbftpd_syslog(BBFTPD_ERR,"Error writing checkreceive socket OK message") ;
+        bbftpd_log(BBFTPD_ERR,"Error writing checkreceive socket OK message") ;
         reply(MSG_BAD,"Error writing checkreceive socket OK message") ;
-        bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(ns) ;
         exit(1) ;
      }
@@ -339,15 +416,15 @@ int checkprotocol (int *versionp)
 {
    struct  message msg ;
 
-   if (-1 == bbftpd_msgsend_int32_2 (MSG_PROT_ANS, protocolmin, protocolmax))
+   if (-1 == bbftpd_msgwrite_int32_2 (MSG_PROT_ANS, protocolmin, protocolmax))
      {
-        bbftpd_syslog(BBFTPD_ERR,"Error writing MSG_PROT_ANS") ;
+        bbftpd_log(BBFTPD_ERR,"Error writing MSG_PROT_ANS") ;
         return -1 ;
      }
 
-   if (-1 == bbftpd_msgrecv_msg (&msg))
+   if (-1 == bbftpd_msgread_msg (&msg))
      {
-        bbftpd_syslog(BBFTPD_ERR,"Error waiting MSG_PROT_ANS") ;
+        bbftpd_log(BBFTPD_ERR,"Error waiting MSG_PROT_ANS") ;
         return -1 ;
     }
 
@@ -356,25 +433,25 @@ int checkprotocol (int *versionp)
         if (msg.msglen == 4)
 	  {
 	     int32_t p;
-	     if (-1 == bbftpd_msgrecv_int32 (&p))
+	     if (-1 == bbftpd_msgread_int32 (&p))
 	       {
-		  bbftpd_syslog(BBFTPD_ERR,"Error waiting MSG_PROT_ANS (protocol version)") ;
+		  bbftpd_log(BBFTPD_ERR,"Error waiting MSG_PROT_ANS (protocol version)") ;
 		  return -1 ;
 	       }
 	     *versionp = p;
 	     return 0 ;
 	  }
-	bbftpd_syslog(BBFTPD_ERR,"Unexpected length while MSG_PROT_ANS %d", msg.msglen) ;
+	bbftpd_log(BBFTPD_ERR,"Unexpected length while MSG_PROT_ANS %d", msg.msglen) ;
 	return -1 ;
      }
 
    if (msg.code == MSG_BAD_NO_RETRY )
      {
-	bbftpd_syslog(BBFTPD_ERR,"Incompatible server and client") ;
+	bbftpd_log(BBFTPD_ERR,"Incompatible server and client") ;
 	*versionp = -1;
 	return -1;
      }
 
-   bbftpd_syslog(BBFTPD_ERR,"Unexpected message while MSG_PROT_ANS %d", msg.code) ;
+   bbftpd_log(BBFTPD_ERR,"Unexpected message while MSG_PROT_ANS %d", msg.code) ;
    return -1 ;
 }

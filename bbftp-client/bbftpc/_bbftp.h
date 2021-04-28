@@ -1,6 +1,8 @@
 #ifndef BBFTP_PRIVATE_H_
 #define BBFTP_PRIVATE_H_ 1
 
+#include <structures.h>
+
 /*
 ** Simulation mode (option -n)
 */
@@ -15,6 +17,22 @@ extern int bbftp_res_open (const char *file);
 extern void bbftp_res_close (void);
 extern int bbftp_res_write (const char *str);
 extern int bbftp_res_printf (const char *fmt, ...);
+
+extern int bbftp_input_pending (int fd, int timeout);
+extern int bbftp_msg_pending (int timeout);
+extern int bbftp_fd_msgread_msg (int fd, struct message *msg);
+extern int bbftp_msgread_msg (struct message *msg);
+extern int bbftp_msgread_int32 (int32_t *val);
+extern int bbftp_msgread_bytes (char *bytes, int num);
+extern int bbftp_msg_discard (struct message *msg);
+
+extern int bbftp_fd_msgwrite_int32_2 (int fd, int code, int i, int j);
+extern int bbftp_fd_msgwrite_int32 (int fd, int code, int i);
+extern int bbftp_fd_msgwrite_len (int fd, int code, int len);
+extern int bbftp_msgwrite_int32_2 (int code, int i, int j);
+extern int bbftp_msgwrite_int32 (int code, int i);
+extern int bbftp_msgwrite_len (int code, int len);
+extern int bbftp_msgwrite_bytes (int code, char *bytes, int len);
 
 #ifndef HAVE_NTOHLL
 extern my64_t ntohll (my64_t v);

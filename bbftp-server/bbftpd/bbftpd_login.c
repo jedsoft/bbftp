@@ -191,7 +191,7 @@ int loginsequence(void) {
                 return(retcode) ;
             }
             if ( decodersapass(receive_buffer,username,password) < 0 ) {
-                bbftpd_syslog(BBFTPD_ERR,"Decode user/password error") ;
+                bbftpd_log(BBFTPD_ERR,"Decode user/password error") ;
                 strcat(logmessage," : Decode user/password error") ;
                 reply(MSG_BAD,logmessage) ;
                 return -1 ;
@@ -208,7 +208,7 @@ int loginsequence(void) {
             password[strlen(msg_rsa->cryptpass)]='\0';
             break ;
         default :
-            bbftpd_syslog(BBFTPD_ERR,"Unkwown encryption %d",msg_sec->crtype) ;
+            bbftpd_log(BBFTPD_ERR,"Unkwown encryption %d",msg_sec->crtype) ;
             strcat(logmessage," : Unknwon encryption") ;
             reply(MSG_BAD,logmessage) ;
             return -1 ;
@@ -217,7 +217,7 @@ int loginsequence(void) {
     ** Here we check the username and pass and set the default dir
     */
     if ( (uspass = getpwnam(username)) == NULL ) {
-        bbftpd_syslog(BBFTPD_ERR,"Unknown user %s",username) ;
+        bbftpd_log(BBFTPD_ERR,"Unknown user %s",username) ;
         strcat(logmessage," : Unknown user (") ;
         strcat(logmessage, username);
         strcat(logmessage, ")");
@@ -231,7 +231,7 @@ int loginsequence(void) {
     setpag() ;
     retcode = ka_UserAuthenticate(username,inst,0,password,0,&calcpass) ;
     if ( retcode != 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"ka_UserAuthenticate message : %s ",calcpass) ;
+        bbftpd_log(BBFTPD_ERR,"ka_UserAuthenticate message : %s ",calcpass) ;
         /*
         ** Check local user 
         */
@@ -240,7 +240,7 @@ int loginsequence(void) {
 #ifdef SHADOW_PASSWORD
 	   errno = 0;
             if ( (sunpass = getspnam(username)) == NULL ) {
-	       bbftpd_syslog (BBFTPD_ERR, "getspnam failed for usename %s: %s", username, strerror(errno));
+	       bbftpd_log (BBFTPD_ERR, "getspnam failed for usename %s: %s", username, strerror(errno));
                 /*
                 ** We send ka_UserAuthenticate error msg
                 */
@@ -251,14 +251,14 @@ int loginsequence(void) {
             }
             calcpass = (char *) crypt(password,sunpass->sp_pwdp) ;
             if ( strcmp(calcpass,sunpass->sp_pwdp) != 0 ) {
-                bbftpd_syslog(BBFTPD_ERR,"Incorrect password user %s",username) ;
+                bbftpd_log(BBFTPD_ERR,"Incorrect password user %s",username) ;
                 strcat(logmessage," : Incorrect password") ;
                 reply(MSG_BAD_NO_RETRY,logmessage) ;
                 return -1 ;
             }
 #elif defined(HAVE_SECURITY_PASS)
             if ( (secpass = getuserpw(username)) == NULL ) {
-                bbftpd_syslog(BBFTPD_ERR,"Unknown user %s",username) ;
+                bbftpd_log(BBFTPD_ERR,"Unknown user %s",username) ;
                 /*
                 ** We send ka_UserAuthenticate error msg
                 */
@@ -269,14 +269,14 @@ int loginsequence(void) {
             }
             calcpass = (char *) crypt(password,secpass->upw_passwd) ;
             if ( strcmp(calcpass,secpass->upw_passwd) != 0 ) {
-                bbftpd_syslog(BBFTPD_ERR,"Incorrect password user %s",username) ;
+                bbftpd_log(BBFTPD_ERR,"Incorrect password user %s",username) ;
                 strcat(logmessage," : Incorrect password") ;
                 reply(MSG_BAD_NO_RETRY,logmessage) ;
                 return -1 ;
             }
 #else
 
-            bbftpd_syslog(BBFTPD_ERR,"No Password user %s",username) ;
+            bbftpd_log(BBFTPD_ERR,"No Password user %s",username) ;
             strcat(logmessage," : No password user") ;
             reply(MSG_BAD_NO_RETRY,logmessage) ;
             return -1 ;
@@ -284,7 +284,7 @@ int loginsequence(void) {
         } else {
             calcpass = (char *) crypt(password,uspass->pw_passwd) ;
             if ( strcmp(calcpass,uspass->pw_passwd) != 0 ) {
-                bbftpd_syslog(BBFTPD_ERR,"Incorrect password user %s",username) ;
+                bbftpd_log(BBFTPD_ERR,"Incorrect password user %s",username) ;
                 strcat(logmessage," : Incorrect password") ;
                 reply(MSG_BAD_NO_RETRY,logmessage) ;
                 return -1 ;
@@ -298,7 +298,7 @@ int loginsequence(void) {
     strcat(logmessage," : PAM Error") ;
     PAM_password = password ;
     retcode = pam_start("bbftp", username, &PAM_conversation, &pamh);
-#define PAM_BAIL if (retcode != PAM_SUCCESS) { pam_end(pamh, 0); bbftpd_syslog(BBFTPD_ERR,"PAM error (%d) user %s",retcode,username) ;reply(MSG_BAD_NO_RETRY,logmessage) ;return -1; }
+#define PAM_BAIL if (retcode != PAM_SUCCESS) { pam_end(pamh, 0); bbftpd_log(BBFTPD_ERR,"PAM error (%d) user %s",retcode,username) ;reply(MSG_BAD_NO_RETRY,logmessage) ;return -1; }
     PAM_BAIL;
     retcode = pam_authenticate(pamh, PAM_SILENT);
     PAM_BAIL;
@@ -324,7 +324,7 @@ int loginsequence(void) {
 #ifdef SHADOW_PASSWORD
        errno = 0;
             if ( (sunpass = getspnam(username)) == NULL ) {
-	       bbftpd_syslog (BBFTPD_ERR, "getspnam failed for usename %s: %s", username, strerror(errno));
+	       bbftpd_log (BBFTPD_ERR, "getspnam failed for usename %s: %s", username, strerror(errno));
                 strcat(logmessage," : Unknown user :") ;
                 strcat(logmessage, strerror(errno)) ;
                 reply(MSG_BAD_NO_RETRY,logmessage) ;
@@ -332,27 +332,27 @@ int loginsequence(void) {
             }
             calcpass = (char *) crypt(password,sunpass->sp_pwdp) ;
             if ( strcmp(calcpass,sunpass->sp_pwdp) != 0 ) {
-                bbftpd_syslog(BBFTPD_ERR,"Incorrect password user %s",username) ;
+                bbftpd_log(BBFTPD_ERR,"Incorrect password user %s",username) ;
                 strcat(logmessage," : Incorrect password") ;
                 reply(MSG_BAD_NO_RETRY,logmessage) ;
                 return -1 ;
             }
 #elif defined(HAVE_SECURITY_PASS)
             if ( (secpass = getuserpw(username)) == NULL ) {
-                bbftpd_syslog(BBFTPD_ERR,"Unknown user %s",username) ;
+                bbftpd_log(BBFTPD_ERR,"Unknown user %s",username) ;
                 strcat(logmessage," : Unknown user") ;
                 reply(MSG_BAD_NO_RETRY,logmessage) ;
                 return -1 ;
             }
             calcpass = (char *) crypt(password,secpass->upw_passwd) ;
             if ( strcmp(calcpass,secpass->upw_passwd) != 0 ) {
-                bbftpd_syslog(BBFTPD_ERR,"Incorrect password user %s",username) ;
+                bbftpd_log(BBFTPD_ERR,"Incorrect password user %s",username) ;
                 strcat(logmessage," : Incorrect password") ;
                 reply(MSG_BAD_NO_RETRY,logmessage) ;
                 return -1 ;
             }
 #else
-            bbftpd_syslog(BBFTPD_ERR,"No Password user %s",username) ;
+            bbftpd_log(BBFTPD_ERR,"No Password user %s",username) ;
             strcat(logmessage," : No password") ;
             reply(MSG_BAD_NO_RETRY,logmessage) ;
             return -1 ;
@@ -360,7 +360,7 @@ int loginsequence(void) {
     } else {
         calcpass = (char *) crypt(password,uspass->pw_passwd) ;
         if ( strcmp(calcpass,uspass->pw_passwd) != 0 ) {
-            bbftpd_syslog(BBFTPD_ERR,"Incorrect password user %s",username) ;
+            bbftpd_log(BBFTPD_ERR,"Incorrect password user %s",username) ;
             strcat(logmessage," : Incorrect password") ;
             reply(MSG_BAD_NO_RETRY,logmessage) ;
             return -1 ;
@@ -371,7 +371,7 @@ int loginsequence(void) {
     ** Set the uid and gid of the process
     */
     if ( setgid(uspass->pw_gid) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error setgid user %s : %s",username,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error setgid user %s : %s",username,strerror(errno)) ;
         strcat(logmessage," : Unable to set gid: ") ;
 	strcat(logmessage,strerror(errno));
         reply(MSG_BAD,logmessage) ;
@@ -380,35 +380,35 @@ int loginsequence(void) {
     /* Initialize the group list. */
     if (getuid() == 0) {
       if (initgroups(uspass->pw_name, uspass->pw_gid) < 0) {
-        bbftpd_syslog(BBFTPD_WARNING,"Error Initialize the group list %s : %s",username,strerror(errno)) ;
+        bbftpd_log(BBFTPD_WARNING,"Error Initialize the group list %s : %s",username,strerror(errno)) ;
         return -1 ;
       }
       endgrent();
     }
 
     if ( setuid(uspass->pw_uid) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error setuid user %s : %s",username,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error setuid user %s : %s",username,strerror(errno)) ;
         strcat(logmessage," : Unable to set uid: ") ;
 	strcat(logmessage,strerror(errno));
         reply(MSG_BAD,logmessage) ;
         return -1 ;
     }
     if ( uspass->pw_dir == NULL ) {
-        bbftpd_syslog(BBFTPD_ERR,"No home directory user %s : %s",username,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"No home directory user %s : %s",username,strerror(errno)) ;
         strcat(logmessage," : No home directory: ") ;
 	strcat(logmessage,strerror(errno));
         reply(MSG_BAD,logmessage) ;
         return -1 ;
     }
     if ( chdir(uspass->pw_dir) < 0) {
-        bbftpd_syslog(BBFTPD_ERR,"Error chdir user %s : %s",username,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error chdir user %s : %s",username,strerror(errno)) ;
         strcat(logmessage," : Unable to change directory: ") ;
 	strcat(logmessage,strerror(errno));
         reply(MSG_BAD,logmessage) ;
         return -1 ;
     }
                 
-    bbftpd_syslog(BBFTPD_DEBUG,"User %s connected",username) ;
+    bbftpd_log(BBFTPD_DEBUG,"User %s connected",username) ;
     strcpy(currentusername,username) ;
     return 0 ;
 }

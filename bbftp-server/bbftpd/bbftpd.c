@@ -117,9 +117,9 @@
 #include "_bbftpd.h"
 
 #ifdef CERTIFICATE_AUTH
-#define OPTIONS    "Abcd:fl:m:pR:suvw:"
+#define OPTIONS    "Abcd:fl:L:m:pR:suvw:"
 #else
-#define OPTIONS    "Abd:e:fl:m:R:suvw:"
+#define OPTIONS    "Abd:e:fl:L:m:R:suvw:"
 #endif
 /*
 ** Common variables for BBFTP protocole version 1 and 2
@@ -451,18 +451,18 @@ static int check_libs (void)
 }
 
 
-static void set_log_level (const char *level)
+static void parse_log_level (const char *str, int *levelp)
 {
-   char uplevel[32];
+   char upstr[32];
    int i;
 
-   strncpy (uplevel, level, sizeof(uplevel));
-   uplevel[sizeof(uplevel)-1] = 0;
+   strncpy (upstr, str, sizeof(upstr));
+   upstr[sizeof(upstr)-1] = 0;
 
    i = 0;
-   while (uplevel[i] != 0)
+   while (upstr[i] != 0)
      {
-	uplevel[i] = toupper(uplevel[i]);
+	upstr[i] = toupper(upstr[i]);
 	i++;
      }
 
@@ -476,7 +476,7 @@ static void set_log_level (const char *level)
    else if ( !strcmp(optarg,"DEBUG") ) i = BBFTPD_DEBUG;
    else return;
 
-   setlogmask(LOG_UPTO(i));
+   *levelp = i;
 }
 
 typedef struct
@@ -513,7 +513,7 @@ static int init_default_server_config (int argc, char **argv, Server_Config_Type
       /*
        ** Starting badly if we are unable to malloc 5K
        */
-      bbftpd_syslog(BBFTPD_ERR,"No memory for CASTOR : %s",strerror(errno)) ;
+      bbftpd_log(BBFTPD_ERR,"No memory for CASTOR : %s",strerror(errno)) ;
       fprintf(stderr,"No memory for CASTOR : %s\n",strerror(errno)) ;
       return -1;
    }
@@ -538,7 +538,7 @@ static int process_cmdline_options (int argc, char **argv, Server_Config_Type *s
 	   case 'b' :
 	     if (be_daemon && (be_daemon != 2))
 	       {
-		  bbftpd_syslog(BBFTPD_ERR,"-b and -s options are incompatible");
+		  bbftpd_log(BBFTPD_ERR,"-b and -s options are incompatible");
 		  return -1;
 	       }
 	     server_config->server_mode = be_daemon = 2;
@@ -558,7 +558,7 @@ static int process_cmdline_options (int argc, char **argv, Server_Config_Type *s
 	       }
 	     else
 	       {
-                  bbftpd_syslog(BBFTPD_ERR,"Invalid port range : %s", optarg) ;
+                  bbftpd_log(BBFTPD_ERR,"Invalid port range : %s", optarg) ;
                   fprintf(stderr,"Invalid port range : %s\n", optarg);
 		  return -1;
 	       }
@@ -579,12 +579,12 @@ static int process_cmdline_options (int argc, char **argv, Server_Config_Type *s
 
 	   case 's' :
 #ifdef PRIVATE_AUTH
-	     bbftpd_syslog(BBFTPD_ERR,"-s option cannot be used with private authentication") ;
+	     bbftpd_log(BBFTPD_ERR,"-s option cannot be used with private authentication") ;
 	     return -1;
 #else
 	     if (be_daemon && (be_daemon != 1))
 	       {
-		  bbftpd_syslog(BBFTPD_ERR,"-b and -s options are incompatible") ;
+		  bbftpd_log(BBFTPD_ERR,"-b and -s options are incompatible") ;
 		  return -1;
 	       }
 	     server_config->server_mode = be_daemon = 1;
@@ -633,19 +633,19 @@ static int get_bbftprc_file (char **filep)
 
    if (NULL == (mypasswd = getpwuid(getuid())))
      {
-	bbftpd_syslog(BBFTPD_WARNING, "Unable to get passwd entry, using %s\n", System_BBftpdrc_File);
+	bbftpd_log(BBFTPD_WARNING, "Unable to get passwd entry, using %s\n", System_BBftpdrc_File);
 	return 0;
      }
 
     if (mypasswd->pw_dir == NULL)
      {
-	bbftpd_syslog(BBFTPD_WARNING, "No home directory, using %s\n", System_BBftpdrc_File) ;
+	bbftpd_log(BBFTPD_WARNING, "No home directory, using %s\n", System_BBftpdrc_File) ;
 	return 0;
      }
 
    if (NULL == (file = bbftpd_strcat (mypasswd->pw_dir, "/.bbftpdrc")))
      {
-	bbftpd_syslog(BBFTPD_ERR, "Error allocating space for ~/.bbftpdrc file\n");
+	bbftpd_log(BBFTPD_ERR, "Error allocating space for ~/.bbftpdrc file\n");
 	*filep = NULL;
 	return -1;
      }
@@ -699,7 +699,7 @@ static int process_bbftpdrc_line (char *line)
 	if ((1 != sscanf (line + len + 1, "%d", &val))
 	    || (val <= 0))
 	  {
-	     bbftpd_syslog (BBFTPD_WARNING, "%s: %s\n", setcmd->name, setcmd->usage_string);
+	     bbftpd_log (BBFTPD_WARNING, "%s: %s\n", setcmd->name, setcmd->usage_string);
 	     return 0;
 	  }
 	*setcmd->valp = val;
@@ -730,11 +730,11 @@ static int process_bbftpdrc_line (char *line)
 	     return 0;
 	  }
 
-	bbftpd_syslog (BBFTPD_WARNING, "Unsupported or illegal setoption command in bbftpdrc file (%s)\n", line);
+	bbftpd_log (BBFTPD_WARNING, "Unsupported or illegal setoption command in bbftpdrc file (%s)\n", line);
 	return 0;
      }
 
-   bbftpd_syslog (BBFTPD_WARNING, "Unsupported or illegal setoption command in bbftpdrc file (%s)\n", line);
+   bbftpd_log (BBFTPD_WARNING, "Unsupported or illegal setoption command in bbftpdrc file (%s)\n", line);
    return 0;
 }
 
@@ -763,7 +763,7 @@ static int process_bbftpd_rcfile (Server_Config_Type *server_config)
 	if (file == System_BBftpdrc_File)
 	  return 0;
 
-	bbftpd_syslog (BBFTPD_ERR, "Error stating bbftpdrc file (%s)\n", file);
+	bbftpd_log (BBFTPD_ERR, "Error stating bbftpdrc file (%s)\n", file);
 	goto return_status;
      }
 
@@ -906,7 +906,7 @@ static int get_gwf_cred (Server_Config_Type *server_config)
 	gfw_msgs_list *messages = NULL;
 	gfw_status_to_strings(maj_stat, min_stat, &messages) ;
 	while (messages != NULL) {
-	   bbftpd_syslog(BBFTPD_ERR,"gfw_acquire_cred: %s", messages->msg) ;
+	   bbftpd_log(BBFTPD_ERR,"gfw_acquire_cred: %s", messages->msg) ;
 	   if (server_config->server_mode == 2)
 	     fprintf(stderr,"Acquire credentials: %s\n", messages->msg) ;
 	   messages = messages->next;
@@ -930,17 +930,17 @@ static int get_peer_and_sock_names (void)
    addrlen = sizeof(his_addr);
    if (-1 == getpeername(incontrolsock, (struct sockaddr *) &his_addr, &addrlen))
      {
-	bbftpd_syslog(BBFTPD_ERR, "getpeername : %s", strerror(errno));
+	bbftpd_log(BBFTPD_ERR, "getpeername : %s", strerror(errno));
 	return -1;
      }
 
    addrlen = sizeof(ctrl_addr);
    if (-1 == getsockname(incontrolsock, (struct sockaddr *) &ctrl_addr, &addrlen))
      {
-	bbftpd_syslog(BBFTPD_ERR, "getsockname : %s", strerror(errno));
+	bbftpd_log(BBFTPD_ERR, "getsockname : %s", strerror(errno));
 	return -1;
      }
-   bbftpd_syslog(BBFTPD_INFO,"Getting new bbftp connexion from : %s",inet_ntoa(his_addr.sin_addr)) ;
+   bbftpd_log(BBFTPD_INFO,"Getting new bbftp connexion from : %s",inet_ntoa(his_addr.sin_addr)) ;
    return 0;
 }
 
@@ -962,7 +962,7 @@ static int perform_login (Server_Config_Type *server_config)
 	if (-1 == readmessage (incontrolsock, buffer, MINMESSLEN, recvcontrolto))
 	  {
 	     /* error or time-out expired */
-	     bbftpd_syslog(BBFTPD_ERR,"Error reading MSG_LOG ") ;
+	     bbftpd_log(BBFTPD_ERR,"Error reading MSG_LOG ") ;
 	     return -1;
 	  }
 
@@ -970,7 +970,7 @@ static int perform_login (Server_Config_Type *server_config)
 	switch (msg->code)
 	  {
 	   default:
-	     bbftpd_syslog(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
+	     bbftpd_log(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
 	     reply(MSG_BAD,"Unkown message in connected state") ;
 	     return -1;
 
@@ -983,7 +983,7 @@ static int perform_login (Server_Config_Type *server_config)
 	   case MSG_CERT_LOG:
 	     if (server_config->accept_pass_only)
 	       {
-		  bbftpd_syslog (BBFTPD_ERR,"%s", "The server only accepts USER/PASS");
+		  bbftpd_log (BBFTPD_ERR,"%s", "The server only accepts USER/PASS");
 		  reply(MSG_BAD_NO_RETRY, "The server only accepts USER/PASS");
 		  return -1;
 	       }
@@ -1003,7 +1003,7 @@ static int perform_login (Server_Config_Type *server_config)
 # ifdef CERTIFICATE_AUTH
 	     if (server_config->accept_certs_only)
 	       {
-		  bbftpd_syslog(BBFTPD_ERR, "%s", "The server only accepts certificates") ;
+		  bbftpd_log(BBFTPD_ERR, "%s", "The server only accepts certificates") ;
 		  reply (MSG_BAD_NO_RETRY, "The server only accepts certificates");
 		  break;
 	       }
@@ -1091,7 +1091,7 @@ static int initialize_bbftpd_mode_ssh (Server_Config_Type *server_config)
    */
    struct passwd *result ;
    if ( (result = getpwuid(getuid())) == NULL ) {
-   bbftpd_syslog(BBFTPD_WARNING,"Error getting username") ;
+   bbftpd_log(BBFTPD_WARNING,"Error getting username") ;
       sprintf(currentusername,"UID %d",getuid()) ;
    } else {
       strcpy(currentusername,result->pw_name) ;
@@ -1109,7 +1109,7 @@ static int initialize_bbftpd_mode_ssh (Server_Config_Type *server_config)
     ** and wait for a connection...
     */
    checkfromwhere (server_config->ask_remote_address) ;
-   bbftpd_syslog(BBFTPD_INFO,"bbftpd started by : %s from %s",currentusername,inet_ntoa(his_addr.sin_addr)) ;
+   bbftpd_log(BBFTPD_INFO,"bbftpd started by : %s from %s",currentusername,inet_ntoa(his_addr.sin_addr)) ;
 
    return 0;
 }
@@ -1169,13 +1169,34 @@ static int initialize_bbftpd_mode_inetd (Server_Config_Type *server_config)
 int main (int argc, char **argv)
 {
    Server_Config_Type server_config;
-    struct  message msg ;
+   struct  message msg ;
+   char *logfile = NULL;
+   int use_syslog = 1, log_level;
 
-    bbftpd_syslog_open ();
+   if (is_option_present (argc, argv, 'v'))
+     {
+	print_version_info ();
+	exit (0);
+     }
+
+   if (is_option_present (argc, argv, 's'))
+     use_syslog = 0;
+
+   if (is_option_present (argc, argv, 'L'))
+     {
+	logfile = optarg;
+	use_syslog = 0;
+     }
+
+   log_level = BBFTPD_DEFAULT;
+   if (is_option_present (argc, argv, 'l'))
+     parse_log_level (optarg, &log_level);
+
+   bbftpd_log_open (use_syslog, log_level, logfile);
+
     /*
     ** Set the log mask to BBFTPD_EMERG (0) 
     */
-    setlogmask(LOG_UPTO(BBFTPD_DEFAULT));
 
     /*
     ** Initialize variables
@@ -1187,25 +1208,16 @@ int main (int argc, char **argv)
 
    newcontrolport = CONTROLPORT ;
 
-   if (is_option_present (argc, argv, 'v'))
-     {
-	print_version_info ();
-	exit (0);
-     }
-
    if (-1 == check_libs ())
      exit (1);
 
-   if (is_option_present (argc, argv, 'l'))
-     set_log_level (optarg);
-
-   bbftpd_syslog(BBFTPD_DEBUG,"Starting bbftpd") ;
+   bbftpd_log(BBFTPD_DEBUG,"Starting bbftpd") ;
 
    if ((-1 == init_default_server_config (argc, argv, &server_config))
        || (-1 == process_cmdline_options (argc, argv, &server_config))
        || (-1 == process_bbftpd_rcfile (&server_config)))
      {
-	bbftpd_syslog_close ();
+	bbftpd_log_close ();
 	exit (1);
      }
 
@@ -1235,7 +1247,7 @@ int main (int argc, char **argv)
     */
    state = S_PROTWAIT;
    if ((bbftpd_msg_pending (10) <= 0)
-       || (-1 == bbftpd_msgrecv_msg (&msg)))
+       || (-1 == bbftpd_msgread_msg (&msg)))
      exit (1);
 
    if (msg.code != MSG_PROT)
@@ -1243,7 +1255,7 @@ int main (int argc, char **argv)
    else	if (-1 == checkprotocol (&protocolversion))
      exit (1);
 
-   bbftpd_syslog(BBFTPD_INFO,"Using bbftp protocol version %d", protocolversion) ;
+   bbftpd_log(BBFTPD_INFO,"Using bbftp protocol version %d", protocolversion) ;
    state = S_LOGGED ;
 
    switch (protocolversion)
@@ -1261,7 +1273,7 @@ int main (int argc, char **argv)
 	break;
 
       default:
-	bbftpd_syslog(BBFTPD_ERR,"Unknown protocol version %d",protocolversion) ;
+	bbftpd_log(BBFTPD_ERR,"Unknown protocol version %d",protocolversion) ;
 	exit (1);
      }
 
@@ -1282,7 +1294,7 @@ void clean_child (void)
             killdone = 1 ;
             for ( i=0 ; i<MAXPORT ; i++) {
                 if ( pid_child[i] != 0 ) {
-                    bbftpd_syslog(BBFTPD_DEBUG,"Killing child %d",pid_child[i]) ;
+                    bbftpd_log(BBFTPD_DEBUG,"Killing child %d",pid_child[i]) ;
                     kill(pid_child[i],SIGKILL) ;
                 }
             }
@@ -1295,7 +1307,7 @@ void clean_child (void)
             pidfree = mychildren ;
             for ( i=0 ; i<nbpidchild ; i++) {
                 if ( *pidfree != 0 ) {
-                    bbftpd_syslog(BBFTPD_DEBUG,"Killing child %d",*pidfree) ;
+                    bbftpd_log(BBFTPD_DEBUG,"Killing child %d",*pidfree) ;
                     kill(*pidfree,SIGKILL) ;
                 }
                 pidfree++ ;
@@ -1317,7 +1329,7 @@ void exit_clean (void)
         case S_WAITING_STORE_START :
         case S_SENDING:
         case S_RECEIVING : {
-            bbftpd_syslog(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+            bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
             return ;
         }
         default :{

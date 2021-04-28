@@ -83,7 +83,7 @@ void sendcrypt(void)
     ** Ask for the private and public Key
     */
     if ( (myrsa = RSA_generate_key(NBITSINKEY,3,NULL,NULL)) == NULL) {
-        bbftpd_syslog(BBFTPD_ERR,"%s",ERR_error_string(ERR_get_error(),NULL) ) ;
+        bbftpd_log(BBFTPD_ERR,"%s",ERR_error_string(ERR_get_error(),NULL) ) ;
         exit(1) ;
     }
     /*
@@ -107,7 +107,7 @@ void sendcrypt(void)
     mess->msglen = CRYPTMESSLEN+lenkey+lenexpo ;
 #endif
     if (writemessage(outcontrolsock,buf,MINMESSLEN,sendcontrolto) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error on sendcrypt 1") ;
+        bbftpd_log(BBFTPD_ERR,"Error on sendcrypt 1") ;
         exit(1) ;
     }
     msg_sec  = (struct mess_sec    *) buf ;
@@ -120,18 +120,18 @@ void sendcrypt(void)
     msg_sec->expolen  = lenexpo ;
 #endif
     if (writemessage(outcontrolsock,buf,CRYPTMESSLEN,sendcontrolto) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error on sendcrypt 2") ;
+        bbftpd_log(BBFTPD_ERR,"Error on sendcrypt 2") ;
         exit(1) ;
     }
     /*
     ** Send Key and exponent
     */
     if (writemessage(outcontrolsock,(char *)pubkey,lenkey,sendcontrolto) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error on sendcrypt pubkey") ;
+        bbftpd_log(BBFTPD_ERR,"Error on sendcrypt pubkey") ;
         exit(1) ;
     }
     if (writemessage(outcontrolsock,(char *)pubexponent,lenexpo,sendcontrolto) < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR,"Error on sendcrypt pubexponent") ;
+        bbftpd_log(BBFTPD_ERR,"Error on sendcrypt pubexponent") ;
         exit(1) ;
     }
 }

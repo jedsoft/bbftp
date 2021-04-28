@@ -65,12 +65,12 @@ int bbftpd_cd(int sock,int msglen)
     char    *dirname ;
 
     if ( (buffer = (char *) malloc (msglen+1) ) == NULL ) {
-         bbftpd_syslog(BBFTPD_ERR,"Unable to malloc space for directory name (%d)",msglen) ;
+         bbftpd_log(BBFTPD_ERR,"Unable to malloc space for directory name (%d)",msglen) ;
          reply(MSG_BAD,"Unable to malloc space for directory name") ;
         return 0 ;
     }
     if ( (logmessage = (char *) malloc (msglen+1024) ) == NULL ) {
-         bbftpd_syslog(BBFTPD_ERR,"Unable to malloc space for logmessage ") ;
+         bbftpd_log(BBFTPD_ERR,"Unable to malloc space for logmessage ") ;
          reply(MSG_BAD,"Unable to malloc space for logmessage") ;
         FREE(buffer) ;
         return 0 ;
@@ -82,7 +82,7 @@ int bbftpd_cd(int sock,int msglen)
         /*
         ** Error ...
         */
-        bbftpd_syslog(BBFTPD_ERR,"Error reading directory name") ;
+        bbftpd_log(BBFTPD_ERR,"Error reading directory name") ;
         FREE(buffer) ;
         FREE(logmessage) ;
         return -1 ;
@@ -96,14 +96,14 @@ int bbftpd_cd(int sock,int msglen)
     dirname = msg_dir->dirname ;
     
     if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
-        bbftpd_syslog(BBFTPD_ERR,"Changing directory is not allowed under RFIO") ;
+        bbftpd_log(BBFTPD_ERR,"Changing directory is not allowed under RFIO") ;
         sprintf(logmessage,"Changing directory is not allowed under RFIO") ;
         reply(MSG_BAD_NO_RETRY,logmessage) ;
         FREE(logmessage) ;
         FREE(buffer) ;
         return 0 ;
     }
-    bbftpd_syslog(BBFTPD_DEBUG,"Changing directory to %s",dirname) ;
+    bbftpd_log(BBFTPD_DEBUG,"Changing directory to %s",dirname) ;
     /*
     ** We change the directory
     */
@@ -114,7 +114,7 @@ int bbftpd_cd(int sock,int msglen)
         */
         savederrno = errno ;
         sprintf(logmessage,"Error changing directory %s : %s ",dirname,strerror(errno)) ;
-        bbftpd_syslog(BBFTPD_ERR,"Error changing directory %s : %s",dirname,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Error changing directory %s : %s",dirname,strerror(errno)) ;
         /*
         ** We tell the client not to retry in the following case (even in waiting
         ** WAITRETRYTIME the problem will not be solved) :

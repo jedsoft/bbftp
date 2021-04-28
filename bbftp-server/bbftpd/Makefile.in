@@ -8,6 +8,7 @@ STDOBJS = 	bbftpd.o\
 		bbftpd_crypt.o\
 		bbftpd_daemon.o\
 		bbftpd_list.o\
+		bbftpd_logging.o\
 		bbftpd_login.o\
 		bbftpd_message.o\
 		bbftpd_mkdir.o\

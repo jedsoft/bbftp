@@ -79,31 +79,31 @@ int createreceivesock(int port, int socknum, char *logmessage)
 
     sock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
     if ( sock < 0 ) {
-        bbftpd_syslog(BBFTPD_ERR, "Cannot create receive socket %d : %s",socknum,strerror(errno));
+        bbftpd_log(BBFTPD_ERR, "Cannot create receive socket %d : %s",socknum,strerror(errno));
         sprintf(logmessage,"Cannot create receive socket %d : %s",socknum,strerror(errno)) ;
         return (-1) ;
     }
     if ( setsockopt(sock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0 ) {
         close(sock) ;
-        bbftpd_syslog(BBFTPD_ERR,"Cannot set SO_REUSEADDR on receive socket %d : %s",socknum,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Cannot set SO_REUSEADDR on receive socket %d : %s",socknum,strerror(errno)) ;
         sprintf(logmessage,"Cannot set SO_REUSEADDR on receive socket %d : %s",socknum,strerror(errno)) ;
         return (-1) ;
     }
     if ( setsockopt(sock,SOL_SOCKET, SO_RCVBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)) < 0 ) {
         close(sock) ;
-        bbftpd_syslog(BBFTPD_ERR,"Cannot set SO_RCVBUF on receive socket %d : %s",socknum,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Cannot set SO_RCVBUF on receive socket %d : %s",socknum,strerror(errno)) ;
         sprintf(logmessage,"Cannot set SO_RCVBUF on receive socket %d : %s",socknum,strerror(errno)) ;
         return (-1) ;
     }
     if ( setsockopt(sock,SOL_SOCKET, SO_SNDBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)) < 0 ) {
         close(sock) ;
-        bbftpd_syslog(BBFTPD_ERR,"Cannot set SO_SNDBUF on receive socket %d : %s",socknum,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Cannot set SO_SNDBUF on receive socket %d : %s",socknum,strerror(errno)) ;
         sprintf(logmessage,"Cannot set SO_SNDBUF on receive socket %d : %s",socknum,strerror(errno)) ;
         return (-1) ;
     }
     if ( setsockopt(sock,IPPROTO_TCP, TCP_NODELAY,(char *)&on,sizeof(on)) < 0 ) {
         close(sock) ;
-        bbftpd_syslog(BBFTPD_ERR,"Cannot set TCP_NODELAY on receive socket %d : %s",socknum,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Cannot set TCP_NODELAY on receive socket %d : %s",socknum,strerror(errno)) ;
         sprintf(logmessage,"Cannot set TCP_NODELAY on receive socket %d : %s",socknum,strerror(errno)) ;
         return (-1) ;
     }
@@ -120,7 +120,7 @@ int createreceivesock(int port, int socknum, char *logmessage)
     }
     if ( bind(sock, (struct sockaddr *) &data_source,sizeof(data_source)) < 0) {
         close(sock) ;
-        bbftpd_syslog(BBFTPD_ERR,"Cannot bind on receive socket %d : %s",socknum,strerror(errno)) ;
+        bbftpd_log(BBFTPD_ERR,"Cannot bind on receive socket %d : %s",socknum,strerror(errno)) ;
         sprintf(logmessage,"Cannot bind on receive socket %d : %s",socknum,strerror(errno)) ;
         return (-1) ;
     }
@@ -136,11 +136,11 @@ int createreceivesock(int port, int socknum, char *logmessage)
             ** to zero 
             */
             close(sock) ;
-            bbftpd_syslog(BBFTPD_ERR,"Cannot connect receive socket %d : %s, telling calling to retry ",socknum,strerror(errno)) ;
+            bbftpd_log(BBFTPD_ERR,"Cannot connect receive socket %d : %s, telling calling to retry ",socknum,strerror(errno)) ;
             return 0 ;
         } else {
             close(sock) ;
-            bbftpd_syslog(BBFTPD_ERR,"Cannot connect receive socket %d : %s",socknum,strerror(errno)) ;
+            bbftpd_log(BBFTPD_ERR,"Cannot connect receive socket %d : %s",socknum,strerror(errno)) ;
             sprintf(logmessage,"Cannot connect receive socket %d : %s",socknum,strerror(errno)) ;
             return (-1) ;
         }

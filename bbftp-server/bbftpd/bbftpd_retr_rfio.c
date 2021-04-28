@@ -733,7 +733,7 @@ int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage)
                 select(nfds2,0,0,0,&wait_timer) ;
                 waitedtime = waitedtime + 1 ;
             }
-            bbftpd_syslog(BBFTPD_DEBUG,"Child %d starting",getpid()) ;
+            bbftpd_log(BBFTPD_DEBUG,"Child %d starting",getpid()) ;
             /*
             ** Close all unnecessary stuff
             */
@@ -772,7 +772,7 @@ int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage)
                     */
                     i = 57 ;
                 }
-                bbftpd_syslog(BBFTPD_ERR,"Error opening local file %s : %s",filename,rfio_serror()) ;
+                bbftpd_log(BBFTPD_ERR,"Error opening local file %s : %s",filename,rfio_serror()) ;
                 close(sendsock) ;
                 exit(i) ;
             }
@@ -797,7 +797,7 @@ int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage)
                     fprintf(stdout,"**In retrtransferfile_rfio : rfio_close(fd) (%d)\n",fd) ;
                 }
                 rfio_close(fd) ;
-                bbftpd_syslog(BBFTPD_ERR,"Error seeking file : %s",rfio_serror()) ;
+                bbftpd_log(BBFTPD_ERR,"Error seeking file : %s",rfio_serror()) ;
                 close(sendsock) ;
                 exit(i)  ;
             }
@@ -808,7 +808,7 @@ int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage)
               if ( (ns = accept(sendsock,0,0) ) < 0 ) {
                 i = errno ;
                 rfio_close(fd) ;
-                bbftpd_syslog(BBFTPD_ERR,"Error accept socket : %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"Error accept socket : %s",strerror(errno)) ;
                 close(sendsock) ;
                 exit(i)  ;
               }
@@ -865,7 +865,7 @@ int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage)
                         */
                         if ( writemessage(ns,compbuffer,COMPMESSLEN,datato) < 0 ) {
                             i = ETIMEDOUT ;
-                            bbftpd_syslog(BBFTPD_ERR,"Error sending header data") ;
+                            bbftpd_log(BBFTPD_ERR,"Error sending header data") ;
                             close(ns) ;
                             if ( debug ) {
                                 fprintf(stdout,"**In retrtransferfile_rfio : rfio_close(fd) (%d)\n",fd) ;
@@ -907,7 +907,7 @@ int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage)
                             ** Select error
                             */
                             i = errno ;
-                            bbftpd_syslog(BBFTPD_ERR,"Error select while sending : %s",strerror(errno)) ;
+                            bbftpd_log(BBFTPD_ERR,"Error select while sending : %s",strerror(errno)) ;
                             if ( debug ) {
                                 fprintf(stdout,"**In retrtransferfile_rfio : rfio_close(fd) (%d)\n",fd) ;
                             }
@@ -915,7 +915,7 @@ int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage)
                             close(ns) ;
                             exit(i) ;
                         } else if ( retcode == 0 ) {
-                            bbftpd_syslog(BBFTPD_ERR,"Time out while sending") ;
+                            bbftpd_log(BBFTPD_ERR,"Time out while sending") ;
                             if ( debug ) {
                                 fprintf(stdout,"**In retrtransferfile_rfio : rfio_close(fd) (%d)\n",fd) ;
                             }
@@ -927,7 +927,7 @@ int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage)
                             retcode = send(ns,&readbuffer[nbsent],lentosend,0) ;
                             if ( retcode < 0 ) {
                                 i = errno ;
-                                bbftpd_syslog(BBFTPD_ERR,"Error while sending %s",strerror(i)) ;
+                                bbftpd_log(BBFTPD_ERR,"Error while sending %s",strerror(i)) ;
                                 if ( debug ) {
                                     fprintf(stdout,"**In retrtransferfile_rfio : rfio_close(fd) (%d)\n",fd) ;
                                 }
@@ -936,7 +936,7 @@ int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage)
                                 exit(i) ;
                             } else if ( retcode == 0 ) {
                                 i = ECONNRESET ;
-                                bbftpd_syslog(BBFTPD_ERR,"Connexion breaks") ;
+                                bbftpd_log(BBFTPD_ERR,"Connexion breaks") ;
                                 if ( debug ) {
                                     fprintf(stdout,"**In retrtransferfile_rfio : rfio_close(fd) (%d)\n",fd) ;
                                 }
@@ -964,7 +964,7 @@ int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage)
                         */
                         i = 57 ;
                     }
-                    bbftpd_syslog(BBFTPD_ERR,"Child Error reading fd (%d) : %s",fd,rfio_serror()) ;
+                    bbftpd_log(BBFTPD_ERR,"Child Error reading fd (%d) : %s",fd,rfio_serror()) ;
                     close(ns) ;
                     if ( debug ) {
                         fprintf(stdout,"**In retrtransferfile_rfio : rfio_close(fd) (%d)\n",fd) ;
@@ -980,18 +980,18 @@ int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage)
               ** All data has been sent so wait for the acknoledge
               */
               if ( readmessage(ns,readbuffer,MINMESSLEN,ackto) < 0 ) {
-                bbftpd_syslog(BBFTPD_ERR,"Error waiting ACK") ;
+                bbftpd_log(BBFTPD_ERR,"Error waiting ACK") ;
                 close(ns) ;
                 exit(ETIMEDOUT) ;
               }
               msg = (struct message *) readbuffer ;
               if ( msg->code != MSG_ACK) {
-                bbftpd_syslog(BBFTPD_ERR,"Error unknown messge while waiting ACK %d",msg->code) ;
+                bbftpd_log(BBFTPD_ERR,"Error unknown messge while waiting ACK %d",msg->code) ;
                 close(ns) ;
                 exit(1) ;
               }
               toprint64 = nbtosend ;
-              bbftpd_syslog(BBFTPD_DEBUG,"Child send %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
+              bbftpd_log(BBFTPD_DEBUG,"Child send %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
             }
             rfio_close(fd) ;
             close(ns) ;
@@ -1004,7 +1004,7 @@ int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage)
                 /*
                 ** Fork failed ...
                 */
-                bbftpd_syslog(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
+                bbftpd_log(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
                 sprintf(logmessage,"fork failed : %s ",strerror(errno)) ;
                 if ( childendinerror == 0 ) {
                     childendinerror = 1 ;
