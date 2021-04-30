@@ -307,7 +307,7 @@ int bbftpd_getdatasock(int nbsock)
             /*sprintf(logmessage,"Cannot listen on data socket : %s",strerror(errno)) ;*/
             return -1 ;
         }
-        *myportfree++ =  sck.sin_port ;
+       *myportfree++ = ntohs (sck.sin_port);
         bbftpd_log(BBFTPD_DEBUG,"Listen on port %d\n", ntohs(sck.sin_port)) ; 
         mysockfree++ ;
     }

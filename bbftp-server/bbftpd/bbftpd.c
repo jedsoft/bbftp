@@ -312,13 +312,6 @@ char    *readbuffer = NULL ;
 */
 char     *compbuffer = NULL ;
 /*
-** myumask :
-**      Umask for the bbftpd process, the default will be 022 which
-**      means that group and other write permissions are denied
-**      This can be changed by the bbftp umask command
-**/
-int     myumask = 022 ;
-/*
 **	Parameters describing the connection
 */
 int	    ackto           = ACKTO;
@@ -338,7 +331,6 @@ int     recvwinsize ;
 int     buffersizeperstream ;
 int     requestedstreamnumber ;
 my64_t  filesize ;
-int     mycos = 0 ;
 /*
 ** maxstreams :
 **      That is to fix the maximum number of stream the deamon will accept.
@@ -926,7 +918,7 @@ static int get_peer_and_sock_names (void)
     int           addrlen ;
 #endif
 
-   /* Get the remote address */
+   /* Get the remote address -- note that addrlen must be uninitialized */
    addrlen = sizeof(his_addr);
    if (-1 == getpeername(incontrolsock, (struct sockaddr *) &his_addr, &addrlen))
      {
@@ -1108,9 +1100,14 @@ static int initialize_bbftpd_mode_ssh (Server_Config_Type *server_config)
     ** port, send the MSG_LOGGED_STDIN and the port number
     ** and wait for a connection...
     */
-   checkfromwhere (server_config->ask_remote_address) ;
-   bbftpd_log(BBFTPD_INFO,"bbftpd started by : %s from %s",currentusername,inet_ntoa(his_addr.sin_addr)) ;
+   if (-1 == checkfromwhere (server_config->ask_remote_address))
+     {
+	reply (MSG_BAD, "Server exiting");
+	bbftpd_log(BBFTPD_INFO,"User %s disconnected", currentusername);
+	return -1;
+     }
 
+   bbftpd_log(BBFTPD_INFO,"bbftpd started by : %s from %s",currentusername,inet_ntoa(his_addr.sin_addr)) ;
    return 0;
 }
 

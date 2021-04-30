@@ -55,16 +55,15 @@
 
 #include "_bbftpd.h"
 
-int bbftpd_list(char *pattern,char *logmessage) 
+int bbftpd_list (char *pattern)
 {
-
+   char logmessage[1024];
     char    *filelist ;
     int     filelistlen ;
     int     retcode ;
     char    send_buffer[MINMESSLEN] ;
     struct message *msg ;
-    
-    
+
     if ( (retcode = bbftpd_retrlistdir(pattern,&filelist,&filelistlen,logmessage) ) < 0) {
         reply(MSG_BAD_NO_RETRY,logmessage) ;
         return 0 ;

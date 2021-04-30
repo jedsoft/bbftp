@@ -94,7 +94,6 @@ void bbftpd_sigchld(int sig)
     int i ;
     char logmessage[1024] ;
     int    retcode ;
-    struct utimbuf ftime ;
     int goon ;
     /*
     ** We are going to check if the process generating this
@@ -171,33 +170,10 @@ void bbftpd_sigchld(int sig)
                 reply(MSG_BAD,logmessage) ;
                 goon = 1 ;
             }
-            if ((goon == 0 ) &&  ((transferoption & TROPT_ACC ) == TROPT_ACC) ) {
-	       unsigned long ul;
-                sscanf(lastaccess,"%08lx", &ul); ftime.actime = ul;
-                sscanf(lastmodif,"%08lx", &ul); ftime.modtime = ul;
-                if ( bbftpd_storeutime(realfilename,&ftime,logmessage) < 0 ) {
-                    bbftpd_log(BBFTPD_ERR, "%s", logmessage) ;
-                    bbftpd_storeunlink(realfilename) ;
-                    reply(MSG_BAD,logmessage) ;
-                    goon = 1 ;
-                }
-           }
-           if ( (goon == 0 ) && ((transferoption & TROPT_MODE ) == TROPT_MODE) ) {
-                if ( bbftpd_storechmod(realfilename,filemode,logmessage) < 0 ) {
-                    bbftpd_log(BBFTPD_ERR, "%s", logmessage) ;
-                    bbftpd_storeunlink(realfilename) ;
-                    reply(MSG_BAD,logmessage) ;
-                    goon = 1 ;
-                }
-            }
-            if ( (goon == 0 ) && ((transferoption & TROPT_TMP ) == TROPT_TMP ) ) {
-                if ( bbftpd_storerename(realfilename,curfilename,logmessage) < 0 ) {
-                    bbftpd_log(BBFTPD_ERR, "%s", logmessage) ;
-                    bbftpd_storeunlink(realfilename) ;
-                    reply(MSG_BAD,logmessage) ;
-                    goon = 1 ;
-                }
-            }
+            if ((goon == 0)
+		&& (-1 == bbftp_store_process_transfer (realfilename, curfilename, 1)))
+	     goon = 1;
+
             state = S_LOGGED ;
             if ( goon == 0 ) reply(MSG_OK,"OK") ;
             if (unlinkfile == 4) {

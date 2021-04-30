@@ -55,7 +55,7 @@
 
 #include "_bbftpd.h"
 
-int bbftpd_cd(int sock,int msglen)
+int bbftpd_cd(int sock, int msglen)
 {
 
     char    *buffer ;

@@ -29,20 +29,13 @@
 /*
 ** Prototype for utilities
 */
-void checkfromwhere(int) ;
+int checkfromwhere(int) ;
 int checkprotocol(int *p) ;
 void clean_child(void) ;
 void exit_clean(void) ;
 int bbftpd_checkendchild(int status) ;
 void strip_trailing_slashes (char *path) ;
 void free_all_var(void) ;
-/*
-** Prototypes for message routines
-*/
-int discardmessage(int sock,int msglen,int to) ;
-int readmessage(int sock,char *buffer,int msglen,int to) ;
-void reply(int n, char *str) ;
-int writemessage(int sock,char *buffer,int msglen,int to) ;
 /*
 ** Prototypes for signal routines
 */
@@ -69,27 +62,25 @@ int bbftpd_private_auth(char *logmessage) ;
 /*
 ** Prototype for retr routines
 */
-int bbftpd_retrcheckfile(char *filename,char *logmessage) ;
+int bbftpd_retrcheckfile(char *filename,char *logmsg, size_t sizeof_logmsg) ;
 int bbftpd_retrlistdir(char *pattern,char **filelist,int *filelistlen,char *logmessage) ;
 int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage) ;
 
 int bbftpd_retrcheckfile_rfio(char *filename,char *logmessage) ;
 int bbftpd_retrlistdir_rfio(char *pattern,char **filelist,int *filelistlen,char *logmessage) ;
 int bbftpd_retrtransferfile_rfio(char *filename,int simulation,char *logmessage) ;
-extern void bbftpd_rfio_enable_debug (int dbg);
 
+extern void bbftpd_rfio_enable_debug (int dbg);
+extern void bbftpd_rfio_set_cos (int val);
 /*
 ** Prototype for store routines
 */
-int bbftpd_storecheckoptions(char *logmessage) ;
-int bbftpd_storechmod(char *filename,int mode,char *logmessage) ;
+int bbftpd_storecheckoptions (void) ;
 int bbftpd_storeclosecastfile(char *filename,char *logmessage) ;
-int bbftpd_storecreatefile(char *filename, char *logmessage) ;
+int bbftpd_storecreatefile(char *filename, char *logmsg, size_t logmsg_size) ;
 int bbftpd_storemkdir(char *dirname,char *logmessage,int recursif) ;
-int bbftpd_storerename(char *newfilename,char *oldfilename,char *logmessage) ;
 int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage) ;
 int bbftpd_storeunlink(char *filename) ;
-int bbftpd_storeutime(char *filename,struct utimbuf *ftime,char *logmessage) ;
 
 int bbftpd_storecheckoptions_rfio(char *logmessage) ;
 int bbftpd_storechmod_rfio(char *filename,int mode,char *logmessage) ;
@@ -103,6 +94,6 @@ int bbftpd_storeunlink_rfio(char *filename) ;
 ** Prototype for mains routines
 */
 int bbftpd_cd(int sock,int msglen) ;
-int bbftpd_list(char *pattern,char *logmessage) ;
+int bbftpd_list(char *pattern) ;
 int bbftpd_mkdir(int sock,int msglen) ;
 

@@ -1,6 +1,8 @@
 #ifndef BBFTPD_PRIVATE_H_
 #define BBFTPD_PRIVATE_H_ 1
 
+#define BBFTPD_DEFAULT_UMASK (022)
+
 #include "../includes/structures.h"
 
 extern void clean_child (void);
@@ -15,13 +17,14 @@ extern int bbftpd_statfs(int sock,int msglen);
 extern int bbftpd_createreceivesocket(int portnumber,char *logmessage);
 extern int bbftpd_getdatasock(int nbsock);
 extern int discardmessage(int sock,int msglen,int to);
+extern void reply(int n, const char *str) ;
+extern int writemessage(int sock, const char *buffer,int msglen,int to) ;
 
 extern int sendlist (int code, int msglen);
 
 extern void strip_trailing_slashes (char *path);
 extern void free_all_var (void);
 extern int changetodir (int code, int msglen);
-extern void reply(int n, char *str);
 extern int readmessage(int sock,char *buffer,int msglen,int to);
 extern int createadir(int code, int msglen);
 extern int createreceivesock(int port, int socknum, char *logmessage);
@@ -81,7 +84,6 @@ extern int recvcontrolto ;
 extern my64_t ntohll (my64_t v);
 #endif
 
-extern int writemessage(int sock,char *buffer,int msglen,int to);
 extern int decodersapass(char *buffer, char *username, char *password);
 
 extern int loginsequence (void);
@@ -102,7 +104,6 @@ extern my64_t  filesize ;
 extern int  requestedstreamnumber ;
 extern int  buffersizeperstream ;
 extern int  maxstreams ;
-extern int  filemode ;
 extern int  *myports ;
 extern char *readbuffer ;
 extern char *compbuffer ;
@@ -184,11 +185,42 @@ extern int bbftpd_msgwrite_int32_2 (int code, int i, int j);
 extern int bbftpd_msgwrite_len (int code, int len);
 extern int bbftpd_msgread_msg (struct message *msg);
 extern int bbftpd_msgread_int32 (int32_t *valp);
+extern int bbftpd_msgread_int32_array (int32_t *a, int num);
 extern int bbftpd_msgread_bytes (char *bytes, int num);
 extern int bbftpd_msgwrite_bytes (int code, char *bytes, int len);
+extern int _bbftpd_write_int32_array (int32_t *a, int len);
 
 extern int bbftp_run_protocol_1 (struct message *msg);
 extern int bbftp_run_protocol_2 (void);
 extern int bbftp_run_protocol_3 (void);
+
+extern int bbftp_store_process_transfer (char *rfile, char *cfile, int unlink_rfile_upon_fail);
+
+
+extern int  state ;
+extern int  incontrolsock ;
+extern int  outcontrolsock ;
+extern	int	recvcontrolto ;
+extern	int	sendcontrolto ;
+extern char *curfilename ;
+extern char *realfilename ;
+extern int  curfilenamelen ;
+extern int  transferoption ;
+extern int  filemode ;
+extern char lastaccess[9] ;
+extern char lastmodif[9] ;
+extern int  sendwinsize ;        
+extern int  recvwinsize ;        
+extern int  buffersizeperstream ;
+extern int  requestedstreamnumber ;
+extern my64_t  filesize ;
+extern int  *myports ;
+extern int  *mychildren ;
+extern int  *mysockets ;
+extern int  myumask ;
+extern char *readbuffer ;
+extern char *compbuffer ;
+extern int  protocolversion ;
+extern  char            currentusername[MAXLEN] ;
 
 #endif

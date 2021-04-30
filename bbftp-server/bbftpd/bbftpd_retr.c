@@ -428,7 +428,7 @@ int bbftpd_retrlistdir(char *pattern,char **filelist,int *filelistlen,char *logm
 **                                                                             *
 *******************************************************************************/
 
-int bbftpd_retrcheckfile(char *filename,char *logmessage)
+int bbftpd_retrcheckfile(char *filename,char *logmessage, size_t logmsg_size)
 {
 #ifdef STANDART_FILE_CALL
     struct stat statbuf;

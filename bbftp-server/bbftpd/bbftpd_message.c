@@ -192,7 +192,7 @@ int discardmessage (int sock, int msglen, int to)
     return 0;
 }
 
-int writemessage (int sock, char *buffer, int msglen, int to)
+int writemessage (int sock, const char *buffer, int msglen, int to)
 {
    int    nbsent ;
    int    retcode ;
@@ -298,7 +298,16 @@ int bbftpd_msgwrite_bytes (int code, char *bytes, int len)
    return 0;
 }
 
-void reply (int code, char *str)
+/* Byteswap in place */
+int _bbftpd_write_int32_array (int32_t *a, int len)
+{
+   int i;
+
+   for (i = 0; i < len; i++) a[i] = htonl (a[i]);
+   return writemessage (outcontrolsock, (char *)a, len*sizeof(int32_t), sendcontrolto);
+}
+
+void reply (int code, const char *str)
 {
    int len;
 
@@ -375,6 +384,20 @@ int bbftpd_msgread_int32 (int32_t *val)
    *val = ntohl (*val);
    return 0;
 }
+
+int bbftpd_msgread_int32_array (int32_t *a, int num)
+{
+   int i;
+
+   if (-1 == readmessage (incontrolsock, (char *)a, num*sizeof(int32_t), recvcontrolto))
+     return -1;
+
+   for (i = 0; i < num; i++)
+     a[i] = ntohl (a[i]);
+
+   return 0;
+}
+
 
 int bbftpd_msgread_bytes (char *bytes, int num)
 {

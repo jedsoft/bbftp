@@ -224,50 +224,48 @@ static int try_bind (int port_min, int port_max,
 }
 
 
-void checkfromwhere (int ask_remote)
+int checkfromwhere (int ask_remote)
 {
    socklen_t addrlen;
-    int        sock, ns, retcode;
-    struct  sockaddr_in server ;
+   struct sockaddr_in server ;
    struct message msg ;
-    struct linger li ;
-    int     on = 1 ;
+   struct linger li ;
+   int sock, ns, retcode;
+   int on = 1 ;
    int port_min, port_max;
 
    if (ask_remote)
      {
 	if (-1 == exchange_addessses_with_client ())
-	  {
-	     reply (MSG_BAD, "Closing connection");
-	     bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
-	  }
+	  return -1;
+
 	ctrl_addr.sin_port = htons(newcontrolport) ;
-	return;
+	return 0;
      }
 
-    sock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
-    if ( sock < 0 ) {
+   if (1 == (sock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP )))
+     {
         bbftpd_log(BBFTPD_ERR, "Cannot create checkreceive socket : %s",strerror(errno));
         reply(MSG_BAD,"Cannot create checkreceive socket") ;
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
-        exit(1) ;
+	return -1;
     }
-    if ( setsockopt(sock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0 ) {
+
+   if (-1 == setsockopt(sock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)))
+     {
         bbftpd_log(BBFTPD_ERR,"Cannot set SO_REUSEADDR on checkreceive socket : %s\n",strerror(errno)) ;
         reply(MSG_BAD,"Cannot set SO_REUSEADDR on checkreceive socket") ;
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(sock) ;
-        exit(1) ;
-    }
+        return -1;
+     }
+
     li.l_onoff = 1 ;
     li.l_linger = 1 ;
-    if ( setsockopt(sock,SOL_SOCKET,SO_LINGER,(char *)&li,sizeof(li)) < 0 ) {
+    if (-1 == setsockopt(sock,SOL_SOCKET,SO_LINGER,(char *)&li,sizeof(li)))
+     {
         bbftpd_log(BBFTPD_ERR,"Cannot set SO_LINGER on checkreceive socket : %s\n",strerror(errno)) ;
         reply(MSG_BAD,"Cannot set SO_LINGER on checkreceive socket") ;
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
-        close(sock) ;
-        exit(1) ;
-    }
+	exit(1) ;
+     }
 
    server.sin_family = AF_INET;
    server.sin_addr.s_addr = INADDR_ANY;
@@ -281,23 +279,24 @@ void checkfromwhere (int ask_remote)
    if (-1 == try_bind (port_min, port_max, sock, &server))
      {
 	close(sock) ;
-	exit (1);
+	return -1;
      }
 
    addrlen = sizeof(server);
-    if (getsockname(sock,(struct sockaddr *)&server, &addrlen) < 0) {
+   if (-1 == getsockname(sock,(struct sockaddr *)&server, &addrlen))
+     {
         bbftpd_log(BBFTPD_ERR,"Error getsockname checkreceive socket : %s",strerror(errno)) ;
         reply(MSG_BAD,"Cannot getsockname checkreceive socket") ;
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(sock) ;
-        exit(1) ;
+        return -1;
     }
-    if ( listen(sock,1) < 0 ) {
-        bbftpd_log(BBFTPD_ERR,"Error listening checkreceive socket : %s",strerror(errno)) ;
-        reply(MSG_BAD,"Error listening checkreceive socket") ;
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+
+   if (-1 == listen(sock,1))
+     {
+        bbftpd_log (BBFTPD_ERR,"Error listening checkreceive socket : %s",strerror(errno)) ;
+        reply (MSG_BAD,"Error listening checkreceive socket") ;
         close(sock) ;
-        exit(1) ;
+	return -1;
     }
     bbftpd_log(BBFTPD_INFO, "listen port : %d",ntohs(server.sin_port));
 
@@ -308,9 +307,7 @@ void checkfromwhere (int ask_remote)
      {
         bbftpd_log(BBFTPD_ERR,"Error writing checkreceive socket port");
         reply(MSG_BAD,"Error writing checkreceive socket port") ;
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(sock) ;
-        exit(1) ;
     }
 
    retcode = bbftpd_input_pending (sock, checkstdinto);
@@ -326,36 +323,37 @@ void checkfromwhere (int ask_remote)
 	  {
 	     bbftpd_log(BBFTPD_ERR,"Time out select checkreceive socket ") ;
 	     reply(MSG_BAD,"Time Out select checkreceive socket") ;
-	     bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
 	  }
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
-        exit(1) ;
+        return -1;
     }
 
-   if ( (ns = accept(sock,0,0) ) < 0 ) {
+   if (-1 == (ns = accept(sock,0,0)))
+     {
         bbftpd_log(BBFTPD_ERR,"Error accept checkreceive socket ") ;
-        reply(MSG_BAD,"Error accep checkreceive socket") ;
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
+        reply(MSG_BAD,"Error accept checkreceive socket") ;
         close(sock) ;
-        exit(1) ;
-    }
+        return -1;
+     }
     close(sock) ;
+
     addrlen = sizeof(his_addr);
-    if (getpeername(ns, (struct sockaddr *) &his_addr, &addrlen) < 0) {
+    if (-1 == getpeername(ns, (struct sockaddr *) &his_addr, &addrlen))
+     {
         bbftpd_log(BBFTPD_ERR, "getpeername : %s",strerror(errno));
         reply(MSG_BAD,"getpeername error") ;
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
-        close(ns) ;
-        exit(1);
+        close(ns);
+	return -1;
     }
+
     addrlen = sizeof(ctrl_addr);
-    if (getsockname(ns, (struct sockaddr *) &ctrl_addr, &addrlen) < 0) {
+    if (-1 == getsockname(ns, (struct sockaddr *) &ctrl_addr, &addrlen))
+     {
         bbftpd_log(BBFTPD_ERR, "getsockname : %s",strerror(errno));
         reply(MSG_BAD,"getsockname error") ;
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(ns) ;
-        exit(1);
+	return -1;
     }
+
     /*
     ** Now read the message
     */
@@ -363,21 +361,18 @@ void checkfromwhere (int ask_remote)
      {
         bbftpd_log(BBFTPD_ERR,"Error reading checkreceive socket") ;
         reply(MSG_BAD,"Error reading checkreceive socket") ;
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(ns) ;
-        exit(1) ;
+	return -1;
      }
-
-    if (msg.code != MSG_IPADDR )
+    if (msg.code != MSG_IPADDR)
      {
         bbftpd_log(BBFTPD_ERR,"Receive unkown message on checkreceive socket") ;
         reply(MSG_BAD,"Receive unkown message on checkreceive socket") ;
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(ns) ;
-        exit(1);
-    }
+	return -1;
+     }
 
-    /*
+   /*
     ** Everything seems OK so send a MSG_IPADDR_OK on the
     ** control socket and close the connection
     */
@@ -385,19 +380,18 @@ void checkfromwhere (int ask_remote)
      {
         bbftpd_log(BBFTPD_ERR,"Error writing checkreceive socket OK message") ;
         reply(MSG_BAD,"Error writing checkreceive socket OK message") ;
-        bbftpd_log(BBFTPD_INFO,"User %s disconnected",currentusername) ;
         close(ns) ;
-        exit(1) ;
+	return -1;
      }
-
-    /*
+   /*
     ** set the port of ctrl_addr structure to the control port
     */
-    ctrl_addr.sin_port = htons(newcontrolport) ;
-    /*
+   ctrl_addr.sin_port = htons(newcontrolport) ;
+   /*
     ** Wait a while before closing
     */
-    close(ns) ;
+   close(ns) ;
+   return 0;
 }
 
 

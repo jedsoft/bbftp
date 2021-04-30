@@ -109,109 +109,6 @@ int bbftpd_storeclosecastfile(char *filename,char *logmessage)
     return 0 ;
 }
 
-/*******************************************************************************
-** bbftpd_storeutime :                                                         *
-**                                                                             *
-**      Routine to chage access time a file                                    *
-**                                                                             *
-**      OUPUT variable :                                                       *
-**          logmessage :  to write the error message in case of error          *
-**                                                                             *
-**      GLOBAL VARIABLE USED :                                                 *                                                                      *
-**          transferoption                   NOT MODIFIED                      * 
-**                                                                             *
-**      RETURN:                                                                *
-**          -1  Failed                                                         *
-**           0  OK                                                             *
-**                                                                             *
-*******************************************************************************/
-
-int bbftpd_storeutime(char *filename,struct utimbuf *ftime,char *logmessage)
-{
-    int     retcode ;
-    
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
-        return 0 ;
-    }
-    retcode = utime(filename,ftime) ;
-    if ( retcode < 0 ) {
-        sprintf(logmessage,"Error utime on file %s : %s",filename,strerror(errno)) ;
-        return retcode ;
-    }
-    return 0 ;
-}
-
-/*******************************************************************************
-** bbftpd_storechmod :                                                         *
-**                                                                             *
-**      Routine to chmod a file                                                *
-**                                                                             *
-**      OUPUT variable :                                                       *
-**          logmessage :  to write the error message in case of error          *
-**                                                                             *
-**      GLOBAL VARIABLE USED :                                                 *                                                                      *
-**          transferoption                   NOT MODIFIED                      * 
-**                                                                             *
-**      RETURN:                                                                *
-**          -1  Failed                                                         *
-**           0  OK                                                             *
-**                                                                             *
-*******************************************************************************/
-
-int bbftpd_storechmod(char *filename,int mode,char *logmessage)
-{
-    int     retcode ;
-    
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
-#if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        return bbftpd_storechmod_rfio(filename,mode,logmessage) ;
-#else
-        return 0 ;
-#endif
-    }
-    retcode = chmod(filename,mode) ;
-    if ( retcode < 0 ) {
-        sprintf(logmessage,"Error chmod on file %s : %s",filename,strerror(errno)) ;
-        return retcode ;
-    }
-    return 0 ;
-}
-
-/*******************************************************************************
-** bbftpd_storerename :                                                        *
-**                                                                             *
-**      Routine to unlink a file                                               *
-**                                                                             *
-**      OUPUT variable :                                                       *
-**          logmessage :  to write the error message in case of error          *
-**                                                                             *
-**      GLOBAL VARIABLE USED :                                                 *                                                                      *
-**          transferoption                   NOT MODIFIED                      * 
-**                                                                             *
-**      RETURN:                                                                *
-**          -1  Failed                                                         *
-**           0  OK                                                             *
-**                                                                             *
-*******************************************************************************/
-
-int bbftpd_storerename(char *newfilename,char *oldfilename,char *logmessage)
-{
-    int     retcode ;
-    
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
-#if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        return bbftpd_storerename_rfio(newfilename,oldfilename,logmessage) ;
-#else
-        return 0 ;
-#endif
-    }
-    retcode = rename(newfilename,oldfilename) ;
-    if ( retcode < 0 ) {
-        sprintf(logmessage,"Error renaming %s to %s : %s",newfilename,oldfilename,strerror(errno)) ;
-        return retcode ;
-    }
-    return 0 ;
-}
 
 /*******************************************************************************
 ** bbftpd_storeunlink :                                                        *
@@ -260,9 +157,10 @@ int bbftpd_storeunlink(char *filename)
 **                                                                             *
 *******************************************************************************/
 
-int bbftpd_storecheckoptions(char *logmessage)
+int bbftpd_storecheckoptions (void)
 {
     int tmpoptions ;
+
 #ifndef WITH_GZIP
     /*
     ** Check if Compress is available int    case of GZIP option
@@ -272,17 +170,7 @@ int bbftpd_storecheckoptions(char *logmessage)
         transferoption = transferoption & ~TROPT_GZIP ;
     }
 #endif
-    /*
-    ** Check if it is a rfio creation
-    */
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
-#if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        return bbftpd_storecheckoptions_rfio(logmessage) ;
-#else
-        sprintf(logmessage,"Fail to store : RFIO not supported") ;
-        return -1 ;
-#endif
-    }
+
     /*
     ** Check all known options
     */
@@ -505,7 +393,7 @@ int bbftpd_storemkdir(char *dirname,char *logmessage,int recursif)
 **                                                                             *
 *******************************************************************************/
  
-int bbftpd_storecreatefile(char *filename, char *logmessage) 
+int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
 {
     char    *filepath ;
     int     fd ;
@@ -1214,4 +1102,64 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
     }
     (void) gettimeofday(&tstart, (struct timezone *)0);
     return 0 ;
+}
+
+int bbftp_store_process_transfer (char *rfile, char *cfile, int unlink_rfile_upon_fail)
+{
+   char logmsg[1024];
+   const char *syscall_name = NULL;
+   int status;
+
+#if defined(WITH_RFIO) || defined(WITH_RFIO64)
+   if (TROPT_RFIO == (transferoption & TROPT_RFIO))
+     return bbftp_store_transfer_opts_rfio (rfile, cfile, unlink_rfile_upon_fail);
+#endif
+
+   status = -1;
+   if (TROPT_ACC == (transferoption & TROPT_ACC))
+     {
+	struct utimbuf ftime;
+	unsigned long ul;
+
+	sscanf (lastaccess, "%08lx", &ul); ftime.actime = ul;
+	sscanf (lastmodif, "%08lx", &ul); ftime.modtime = ul;
+	if (-1 == utime (rfile, &ftime))
+	  {
+	     syscall_name = "utime";
+	     goto return_status;
+	  }
+     }
+
+   if (TROPT_MODE == (transferoption & TROPT_MODE))
+     {
+	if (-1 == chmod (rfile, filemode))
+	  {
+	     syscall_name = "chmod";
+	     goto return_status;
+	  }
+     }
+
+   if (TROPT_TMP == (transferoption & TROPT_TMP))
+     {
+	if (-1 == rename (rfile, cfile))
+	  {
+	     syscall_name = "rename";
+	     goto return_status;
+	  }
+     }
+
+   status = 0;
+   /* drop */
+
+return_status:
+   if (status == -1)
+     {
+	if (unlink_rfile_upon_fail) (void) unlink (rfile);
+	snprintf (logmsg, sizeof(logmsg), "Error processing %s: %s failed: %s",
+		  rfile, syscall_name, strerror(errno));
+	reply (MSG_BAD, logmsg);
+	bbftpd_log (BBFTPD_ERR, "%s\n", logmsg);
+     }
+
+   return status;
 }

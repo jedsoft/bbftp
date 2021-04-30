@@ -101,13 +101,13 @@ extern	int	sendcontrolto ;
 extern int  state ;
 extern int childendinerror ;
 extern int flagsighup ;
-extern int mycos ;
 extern int  castfd ;
 extern char *castfilename ;
 extern struct  timeval  tstart ;
 extern int  protocolversion ;
 extern  char            currentusername[MAXLEN] ;
 
+static int mycos ;
 int  debug;
 
 /*******************************************************************************
@@ -1719,6 +1719,12 @@ int bbftpd_storetransferfile_rfio(char *filename,int simulation,char *logmessage
     (void) gettimeofday(&tstart, (struct timezone *)0);
     return 0 ;
 }
+
+void bbftpd_rfio_set_cos (int val)
+{
+   mycos = val;
+}
+
 
 void bbftpd_rfio_enable_debug (int dbg)
 {

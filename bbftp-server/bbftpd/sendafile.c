@@ -74,6 +74,7 @@
 #include <bbftpd.h>
 #include <common.h>
 #include <daemon.h>
+#include <daemon_proto.h>
 #include <status.h>
 #include <structures.h>
 
