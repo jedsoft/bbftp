@@ -44,8 +44,9 @@
 *****************************************************************************/
 #include <bbftpd.h>
 
-#include <errno.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
 /* #include <syslog.h> */
 #if TIME_WITH_SYS_TIME
@@ -65,6 +66,8 @@
 #endif
 
 #include <netinet/in.h>
+#include <stdarg.h>
+
 #include <common.h>
 #include <daemon.h>
 #include <daemon_proto.h>
@@ -404,3 +407,14 @@ int bbftpd_msgread_bytes (char *bytes, int num)
    return readmessage (incontrolsock, bytes, num, recvcontrolto);
 }
 
+void bbftpd_msg_reply (int code, const char *format, ...)
+{
+   char msg[4096];
+   va_list ap;
+
+   va_start(ap, format);
+   (void) vsnprintf (msg, sizeof(msg), format, ap);
+   va_end(ap);
+
+   reply (code, msg);
+}

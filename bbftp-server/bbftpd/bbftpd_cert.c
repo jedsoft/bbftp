@@ -58,11 +58,9 @@
 #include <gssapi.h>
 #include <gfw.h>
 
-extern  int             incontrolsock ;
-extern  int             outcontrolsock ;
-extern  int	            recvcontrolto ;
-extern  char            currentusername[MAXLEN] ;
-extern  gss_cred_id_t   server_creds;
+#inclde "_bbftpd.h"
+
+static gss_cred_id_t   server_creds;
 
 /*******************************************************************************
 ** bbftpd_cert_receive_connection :                        	                   *
@@ -182,5 +180,25 @@ int bbftpd_cert_receive_connection(int msglen)
     bbftpd_log(BBFTPD_INFO,"User %s connected",username) ;
     strcpy(currentusername,username) ;
     return 0 ;
+}
+
+static int bbftpd_cert_get_gwf_cred (void)
+{
+   OM_uint32 min_stat, maj_stat;
+
+   maj_stat = gfw_acquire_cred(&min_stat, NULL, &server_creds);
+   if (maj_stat != GSS_S_COMPLETE)
+     {
+	gfw_msgs_list *messages = NULL;
+	gfw_status_to_strings(maj_stat, min_stat, &messages) ;
+	while (messages != NULL) {
+	   bbftpd_log(BBFTPD_ERR,"gfw_acquire_cred: %s", messages->msg) ;
+	   if (server_config->server_mode == 2)
+	     fprintf(stderr,"Acquire credentials: %s\n", messages->msg) ;
+	   messages = messages->next;
+	}
+	return -1;
+     }
+   return 0;
 }
 

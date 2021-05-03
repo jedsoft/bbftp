@@ -204,7 +204,7 @@ int bbftpd_storecheckoptions (void)
 **           >0  Creation failed recoverable error                             *
 **                                                                             *
 *******************************************************************************/
-int bbftpd_storemkdir(char *dirname,char *logmessage,int recursif)
+int bbftpd_storemkdir(char *dirname,char *logmessage, size_t logmsg_size, int recursif)
 {
     char    *dirpath;
     char    *basedir ;
@@ -489,7 +489,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
                     FREE(filepath) ;
                     return -1 ;
                 } else {
-                    if ( (retcode = bbftpd_storemkdir(filepath,logmessage,1)) != 0 ) {
+                    if ( (retcode = bbftpd_storemkdir(filepath,logmessage,logmsg_size, 1)) != 0 ) {
                         FREE(filepath) ;
                         return retcode ;
                     }

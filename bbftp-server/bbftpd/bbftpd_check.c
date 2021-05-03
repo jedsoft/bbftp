@@ -198,7 +198,7 @@ static int exchange_addessses_with_client (void)
 *******************************************************************************/
 
 static int try_bind (int port_min, int port_max,
-		     int sockfd, struct sockaddr_in *server)
+		     int sockfd, struct sockaddr_in *serv)
 {
    int port;
 
@@ -206,8 +206,8 @@ static int try_bind (int port_min, int port_max,
      {
 	int ret;
 
-        server->sin_port = htons (port);
-	while (-1 == (ret = bind (sockfd, (struct sockaddr *) server, sizeof(*server))))
+        serv->sin_port = htons (port);
+	while (-1 == (ret = bind (sockfd, (struct sockaddr *) serv, sizeof(*serv))))
 	  {
 	     if (errno == EINTR)
 	       continue;
@@ -224,7 +224,7 @@ static int try_bind (int port_min, int port_max,
 }
 
 
-int checkfromwhere (int ask_remote)
+int checkfromwhere (int ask_remote, int ctrlport)
 {
    socklen_t addrlen;
    struct sockaddr_in server ;
@@ -239,7 +239,7 @@ int checkfromwhere (int ask_remote)
 	if (-1 == exchange_addessses_with_client ())
 	  return -1;
 
-	ctrl_addr.sin_port = htons(newcontrolport) ;
+	ctrl_addr.sin_port = htons(ctrlport) ;
 	return 0;
      }
 
@@ -269,7 +269,7 @@ int checkfromwhere (int ask_remote)
 
    server.sin_family = AF_INET;
    server.sin_addr.s_addr = INADDR_ANY;
-   port_min = port_max = newcontrolport + 1;
+   port_min = port_max = ctrlport + 1;
    if (fixeddataport == 0 && pasvport_min)
      {
 	port_min = pasvport_min;
@@ -386,7 +386,7 @@ int checkfromwhere (int ask_remote)
    /*
     ** set the port of ctrl_addr structure to the control port
     */
-   ctrl_addr.sin_port = htons(newcontrolport) ;
+   ctrl_addr.sin_port = htons(ctrlport) ;
    /*
     ** Wait a while before closing
     */

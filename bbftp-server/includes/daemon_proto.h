@@ -29,7 +29,6 @@
 /*
 ** Prototype for utilities
 */
-int checkfromwhere(int) ;
 int checkprotocol(int *p) ;
 void clean_child(void) ;
 void exit_clean(void) ;
@@ -78,7 +77,7 @@ extern void bbftpd_rfio_set_cos (int val);
 int bbftpd_storecheckoptions (void) ;
 int bbftpd_storeclosecastfile(char *filename,char *logmessage) ;
 int bbftpd_storecreatefile(char *filename, char *logmsg, size_t logmsg_size) ;
-int bbftpd_storemkdir(char *dirname,char *logmessage,int recursif) ;
+int bbftpd_storemkdir(char *dirname,char *logmessage, size_t logmsg_size, int recursif) ;
 int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage) ;
 int bbftpd_storeunlink(char *filename) ;
 

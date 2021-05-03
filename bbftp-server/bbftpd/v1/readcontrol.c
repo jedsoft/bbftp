@@ -67,6 +67,8 @@
 
 #include "_bbftpd.h"
 
+int msgsock;
+
 static int readcontrol_v1 (int msgcode,int msglen) {
 
     int        retcode ;
@@ -176,6 +178,9 @@ static int readcontrol_v1 (int msgcode,int msglen) {
 int bbftp_run_protocol_1 (struct message *msg)
 {
    int i;
+
+   /* v1 functions use the msgsock variable */
+   msgsock = incontrolsock;
 
    /*
     ** So set up the v1 handlers

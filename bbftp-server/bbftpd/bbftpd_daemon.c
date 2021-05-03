@@ -74,143 +74,137 @@
 
 #include "_bbftpd.h"
 
-void do_daemon (int argc, char **argv)
+int do_daemon (int argc, char **argv, int ctrlport)
 {
-
+   int pid;
     int        prpg ;
     int i;
-    int     retcode ;
     int     controlsock ;
     struct sockaddr_in server;
     int     on = 1;
     int     nfds ;
-    int     pid;
-    
-    char    buffrand[NBITSINKEY] ;
-    struct timeval tp ;
-    unsigned int seed ;
+
 
    (void) argc;
    (void) argv;
 
-    controlsock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
-    if ( controlsock < 0 ) {
-        bbftpd_log(BBFTPD_ERR, "Cannot create socket to listen on: %s",strerror(errno));
-        fprintf(stderr,"Cannot create socket to listen on: %s\n",strerror(errno)) ;
-        exit(1) ;
+   controlsock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
+   if (controlsock == -1)
+     {
+        bbftpd_log_stderr (BBFTPD_ERR, "Cannot create socket to listen on: %s",strerror(errno));
+        return -1;
     }
-    if ( setsockopt(controlsock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0 ) {
-        bbftpd_log(BBFTPD_ERR,"Cannot set SO_REUSEADDR on control socket : %s",strerror(errno)) ;
-        fprintf(stderr,"Cannot set SO_REUSEADDR on control socket : %s\n ",strerror(errno)) ;
-        exit(1) ;
+   if (-1 == setsockopt (controlsock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)))
+     {
+        bbftpd_log_stderr (BBFTPD_ERR,"Cannot set SO_REUSEADDR on control socket : %s",strerror(errno)) ;
+	close (controlsock);
+	return -1;
     }
-    server.sin_family = AF_INET ;
-    server.sin_addr.s_addr = INADDR_ANY ;
-    server.sin_port = htons(newcontrolport);
-    if ( bind (controlsock,(struct sockaddr *) &server, sizeof(server) ) < 0 ) {
-        bbftpd_log(BBFTPD_ERR,"Error binding control socket : %s",strerror(errno)) ;
-        fprintf(stderr,"Error binding control socket : %s\n ",strerror(errno)) ;
-        exit(1) ;
-    }
-    if ( listen(controlsock,100) < 0 ) {
-        bbftpd_log(BBFTPD_ERR,"Error listening control socket : %s",strerror(errno)) ;
-        fprintf(stderr,"Error listening control socket : %s\n ",strerror(errno)) ;
-        exit(1) ;
-    }
-    /* Fork - so I'm not the owner of the process group any more */
-    retcode = fork();
-    if (retcode < 0) {
-        bbftpd_log(BBFTPD_ERR, "Cannot fork %s",strerror(errno));
-        exit(1);
-    }
-    /* No need for the parent any more */
-    if (retcode > 0) _exit(0);
 
-    prpg = 0 ;
-    prpg = setsid () ;     /* disassoiciate from control terminal */
-    if ( prpg < 0 ) {
-        bbftpd_log(BBFTPD_ERR,"Cannot daemonise: %s",strerror(errno)) ;
-        exit(1) ;
-    }
-    /* Close off all file descriptors and reopen bbftpd_log */
+   server.sin_family = AF_INET ;
+   server.sin_addr.s_addr = INADDR_ANY ;
+   server.sin_port = htons(ctrlport);
 
-    nfds = sysconf(_SC_OPEN_MAX) ;
+   while (-1 == bind (controlsock,(struct sockaddr *) &server, sizeof(server)))
+     {
+	if (errno == EINTR) continue;
 
-    bbftpd_log_close();
-    for (i = 0; i <= nfds; i++) {
-        if ( i != controlsock) close(i);
-    }
-    bbftpd_log_reopen ();
+        bbftpd_log_stderr (BBFTPD_ERR,"Error binding control socket : %s",strerror(errno)) ;
+	close (controlsock);
+        return -1;
+     }
 
-    /* log PID in /var/run/bbftpd.pid */
-    {
+   if (-1 == listen (controlsock, 100))
+     {
+        bbftpd_log_stderr (BBFTPD_ERR,"Error listening control socket : %s",strerror(errno)) ;
+	close (controlsock);
+	return -1;
+     }
+
+   /* Fork - so I'm not the owner of the process group any more */
+   if (-1 == (pid = fork()))
+     {
+        bbftpd_log_stderr (BBFTPD_ERR, "Cannot fork %s",strerror(errno));
+        return -1;
+     }
+
+   /* No need for the parent any more */
+   if (pid > 0) _exit(0);
+
+   if (-1 == (prpg = setsid ()))      /* disassoiciate from control terminal */
+     {
+        bbftpd_log (BBFTPD_ERR,"Cannot daemonise: %s",strerror(errno)) ;
+        return -1;
+     }
+
+   /* Close off all file descriptors and reopen bbftpd_log */
+   nfds = sysconf(_SC_OPEN_MAX) ;
+
+   bbftpd_log_close();
+
+   for (i = 0; i < nfds; i++)
+     {
+	if ( i != controlsock) close(i);
+     }
+   bbftpd_log_reopen ();
+
+   /* log PID in /var/run/bbftpd.pid */
+     {
 	FILE *f;
-	if ((f = fopen("/var/run/bbftpd.pid", "w")) != NULL) {
-	    fprintf(f, "%d", getpid());
-	    fclose(f);
-	}
-    }
+	if (NULL != (f = fopen("/var/run/bbftpd.pid", "w")))
+	  {
+	     (void) fprintf(f, "%d", getpid());
+	     fclose(f);
+	  }
+     }
 
-    /* junk stderr */
-    (void) freopen("/dev/null", "w", stderr);
+   /* junk stderr */
+   (void) freopen("/dev/null", "w", stderr);
 
-    bbftpd_log(BBFTPD_DEBUG,"Starting bbftpd in background mode") ;
-    if ( bbftpd_blockallsignals() < 0 ) {
-        exit(1) ;
-    }
-    /*
-    ** Load the error message from the crypto lib
-    */
-    ERR_load_crypto_strings() ;
-    /*
-    ** Initialize the buffrand buffer which is giong to be used to initialize the 
-    ** random generator
-    */
-    /*
-    ** Take the usec to initialize the random session
-    */
-    gettimeofday(&tp,NULL) ;
-    seed = tp.tv_usec ;
-    srandom(seed) ;
-    for (i=0; i < (int) sizeof(buffrand) ; i++) {
-        buffrand[i] = random() ;
-    }
-    /*
-    ** Initialize the random generator
-    */
-    RAND_seed(buffrand,NBITSINKEY) ;
-    while (1) {
+   bbftpd_log (BBFTPD_DEBUG,"Starting bbftpd in background mode") ;
 
-        msgsock = accept(controlsock, 0, 0);
-        if (msgsock < 0) {
-             bbftpd_log(BBFTPD_ERR, "Accept failed: %s",strerror(errno));
-            sleep(1);
-            continue;
-        }
-            /* Fork off a handler */
-        pid = fork();
-        if (pid < 0) {
-            bbftpd_log(BBFTPD_ERR, "failed to fork: %s",strerror(errno));
+   if (-1 == bbftpd_blockallsignals())
+     return -1;
+
+   if (-1 == bbftpd_crypt_init_random ())
+     return -1;
+
+   while (1)
+     {
+	int s;
+
+	if (-1 == (s = accept(controlsock, 0, 0)))
+	  {
+	     bbftpd_log(BBFTPD_ERR, "Accept failed: %s",strerror(errno));
+	     sleep(1);
+	     continue;
+	  }
+
+	/* Fork off a handler */
+	if (-1 == (pid = fork()))
+	  {
+	     bbftpd_log(BBFTPD_ERR, "failed to fork: %s",strerror(errno));
+	     close (s);
              sleep(1);
-            continue;
-        }
-       if (pid == 0)
-	 {
-            /* I am that forked off child */
-	    bbftpd_log_close();
-            /* Make sure that stdin/stdout are the new socket */
-            /* Only parent needs controlsock */
-            if (controlsock != 0 && controlsock != 1)
-	      close(controlsock);
-	    bbftpd_log_reopen ();
-	    incontrolsock = msgsock ;
-	    outcontrolsock = msgsock ;
-	    return;
-	}
+	     continue;
+	  }
 
-            /* I am the parent */
-        close(msgsock);
-    
-    }
+	if (pid > 0)
+	  {
+	     /* parent */
+	     close (s);
+	     continue;
+	  }
+
+	/* I am that forked off child */
+
+	bbftpd_log_close();
+	/* Make sure that stdin/stdout are the new socket */
+	/* Only parent needs controlsock */
+	if (controlsock != 0 && controlsock != 1)
+	  close(controlsock);
+	bbftpd_log_reopen ();
+	return s;
+     }
 }
 

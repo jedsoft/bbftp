@@ -3,19 +3,29 @@
 
 #define BBFTPD_DEFAULT_UMASK (022)
 
+#ifdef __GNUC__
+# define ATTRIBUTE_(x) __attribute__ (x)
+#else
+# define ATTRIBUTE_(x)
+#endif
+#define ATTRIBUTE_PRINTF(a,b) ATTRIBUTE_((format(printf,a,b)))
+
+
 #include "../includes/structures.h"
 
 extern void clean_child (void);
-extern void do_daemon (int argc, char **argv);
+extern int do_daemon (int argc, char **argv, int ctrlport);
 extern void sendcrypt (void);
-extern int loginsequence (void);
 extern int set_signals_v1 (void);
 
 extern int bbftpd_rm(int sock,int msglen);
-extern int bbftpd_stat(int sock,int msglen);
-extern int bbftpd_statfs(int sock,int msglen);
+extern int bbftpd_stat(struct mess_dir *msg_file);
+extern int bbftpd_statfs(struct mess_dir *msg_file);
 extern int bbftpd_createreceivesocket(int portnumber,char *logmessage);
 extern int bbftpd_getdatasock(int nbsock);
+extern int bbftpd_crypt_init_random (void);
+extern int checkfromwhere (int ask_remote, int ctrlport);
+
 extern int discardmessage(int sock,int msglen,int to);
 extern void reply(int n, const char *str) ;
 extern int writemessage(int sock, const char *buffer,int msglen,int to) ;
@@ -84,10 +94,8 @@ extern int recvcontrolto ;
 extern my64_t ntohll (my64_t v);
 #endif
 
-extern int decodersapass(char *buffer, char *username, char *password);
-
-extern int loginsequence (void);
-extern int decodersapass(char *buffer, char *username, char *password);
+extern int decodersapass(struct mess_rsa *msg_rsa, char *username, char *password);
+extern int bbftpd_loginsequence (struct message *);
 
 extern	int	recvcontrolto ;
 extern char currentusername[MAXLEN] ;
@@ -153,8 +161,10 @@ extern char lastaccess[9] ;
 extern char lastmodif[9] ;
 extern int  filemode ;
 
-extern int newcontrolport;	       /* protocol 1 and 2 */
+#ifdef BBFTPD_V1_SUPPORT
 extern int msgsock ;		       /* protocol 1 */
+#endif
+
 extern int incontrolsock ;	       /* protocol 2 */
 extern int outcontrolsock ;	       /* protocol 2 */
 
@@ -164,8 +174,12 @@ extern int protocolmax;
 
 extern int bbftpd_log_open (int use_syslog, int log_level, const char *logfile);
 extern int bbftpd_log_reopen (void);
-extern void bbftpd_log (int priority, const char *format, ...);
+extern void bbftpd_log (int priority, const char *format, ...) ATTRIBUTE_PRINTF(2,3);
+extern void bbftpd_log_stderr (int priority, const char *format, ...) ATTRIBUTE_PRINTF(2,3);
+
 extern void bbftpd_log_close (void);
+extern const char *bbftpd_log_level_string (int level);
+extern int bbftpd_log_get_level (const char *name);
 
 extern char *bbftpd_strdup (const char *in);
 extern char *bbftpd_strcat (const char *a, const char *b);
@@ -189,6 +203,8 @@ extern int bbftpd_msgread_int32_array (int32_t *a, int num);
 extern int bbftpd_msgread_bytes (char *bytes, int num);
 extern int bbftpd_msgwrite_bytes (int code, char *bytes, int len);
 extern int _bbftpd_write_int32_array (int32_t *a, int len);
+
+extern void bbftpd_msg_reply (int code, const char *format, ...) ATTRIBUTE_PRINTF(2,3);
 
 extern int bbftp_run_protocol_1 (struct message *msg);
 extern int bbftp_run_protocol_2 (void);

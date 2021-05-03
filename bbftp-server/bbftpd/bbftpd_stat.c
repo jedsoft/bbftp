@@ -62,128 +62,6 @@
 
 #include "_bbftpd.h"
 
-int bbftpd_stat(int sock,int msglen)
-{
-    char    *buffer ;
-    char    *logmessage ;
-    struct  mess_dir *msg_file ;
-    char    *filename ;
-    int     retcode ;
-
-#ifdef STANDART_FILE_CALL
-    struct stat statbuf;
-    struct stat rfstatbuf;
-#else
-    struct stat64 statbuf ;
-# ifdef WITH_RFIO64
-    struct stat64 rfstatbuf ;
-# else
-    struct stat rfstatbuf;
-# endif
-#endif
-
-    if ( (buffer = (char *) malloc (msglen+1) ) == NULL ) {
-        bbftpd_log(BBFTPD_ERR,"Unable to malloc space for file name (%d)",msglen) ;
-        reply(MSG_BAD,"Unable to malloc space for file name") ;
-        return 0 ;
-    }
-    if ( (logmessage = (char *) malloc (msglen+1024) ) == NULL ) {
-        bbftpd_log(BBFTPD_ERR,"Unable to malloc space for logmessage ") ;
-        reply(MSG_BAD,"Unable to malloc space for logmessage") ;
-        FREE(buffer) ;
-        return 0 ;
-    }
-    /*
-    ** Read the characteristics of the file
-    */
-    if ( readmessage(sock,buffer,msglen,recvcontrolto) < 0 ) {
-        /*
-        ** Error ...
-        */
-        bbftpd_log(BBFTPD_ERR,"Error reading file name") ;
-        FREE(buffer) ;
-        FREE(logmessage) ;
-        return -1 ;
-    }
-    buffer[msglen] = '\0' ;
-    msg_file = (struct mess_dir *) buffer ;
-    transferoption  = msg_file->transferoption ;
-    filename = msg_file->dirname ;
-    
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
-#if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        sprintf(logmessage,"Unable to stat %s",filename) ;
-# ifdef WITH_RFIO64
-	retcode = rfio_stat64(filename,&rfstatbuf);
-# else
-	retcode = rfio_stat(filename,&rfstatbuf);
-# endif
-#else
-        retcode = -1;
-        sprintf(logmessage,"RFIO is not supported by the server") ;
-#endif
-    } else {
-        sprintf(logmessage,"Unable to stat %s",filename) ;
-#ifdef STANDART_FILE_CALL
-        retcode = stat(filename,&statbuf);
-#else
-        retcode = stat64(filename,&statbuf);
-#endif
-    }	   
-    if (retcode < 0) {
-        reply(MSG_BAD_NO_RETRY,logmessage) ;
-        FREE(buffer) ;
-        FREE(logmessage) ;
-        return 0 ;
-    } else {
-      char *at, *mt, *ct;
-      if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
-	at = strdup(ctime(&rfstatbuf.st_atime));
-	at[strlen(at)-1]='\0';
-	mt = strdup(ctime(&rfstatbuf.st_mtime));
-	mt[strlen(mt)-1]='\0';
-	ct = strdup(ctime(&rfstatbuf.st_ctime));
-	ct[strlen(ct)-1]='\0';
-
-#ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
-# define RF_ST_BLKSIZE_FORMAT LONG_LONG_FORMAT
-#else
-# define RF_ST_BLKSIZE_FORMAT "s"
-#endif
-
-#ifdef HAVE_STRUCT_STAT_ST_BLOCKS
-# define RF_ST_BLOCKS_FORMAT LONG_LONG_FORMAT
-#else
-# define RF_ST_BLOCKS_FORMAT "s"
-#endif
-
-        sprintf(logmessage,"%" LONG_LONG_FORMAT " %#08o %" LONG_LONG_FORMAT " %" RF_ST_BLKSIZE_FORMAT " %" RF_ST_BLOCKS_FORMAT "  %d %d (%s) (%s) (%s)",
-			(long long)rfstatbuf.st_ino, 
-			rfstatbuf.st_mode,
-			(long long)rfstatbuf.st_size, 
-#ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
-			(long long)rfstatbuf.st_blksize,
-#else
-			"N/A",
-#endif
-#ifdef HAVE_STRUCT_STAT_ST_BLOCKS
-			(long long)rfstatbuf.st_blocks, 
-#else
-			"N/A",
-#endif
-			rfstatbuf.st_uid, 
-			rfstatbuf.st_gid, 
-			at, 
-			mt, 
-			ct) ;
-      } else {
-	at = strdup(ctime(&statbuf.st_atime));
-	at[strlen(at)-1]='\0';
-	mt = strdup(ctime(&statbuf.st_mtime));
-	mt[strlen(mt)-1]='\0';
-	ct = strdup(ctime(&statbuf.st_ctime));
-	ct[strlen(ct)-1]='\0';
-
 #ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
 # define ST_BLKSIZE_FORMAT LONG_LONG_FORMAT
 #else
@@ -196,32 +74,118 @@ int bbftpd_stat(int sock,int msglen)
 # define ST_BLOCKS_FORMAT "s"
 #endif
 
-        sprintf(logmessage,"%" LONG_LONG_FORMAT " %#08o %" LONG_LONG_FORMAT " %" ST_BLKSIZE_FORMAT " %" ST_BLOCKS_FORMAT "  %d %d (%s) (%s) (%s)",
-			(long long)statbuf.st_ino, 
-			statbuf.st_mode, 
-			(long long)statbuf.st_size, 
+static void copy_ctime (time_t t, char *buf, size_t bufsize)
+{
+   char *s = ctime (&t);
+
+   if (s == NULL)
+     {
+	*buf = 0;
+	return;
+     }
+
+   strncpy(buf, s, bufsize);
+   buf[bufsize-1] = 0;
+   if (NULL != (s = strchr (buf, '\n')))
+     *s = 0;
+}
+
+static void send_stat_info (time_t atime, time_t mtime, time_t _ctime,
+			    long long st_ino, int st_mode, long long st_size,
+			    long long st_blksize, long long st_blocks,
+			    int st_uid, int st_gid)
+{
+   char at[96], mt[96], ct[96];
+
+   copy_ctime (atime, at, sizeof(at));
+   copy_ctime (mtime, mt, sizeof(mt));
+   copy_ctime (_ctime, ct, sizeof(ct));
+
+   bbftpd_msg_reply (MSG_OK, "%" LONG_LONG_FORMAT " %#08o %" LONG_LONG_FORMAT " %" ST_BLKSIZE_FORMAT " %" ST_BLOCKS_FORMAT "  %d %d (%s) (%s) (%s)",
+		     st_ino, st_mode, st_size,
 #ifdef HAVE_STRUCT_STAT_ST_BLKSIZE
-			(long long) statbuf.st_blksize, 
+		     st_blksize,
 #else
-			"N/A",
+		     "N/A",
 #endif
 #ifdef HAVE_STRUCT_STAT_ST_BLOCKS
-			(long long)statbuf.st_blocks, 
+		     st_blocks,
 #else
-			"N/A",
+		     "N/A",
 #endif
-			statbuf.st_uid, 
-			statbuf.st_gid, 
-			at, 
-			mt, 
-			ct) ;
-      }
-      reply(MSG_OK,logmessage) ;
-      FREE(buffer) ;
-      FREE(logmessage) ;
-      FREE(at) ;
-      FREE(mt) ;
-      FREE(ct) ;
-      return 0 ;
-    }
+		     st_uid,
+		     st_gid,
+		     at,
+		     mt,
+		     ct);
+}
+
+#if defined(WITH_RFIO) || defined(WITH_RFIO64)
+static int do_rfio_stat (char *filename)
+{
+# ifdef STANDART_FILE_CALL
+   struct stat st;
+# else
+#  ifdef WITH_RFIO64
+   struct stat64 st;
+#  else
+   struct stat st;
+#  endif
+# endif
+
+# ifdef WITH_RFIO64
+   if (-1 == rfio_stat64(filename,&rfstatbuf)) return -1;
+# else
+   if (-1 == rfio_stat(filename,&rfstatbuf)) return -1;
+# endif
+
+   send_stat_info (st.st_atime, st.st_mtime, st.st_ctime,
+		   st.st_ino, st.st_mode, st.st_size,
+		   st.st_blksize, st.st_blocks,
+		   st.st_uid, st.st_gid)
+   return 0 ;
+
+}
+#endif 				       /* RFIO */
+
+int bbftpd_stat (struct mess_dir *msg_file)
+{
+    char    *filename ;
+
+#ifdef STANDART_FILE_CALL
+    struct stat st;
+#else
+    struct stat64 st;
+#endif
+   int status;
+
+   transferoption  = msg_file->transferoption ;
+   filename = msg_file->dirname ;
+
+    if ((transferoption & TROPT_RFIO) == TROPT_RFIO)
+     {
+#if defined(WITH_RFIO) || defined(WITH_RFIO64)
+	return do_rfio_stat (filename);
+#else
+        bbftpd_msg_reply (MSG_BAD_NO_RETRY, "%s", "RFIO is not supported by the server");
+	bbftpd_log (BBFTPD_ERR, "%s", "MSG_STAT: RFIO is not supported");
+	return -1;
+#endif
+     }
+#ifdef STANDART_FILE_CALL
+   status = stat (filename,&st);
+#else
+   status = stat64(filename,&st);
+#endif
+   if (status == 0)
+     {
+	send_stat_info (st.st_atime, st.st_mtime, st.st_ctime,
+			st.st_ino, st.st_mode, st.st_size,
+			st.st_blksize, st.st_blocks,
+			st.st_uid, st.st_gid);
+	return 0;
+     }
+
+   bbftpd_msg_reply (MSG_BAD_NO_RETRY, "stat %s failed", filename);
+   return 0;
 }

@@ -98,10 +98,6 @@
 #include <status.h>
 #include <structures.h>
 #include <version.h>
-#ifdef CERTIFICATE_AUTH
-#include <gssapi.h>
-#include <gfw.h>
-#endif
 #ifdef HAVE_BYTESWAP_H
 #include <byteswap.h>
 #endif
@@ -152,12 +148,7 @@ int     fixeddataport = 1 ;
 **      Define the state of the server. values differ depending
 **      of the BBFTP protocol version
 */
-int        state ;                         
-/*
-** newcontrolport :
-**      Define the control port to listen on
-*/
-int        newcontrolport ; 
+int        state ;
 /*
 ** currentusername :
 **      Define the local username
@@ -227,16 +218,9 @@ char    *castfilename = NULL ;
 /*
 ** End Common variables for BBFTP protocole version 1 and 2 ********************
 */
-/*
-** Variables for BBFTP protocole version 1 
-*/
-/*
-** msgsock :
-**      Define control socket for the server
-*/
-int     msgsock ;
-/* For be_daemon == 2; msgsock = incontrolsock = outcontrolsock
- * For be_daemon == 0: msgsock = incontrolsock = outcontrolsock = 0
+
+/* For be_daemon == 2; incontrolsock = outcontrolsock
+ * For be_daemon == 0: incontrolsock = outcontrolsock = 0
  */
 
 /*
@@ -353,13 +337,6 @@ int     pasvport_max ;
 ** End Variables for BBFTP protocole version 3 *********************************
 */
 /*
-**  credentials for certificate authentication
-*/
-#ifdef CERTIFICATE_AUTH
-gss_cred_id_t   server_creds;
-#endif
-
-/*
  * Stats
 */
 struct  timeval  tstart;
@@ -443,33 +420,6 @@ static int check_libs (void)
 }
 
 
-static void parse_log_level (const char *str, int *levelp)
-{
-   char upstr[32];
-   int i;
-
-   strncpy (upstr, str, sizeof(upstr));
-   upstr[sizeof(upstr)-1] = 0;
-
-   i = 0;
-   while (upstr[i] != 0)
-     {
-	upstr[i] = toupper(upstr[i]);
-	i++;
-     }
-
-   if ( !strcmp(optarg,"EMERGENCY") ) i = BBFTPD_EMERG;
-   else if ( !strcmp(optarg,"ALERT") ) i = BBFTPD_ALERT;
-   else if ( !strcmp(optarg,"CRITICAL") ) i = BBFTPD_CRIT;
-   else if ( !strcmp(optarg,"ERROR") ) i = BBFTPD_ERR;
-   else if ( !strcmp(optarg,"WARNING") ) i = BBFTPD_WARNING;
-   else if ( !strcmp(optarg,"NOTICE") ) i = BBFTPD_NOTICE;
-   else if ( !strcmp(optarg,"INFORMATION") ) i = BBFTPD_INFO;
-   else if ( !strcmp(optarg,"DEBUG") ) i = BBFTPD_DEBUG;
-   else return;
-
-   *levelp = i;
-}
 
 typedef struct
 {
@@ -478,6 +428,7 @@ typedef struct
    int accept_pass_only;
    int accept_certs_only;
    int debug;
+   int control_port;
    int ask_remote_address;
    char *bbftpdrc_file;
    int argc;
@@ -494,6 +445,7 @@ static int init_default_server_config (int argc, char **argv, Server_Config_Type
    server_config->accept_certs_only = 0;
    server_config->debug = 0;
    server_config->ask_remote_address = 0;
+   server_config->control_port = CONTROLPORT;
    server_config->bbftpdrc_file = NULL;
    server_config->argc = argc;
    server_config->argv = argv;
@@ -587,7 +539,7 @@ static int process_cmdline_options (int argc, char **argv, Server_Config_Type *s
 	     break ;
 
             case 'w' :
-	     sscanf(optarg,"%d",&newcontrolport) ;
+	     sscanf(optarg, "%d", &server_config->control_port);
 	     break ;
 
 #ifdef CERTIFICATE_AUTH
@@ -885,32 +837,7 @@ static void send_server_status (Server_Config_Type *server_config)
    exit(0);
 }
 
-static int get_gwf_cred (Server_Config_Type *server_config)
-{
-#ifdef CERTIFICATE_AUTH
-   OM_uint32 min_stat, maj_stat;
-
-   if (server_config->accept_pass_only) return 0;
-
-   maj_stat = gfw_acquire_cred(&min_stat, NULL, &server_creds);
-   if (maj_stat != GSS_S_COMPLETE)
-     {
-	gfw_msgs_list *messages = NULL;
-	gfw_status_to_strings(maj_stat, min_stat, &messages) ;
-	while (messages != NULL) {
-	   bbftpd_log(BBFTPD_ERR,"gfw_acquire_cred: %s", messages->msg) ;
-	   if (server_config->server_mode == 2)
-	     fprintf(stderr,"Acquire credentials: %s\n", messages->msg) ;
-	   messages = messages->next;
-	}
-	return -1;
-     }
-#endif
-   (void) server_config;
-   return 0;
-}
-
-static int get_peer_and_sock_names (void)
+static int get_peer_and_sock_names (int sock)
 {
 #ifdef HAVE_SOCKLEN_T
     socklen_t     addrlen ;
@@ -920,14 +847,14 @@ static int get_peer_and_sock_names (void)
 
    /* Get the remote address -- note that addrlen must be uninitialized */
    addrlen = sizeof(his_addr);
-   if (-1 == getpeername(incontrolsock, (struct sockaddr *) &his_addr, &addrlen))
+   if (-1 == getpeername(sock, (struct sockaddr *) &his_addr, &addrlen))
      {
 	bbftpd_log(BBFTPD_ERR, "getpeername : %s", strerror(errno));
 	return -1;
      }
 
    addrlen = sizeof(ctrl_addr);
-   if (-1 == getsockname(incontrolsock, (struct sockaddr *) &ctrl_addr, &addrlen))
+   if (-1 == getsockname(sock, (struct sockaddr *) &ctrl_addr, &addrlen))
      {
 	bbftpd_log(BBFTPD_ERR, "getsockname : %s", strerror(errno));
 	return -1;
@@ -939,9 +866,7 @@ static int get_peer_and_sock_names (void)
 /* Not used for SSH mode */
 static int perform_login (Server_Config_Type *server_config)
 {
-   char    logmessage[1024] ;
-   char buffer[MINMESSLEN] ;
-   struct  message *msg ;
+   struct message msg ;
 
    /*
     ** Send the encryption supported 
@@ -951,18 +876,17 @@ static int perform_login (Server_Config_Type *server_config)
    while (1)
      {
         state = S_CONN ;
-	if (-1 == readmessage (incontrolsock, buffer, MINMESSLEN, recvcontrolto))
+	if (-1 == bbftpd_msgread_msg (&msg))
 	  {
 	     /* error or time-out expired */
-	     bbftpd_log(BBFTPD_ERR,"Error reading MSG_LOG ") ;
+	     bbftpd_log(BBFTPD_ERR,"Error reading MSG_LOG") ;
 	     return -1;
 	  }
 
-	msg = (struct message *) buffer ;
-	switch (msg->code)
+	switch (msg.code)
 	  {
 	   default:
-	     bbftpd_log(BBFTPD_ERR,"Unkown message in connected state : %d",msg->code) ;
+	     bbftpd_log(BBFTPD_ERR,"Unkown message in connected state : %d",msg.code) ;
 	     reply(MSG_BAD,"Unkown message in connected state") ;
 	     return -1;
 
@@ -979,15 +903,14 @@ static int perform_login (Server_Config_Type *server_config)
 		  reply(MSG_BAD_NO_RETRY, "The server only accepts USER/PASS");
 		  return -1;
 	       }
-	     status = bbftpd_cert_receive_connection(msg->msglen);
+	     status = bbftpd_cert_receive_connection(msg.msglen);
 	     if ( retval < 0 ) /* The login failed, do not wait for a new one */
 	       return -1;
 
 	     /* bbftpd_cert_receive_connection could return 1 to indicate that /tmp will
 	      * be used as the home directory.  Assume that the login was successful
 	      */
-	     sprintf (logmessage,"bbftpd version %s : OK",VERSION) ;
-	     reply(MSG_OK,logmessage) ;
+	     bbftpd_msg_reply (MSG_OK, "bbftpd version %s : OK", VERSION);
 	     return 0;
 # endif				       /* CERTIFICATE_AUTH */
 
@@ -1004,20 +927,18 @@ static int perform_login (Server_Config_Type *server_config)
 	      ** It seems that it is the message we were waiting
 	      ** so lets decrypt 
 	      */
-	     if ( loginsequence() < 0 ) /* The login failed, do not wait for a new one */
+	     if (-1 == bbftpd_loginsequence(&msg)) /* The login failed, do not wait for a new one */
 	       return -1;
 
 	     state = S_PROTWAIT ;
-	     sprintf(logmessage,"bbftpd version %s : OK",VERSION) ;
-	     reply(MSG_OK,logmessage) ;
+	     bbftpd_msg_reply (MSG_OK, "bbftpd version %s : OK", VERSION);
 	     return 0;
 
 	   case MSG_CRYPT:
 # ifdef CERTIFICATE_AUTH
 	     if (server_config->accept_certs_only)
 	       {
-		  sprintf(logmessage, "The server only accepts certificates");
-		  reply(MSG_BAD_NO_RETRY,logmessage);
+		  reply(MSG_BAD_NO_RETRY, "The server only accepts certificates");
 		  return -1;
 	       }
 # endif
@@ -1036,12 +957,11 @@ static int perform_login (Server_Config_Type *server_config)
 	     break;
 #else /* PRIVATE_AUTH */
 	   case MSG_PRIV_LOG:
-	     if ( bbftpd_private_receive_connection(msg->msglen) < 0 )
+	     if ( bbftpd_private_receive_connection(msg.msglen) < 0 )
 		return -1; /* The login failed, do not wait for a new one */
 
 	     state = S_PROTWAIT ;
-	     sprintf(logmessage,"bbftpd version %s : OK",VERSION) ;
-	     reply(MSG_OK,logmessage) ;
+	     bbftpd_msg_reply (MSG_OK, "bbftpd version %s : OK", VERSION);
 	     return 0;
 #endif				       /* PRIVATE_AUTH */
 	  }
@@ -1052,12 +972,21 @@ static int perform_login (Server_Config_Type *server_config)
 
 static int initialize_bbftpd_mode_daemon (Server_Config_Type *server_config)
 {
-   if (-1 == get_gwf_cred (server_config))
-     return -1;
+   int s;
 
-   do_daemon(server_config->argc, server_config->argv);
+#ifdef CERTIFICATE_AUTH
+   if ((server_config->accept_pass_only == 0)
+       && (-1 == bbftpd_cert_get_gwf_cred ()))
+     return -1;
+#endif
+
+   s = do_daemon(server_config->argc, server_config->argv, server_config->control_port);
+   if (s == -1) return -1;
+
+   incontrolsock = outcontrolsock = s;
+
    /* At this point,  we are the forked child from the parent process and a connection has been
-    * accepted.
+    * accepted.  The incontrolsock/outcontrolsock values have changed but are still equal.
     */
    fatherpid = getpid() ;	       /* Update from previous value */
 
@@ -1065,7 +994,7 @@ static int initialize_bbftpd_mode_daemon (Server_Config_Type *server_config)
    bbftpd_rfio_enable_debug (server_config->debug);
 #endif
 
-   if (-1 == get_peer_and_sock_names ())
+   if (-1 == get_peer_and_sock_names (incontrolsock))
      return -1;
 
    if (-1 == perform_login (server_config))
@@ -1100,7 +1029,7 @@ static int initialize_bbftpd_mode_ssh (Server_Config_Type *server_config)
     ** port, send the MSG_LOGGED_STDIN and the port number
     ** and wait for a connection...
     */
-   if (-1 == checkfromwhere (server_config->ask_remote_address))
+   if (-1 == checkfromwhere (server_config->ask_remote_address, server_config->control_port))
      {
 	reply (MSG_BAD, "Server exiting");
 	bbftpd_log(BBFTPD_INFO,"User %s disconnected", currentusername);
@@ -1115,46 +1044,20 @@ static int initialize_bbftpd_mode_ssh (Server_Config_Type *server_config)
 /* Started from inetd */
 static int initialize_bbftpd_mode_inetd (Server_Config_Type *server_config)
 {
-   char    buffrand[NBITSINKEY] ;
-   struct timeval tp ;
-   unsigned int i, seed ;
-
-   newcontrolport = CONTROLPORT;
-
-   if (-1 == get_gwf_cred (server_config))
+#ifdef CERTIFICATE_AUTH
+   if ((server_config->accept_pass_only == 0)
+       && (-1 == bbftpd_cert_get_gwf_cred ()))
      return -1;
-
-   /*
-    ** Load the error message from the crypto lib
-    */
-#if !defined(OPENSSL_API_COMPAT) || (OPENSSL_API_COMPAT < 0x10100000L)
-   ERR_load_crypto_strings() ;
 #endif
-   /*
-    ** Initialize the buffrand buffer which is giong to be used to initialize the 
-    ** random generator
-    */
 
-   /*
-    ** Take the usec to initialize the random session
-    */
-   gettimeofday(&tp,NULL) ;
-   seed = tp.tv_usec ;
-   srandom(seed) ;
-   for (i=0; i < (int) sizeof(buffrand) ; i++) {
-      buffrand[i] = random() ;
-   }
-   /*
-    ** Initialize the random generator
-    */
-   RAND_seed(buffrand,NBITSINKEY) ;
+   if (-1 == bbftpd_crypt_init_random ())
+     return -1;
 
    incontrolsock = 0  ;
    outcontrolsock = incontrolsock ;
-   msgsock = incontrolsock ;
    state = S_PROTWAIT ;
 
-   if (-1 == get_peer_and_sock_names ())
+   if (-1 == get_peer_and_sock_names (incontrolsock))
      return -1;
 
    if (-1 == perform_login (server_config))
@@ -1187,7 +1090,11 @@ int main (int argc, char **argv)
 
    log_level = BBFTPD_DEFAULT;
    if (is_option_present (argc, argv, 'l'))
-     parse_log_level (optarg, &log_level);
+     {
+	int new_level = bbftpd_log_get_level (optarg);
+	if (new_level != -1)
+	  log_level = new_level;
+     }
 
    bbftpd_log_open (use_syslog, log_level, logfile);
 
@@ -1202,8 +1109,6 @@ int main (int argc, char **argv)
 #ifdef PORT_RANGE
     sscanf(PORT_RANGE,"%d:%d",&pasvport_min, &pasvport_max) ;
 #endif
-
-   newcontrolport = CONTROLPORT ;
 
    if (-1 == check_libs ())
      exit (1);
@@ -1248,7 +1153,14 @@ int main (int argc, char **argv)
      exit (1);
 
    if (msg.code != MSG_PROT)
-     protocolversion = 1;
+     {
+#ifdef BBFTPD_V1_SUPPORT
+	protocolversion = 1;
+#else
+	bbftpd_log (BBFTPD_ERR, "%s\n", "Protocol version 1 is not supported");
+	bbftpd_log (MSG_BAD_NO_RETRY, "%s\n", "Protocol version 1 is not supported");
+#endif
+     }
    else	if (-1 == checkprotocol (&protocolversion))
      exit (1);
 
@@ -1257,10 +1169,11 @@ int main (int argc, char **argv)
 
    switch (protocolversion)
      {
+#ifdef BBFTPD_V1_SUPPORT
       case 1:
 	(void) bbftp_run_protocol_1 (&msg);
 	break;
-
+#endif
       case 2:
 	(void) bbftp_run_protocol_2 ();
 	break;
@@ -1270,7 +1183,7 @@ int main (int argc, char **argv)
 	break;
 
       default:
-	bbftpd_log(BBFTPD_ERR,"Unknown protocol version %d",protocolversion) ;
+	bbftpd_log(BBFTPD_ERR,"Unsupported protocol version %d", protocolversion) ;
 	exit (1);
      }
 
@@ -1335,24 +1248,6 @@ void exit_clean (void)
     }
 }
 
-#if 0
-my64_t convertlong(my64_t v) {
-    struct bb {
-        int    fb ;
-        int sb ;
-    } ;
-    struct bb *bbpt ;
-    int     tmp ;
-    my64_t    tmp64 ;
-    
-    tmp64 = v ;
-    bbpt = (struct bb *) &tmp64 ;
-    tmp = bbpt->fb ;
-    bbpt->fb = ntohl(bbpt->sb) ;
-    bbpt->sb = ntohl(tmp) ;    
-    return tmp64 ;
-}
-#endif
 
 #ifndef HAVE_NTOHLL
 my64_t ntohll(my64_t v) {

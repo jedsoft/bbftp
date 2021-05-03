@@ -2,51 +2,51 @@
 # Makefile for bbftpd deamon
 #
 
-STDOBJS = 	bbftpd.o\
-		bbftpd_cd.o\
-		bbftpd_check.o\
-		bbftpd_crypt.o\
-		bbftpd_daemon.o\
-		bbftpd_list.o\
-		bbftpd_logging.o\
-		bbftpd_login.o\
-		bbftpd_message.o\
-		bbftpd_mkdir.o\
-		bbftpd_rm.o\
-		bbftpd_stat.o\
-		bbftpd_statfs.o\
-		bbftpd_readcontrol.o\
-        bbftpd_retr.o\
-		bbftpd_signals.o\
-		bbftpd_socket.o\
-        bbftpd_store.o\
-		bbftpd_utils.o\
-		changetodir.o\
-		createadir.o\
-		createreceivesock.o\
-		readcontrol.o\
-		sendafile.o\
-		sendlist.o\
-		signals_routines.o\
-		storeafile.o
+# The bbftp client has not supported version 1 protocol for many years.
+# For this reason, the server does not support it by default.
+# Uncomment the following 2 lines to enable V1 support:
+#
+#V1OBJS = v1/changetodir.o v1/createadir.o v1/createreceivesock.o v1/readcontrol.o v1/sendafile.o v1/sendlist.o v1/signals_routines.o v1/storeafile.o
+#V1DEFS = -DBBFTPD_V1_SUPPORT
+
+STDOBJS = \
+ bbftpd.o\
+ bbftpd_check.o\
+ bbftpd_crypt.o\
+ bbftpd_daemon.o\
+ bbftpd_list.o\
+ bbftpd_logging.o\
+ bbftpd_login.o\
+ bbftpd_message.o\
+ bbftpd_stat.o\
+ bbftpd_statfs.o\
+ bbftpd_readcontrol.o\
+ bbftpd_retr.o\
+ bbftpd_signals.o\
+ bbftpd_socket.o\
+ bbftpd_store.o\
+ bbftpd_utils.o
 
 OBJS = $(STDOBJS) @RFIOOBJS@ @CERTOBJS@ @PRIVOBJS@
+OBJS = $(STDOBJS) $(V1OBJS) @RFIOOBJS@ @CERTOBJS@ @PRIVOBJS@
 
-HEAD =  ./bbftpd.h \
-		../includes/bbftpd_private.h \
-		../includes/bbftpd_private_user.h \
-		../includes/common.h \
-		../includes/config.h \
-		../includes/daemon.h \
-		../includes/daemon_proto.h \
-		../includes/status.h \
-		../includes/structures.h\
-		../includes/version.h
+HEAD = \
+ ./bbftpd.h \
+ ./_bbftpd.h \
+ ../includes/bbftpd_private.h \
+ ../includes/bbftpd_private_user.h \
+ ../includes/common.h \
+ ../includes/config.h \
+ ../includes/daemon.h \
+ ../includes/daemon_proto.h \
+ ../includes/status.h \
+ ../includes/structures.h\
+ ../includes/version.h
 
 PROG = bbftpd
 
 # CPPFLAGS is ignored on ccdvrs01
-CFLAGS = @CFLAGS@ @CPPFLAGS@
+CFLAGS = @CFLAGS@ @CPPFLAGS@ $(V1DEFS)
 #CFLAGS = @CFLAGS@
 #CPPFLAGS = @CPPFLAGS@
 #
@@ -71,9 +71,11 @@ ${PROG} : ${OBJS} ${GFWLIB}
 	${CC} -o $@ ${OBJS} ${LDFLAGS} ${GFWLIB} ${LIBS}
 
 clean:
-	rm -f *.o $(PROG)
+	rm -f $(PROG)
+	rm -f $(OBJS)
 	rm -rf obj.@host@
 	rm -f ../includes/*~ *~
+	rm -f v1/*.o v1/*~
 	- cd ../gfw && make clean
 distclean: clean
 	rm -f bbftpd.h

@@ -73,7 +73,7 @@ static int read_int (int msglen, const char *codestr, int *valp)
 
    if (msglen != sizeof(int32_t))
      {
-	bbftpd_log(BBFTPD_ERR, "%s: Expecting msglen=4, found %d\n", msglen, codestr);
+	bbftpd_log(BBFTPD_ERR, "%s: Expecting msglen=4, found %d\n", codestr, msglen);
 	reply(MSG_BAD,"Expecting a 32bit integer");
 	return -1;
      }
@@ -87,6 +87,7 @@ static int read_int (int msglen, const char *codestr, int *valp)
    return 0;
 }
 
+/* Returns -2 if malloc failed, or -1 if the failure occured reading */
 static int read_string (int msglen, const char *codestr, char **strp)
 {
    char *str;
@@ -102,8 +103,9 @@ static int read_string (int msglen, const char *codestr, char **strp)
      {
 	bbftpd_log (BBFTPD_ERR, "%s: malloc failed\n", codestr);
 	reply(MSG_BAD,"malloc failed") ;
-	return -1;
+	return -2;
      }
+
    if (-1 == bbftpd_msgread_bytes (str, msglen))
      {
 	bbftpd_log (BBFTPD_ERR, "%s: Error reading string\n", codestr);
@@ -120,7 +122,7 @@ static int read_msg_store_v2 (int msglen, const char *codestr, struct mess_store
    if (msglen != STORMESSLEN_V2)
      {
 	bbftpd_log (BBFTPD_ERR, "%s: msg_store_v2 object has the wrong size, expected %d, got %d\n",
-		    codestr, msglen, STORMESSLEN_V2);
+		    codestr, msglen, (int) STORMESSLEN_V2);
 	reply(MSG_BAD, "Invalid size for MSG_STORE_V2") ;
 	return -1;
      }
@@ -211,7 +213,7 @@ static int do_msg_list_v2 (struct message *msg)
 
    bbftpd_log(BBFTPD_DEBUG, "Receiving MSG_LIST_V2") ;
 
-   if (-1 == read_string (msg->msglen, "MSG_LIST_V2", (char **)&msg_dir))
+   if (0 != read_string (msg->msglen, "MSG_LIST_V2", (char **)&msg_dir))
      return -1;
 
    /* The library transferoption variable is bigendian */
@@ -379,7 +381,7 @@ static int do_msg_filename_store (struct message *msg)
 	return -1 ;
      }
 
-   if (-1 == read_string (msg->msglen, "MSG_FILENAME", &curfilename))
+   if (0 != read_string (msg->msglen, "MSG_FILENAME", &curfilename))
      {
 	free_all_var ();
 	return -1;
@@ -496,7 +498,7 @@ static int do_msg_filename_retr (struct message *msg)
 	return -1 ;
      }
 
-   if (-1 == read_string (msg->msglen, "MSG_FILENAME", &curfilename))
+   if (0 !=  read_string (msg->msglen, "MSG_FILENAME", &curfilename))
      {
 	free_all_var ();
 	return -1;
@@ -605,11 +607,163 @@ static int do_msg_trans_start (struct message *msg, int simulate, int is_store, 
    return -1 ;
 }
 
+static int do_msg_cd (struct message *msg)
+{
+   char buf[1024];
+   struct mess_dir *msg_dir;
+   char *dir;
+
+   /* If we cannot change a directory, then all subsequent commands will be affected.
+    * This should be a fatal error where processing a script that involves subsequent transfers
+    * If the memory allocation failed, then the server in trouble.  So just return a fatal error.
+    */
+   if (0 !=  read_string (msg->msglen, "MSG_CHDIR_V2", (char **)&msg_dir))
+     return -1;
+
+   transferoption = msg_dir->transferoption;
+   dir = msg_dir->dirname;
+
+   if (TROPT_RFIO == (transferoption & TROPT_RFIO))
+     {
+	char *err = "Changing directory is not allowed under RFIO";
+	bbftpd_log (BBFTPD_ERR, "%s\n", err);
+	reply (MSG_BAD_NO_RETRY, err);
+	free (msg_dir);
+	return -1;
+     }
+   bbftpd_log(BBFTPD_DEBUG, "Changing directory to %s", dir) ;
+
+   if (-1 == chdir (dir))
+     {
+	int code, e = errno;
+
+	if ((e == EACCES) || (e == ELOOP) || (e == ENAMETOOLONG)
+	    || (e == ENOTDIR) || (e == ENOENT))
+	  code = MSG_BAD_NO_RETRY;
+	else
+	  code = MSG_BAD;
+
+	bbftpd_msg_reply (code, "Error changing directory %s : %s", dir, strerror(e));
+	bbftpd_log (BBFTPD_ERR, "Error changing directory %s : %s", dir, strerror(e));
+
+	free (msg_dir);
+	return -1;
+     }
+
+   if (NULL == getcwd (buf, sizeof(buf)))
+     {
+	int e = errno;
+	bbftpd_msg_reply (MSG_BAD, "Unable to get the current directory: %s", strerror(e));
+	bbftpd_log (BBFTPD_ERR, "getcwd failed: %s", strerror(e));
+	free (msg_dir);
+	return -1;
+     }
+   free (msg_dir);
+   bbftpd_msg_reply (MSG_OK, "%s", buf);
+   return 0;
+}
+
+static int do_msg_mkdir (struct message *msg)
+{
+   char logmsg[1024];
+   struct mess_dir *msg_dir;
+   char *dir;
+   int recurse, status;
+
+   /* If we cannot change a directory, then all subsequent commands will be affected.
+    * This should be a fatal error where processing a script that involves subsequent transfers
+    * If the memory allocation failed, then the server in trouble.  So just return a fatal error.
+    */
+   if (0 !=  read_string (msg->msglen, "MSG_MKDIR_V2", (char **)&msg_dir))
+     return -1;
+
+   transferoption = msg_dir->transferoption;
+   dir = msg_dir->dirname;
+
+   recurse = (TROPT_DIR == (transferoption & TROPT_DIR));
+   status = bbftpd_storemkdir (dir, logmsg, sizeof(logmsg), recurse);
+   if (status != 0)
+     {
+	reply (((status < 0) ? MSG_BAD_NO_RETRY : MSG_BAD), logmsg);
+	bbftpd_log (BBFTPD_ERR, "MSG_MKDIR_V2: %s", logmsg);
+	free (msg_dir);
+     }
+
+   bbftpd_msg_reply (MSG_OK, "Directory %s created", dir);
+   free (msg_dir);
+
+   return 0;
+}
+
+static int do_msg_rm (struct message *msg)
+{
+   struct mess_dir *msg_file;
+   char *file;
+   int status;
+
+   status = read_string (msg->msglen, "MSG_RM", (char **)&msg_file);
+   if (status < 0)
+     {
+	if (status == -2) return 0;
+	return -1;
+     }
+
+   file = msg_file->dirname;
+
+   status = bbftpd_storeunlink (file);
+   if (status != 0)
+     bbftpd_msg_reply (MSG_BAD_NO_RETRY, "Unable to delete %s", file);
+   else
+     bbftpd_msg_reply (MSG_OK, "%s has been deleted", file);
+
+   free (msg_file);
+   return status;
+}
+
+
+static int do_msg_stat (struct message *msg)
+{
+   struct mess_dir *msg_file;
+   int status;
+
+   status = read_string (msg->msglen, "MSG_STAT", (char **)&msg_file);
+   if (status < 0)
+     {
+	if (status == -2) return 0;
+	return -1;
+     }
+
+   status = bbftpd_stat (msg_file);
+   /* Error messages and replies handled by bbftpd_stat */
+
+   free (msg_file);
+   return status;
+}
+
+static int do_msg_statfs (struct message *msg)
+{
+   struct mess_dir *msg_file;
+   int status;
+
+   status = read_string (msg->msglen, "MSG_STAT", (char **)&msg_file);
+   if (status < 0)
+     {
+	if (status == -2) return 0;
+	return -1;
+     }
+
+   status = bbftpd_statfs (msg_file);
+   /* Error messages and replies handled by bbftpd_statfs */
+
+   free (msg_file);
+   return status;
+}
+
 static int do_invalid_msg_for_state (struct message *msg, const char *state_name)
 {
-   bbftpd_log (BBFTPD_ERR,"Unkown message %d in state %s", msg->code, state_name);
+   bbftpd_log (BBFTPD_ERR,"Unknown message %d in state %s", msg->code, state_name);
    /* retcode = discardmessage (incontrolsock,msglen,recvcontrolto) ; */
-   reply (MSG_BAD_NO_RETRY, "Unkown message") ;
+   reply (MSG_BAD_NO_RETRY, "Unknown message") ;
    return -1;
 }
 
@@ -636,7 +790,7 @@ static int handle_logged (struct message *msg)
 	return do_msg_chcos (msg);
 
       case MSG_CHDIR_V2:
-	return bbftpd_cd (incontrolsock, msg->msglen);
+	return do_msg_cd (msg);
 
       case MSG_CHUMASK:
 	return do_msg_chumask (msg);
@@ -648,16 +802,16 @@ static int handle_logged (struct message *msg)
 	return do_msg_list_v2 (msg);
 
       case MSG_MKDIR_V2:
-	return bbftpd_mkdir (incontrolsock, msg->msglen);
+	return do_msg_mkdir (msg);
 
       case MSG_RM:
-	return bbftpd_rm (incontrolsock, msg->msglen);
+	return do_msg_rm (msg);
 
       case MSG_STAT:
-	return bbftpd_stat(incontrolsock, msg->msglen);
+	return do_msg_stat (msg);
 
       case MSG_DF:
-	return bbftpd_statfs (incontrolsock, msg->msglen);
+	return do_msg_statfs (msg);
 
       case MSG_RETR_V2:
 	return do_msg_retr_v2 (msg);
@@ -682,7 +836,7 @@ static int handle_receiving (struct message *msg)
 	return -1;
 
       default:
-	bbftpd_log(BBFTPD_ERR,"Unkown message in S_RECEIVING state : %d",msg->code) ;
+	bbftpd_log(BBFTPD_ERR,"Unknown message in S_RECEIVING state : %d",msg->code) ;
 	bbftpd_storeclosecastfile(realfilename,logmessage) ;
 	bbftpd_storeunlink(realfilename) ;
 	return -1 ;
@@ -695,11 +849,11 @@ static int handle_sending (struct message *msg)
    switch (msg->code)
      {
       case MSG_ABORT:
-	bbftpd_log(BBFTPD_ERR,"Receive MSG_ABORT while sending") ;
+	bbftpd_log(BBFTPD_ERR,"Receive MSG_ABORT while sending\n") ;
 	return -1;
 
       default:
-	bbftpd_log (BBFTPD_ERR,"Unkown message %d in S_SENDING state: %d", msg->code);
+	bbftpd_log (BBFTPD_ERR,"Unknown message %d in S_SENDING state\n", msg->code);
 	return -1;
      }
 }

@@ -66,100 +66,65 @@
 # define HAVE_STATVFS 1
 #endif
 
-int bbftpd_statfs(int sock,int msglen) 
+#ifdef HAVE_STRUCT_STATVFS64
+# define STATFS_T statvfs64
+# define STATFS_FUNC statvfs64
+#elif defined(HAVE_STRUCT_STATVFS)
+# define STATFS_T statvfs
+# define STATFS_FUNC statvfs
+#elif defined(HAVE_STRUCT_STATFS)
+# define STATFS_FUNC statfs
+# define STATFS_T statfs
+#endif
+
+int bbftpd_statfs (struct mess_dir *msg_file)
 {
-#if defined(HAVE_STATVFS64) || defined(HAVE_STATVFS) || defined(HAVE_STATFS)
-    char    *buffer ;
-    char    *logmessage ;
-    struct  mess_dir *msg_file ;
-    char    *dirname ;
+#if !defined(STATFS_FUNC) || !defined(STATFS_T)
+   bbftpd_msg_reply (MSG_BAD_NO_RETRY, "%s", "df operation not supported by the server");
+   return 0 ;
+#else
+   struct STATFS_T stfs;
+   char    *dirname ;
 
-# ifdef HAVE_STRUCT_STATVFS64
-    struct statvfs64 statfsbuf;
-# elif defined(HAVE_STRUCT_STATVFS)
-    struct statvfs statfsbuf;
-# elif defined(HAVE_STRUCT_STATFS)
-    struct statfs statfsbuf;
-# endif
-#ifdef _SX
-    int statlen, fstyp=0;
-# endif
+   transferoption  = msg_file->transferoption ;
+   dirname = msg_file->dirname ;
 
-    if ( (buffer = (char *) malloc (msglen+1) ) == NULL ) {
-        bbftpd_log(BBFTPD_ERR,"Unable to malloc space for dir name (%d)",msglen) ;
-        reply(MSG_BAD,"Unable to malloc space for file name") ;
+   if ( (transferoption & TROPT_RFIO) == TROPT_RFIO )
+     {
+# if defined(WITH_RFIO) || defined(WITH_RFIO64)
+	bbftpd_msg_reply (MSG_BAD_NO_RETRY, "%s", "df is not supported by RFIO");
+# else
+        bbftpd_msg_reply (MSG_BAD_NO_RETRY, "%s", "RFIO is not supported by the server") ;
+# endif
         return 0 ;
-    }
-    if ( (logmessage = (char *) malloc (msglen+1024) ) == NULL ) {
-        bbftpd_log(BBFTPD_ERR,"Unable to malloc space for logmessage ") ;
-        reply(MSG_BAD,"Unable to malloc space for logmessage") ;
-        FREE(buffer) ;
+     }
+
+   if (-1 == STATFS_FUNC(dirname, &stfs))
+     {
+	bbftpd_msg_reply (MSG_BAD_NO_RETRY, "Unable to df %s: %s", dirname, strerror(errno));
         return 0 ;
-    }
-    /*
-    ** Read the characteristics of the file
+     }
+
+   /* print the following information:
+    * total_blocks blocks_available block_size total_inode inode_available filename_max_length
     */
-    if ( readmessage(sock,buffer,msglen,recvcontrolto) < 0 ) {
-        /*
-        ** Error ...
-        */
-        bbftpd_log(BBFTPD_ERR,"Error reading dir name") ;
-        FREE(buffer) ;
-        FREE(logmessage) ;
-        return -1 ;
-    }
-    buffer[msglen] = '\0' ;
-    msg_file = (struct mess_dir *) buffer ;
-    transferoption  = msg_file->transferoption ;
-    dirname = msg_file->dirname ;
-    
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
-#if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        sprintf(logmessage,"df is not supported by RFIO") ;
-#else
-        sprintf(logmessage,"RFIO is not supported by the server") ;
-#endif
-        reply(MSG_BAD_NO_RETRY,logmessage) ;
-        FREE(buffer) ;
-        FREE(logmessage) ;
-        return 0 ;
-    }
-
-#ifdef HAVE_STATVFS64
-    if (statvfs64(dirname,&statfsbuf) < 0) {
-#elif defined(HAVE_STATVFS)
-    if (statvfs(dirname,&statfsbuf) < 0) {
-#elif _SX
-    if (statfs(dirname,&statfsbuf, statlen, fstyp) < 0) {
-#else
-    if (statfs(dirname,&statfsbuf) < 0) {
-#endif
-        sprintf(logmessage,"Unable to df %s: %s",dirname,strerror(errno)) ;
-        reply(MSG_BAD_NO_RETRY,logmessage) ;
-        FREE(buffer) ;
-        FREE(logmessage) ;
-        return 0 ;
-    } else {
-#ifdef HAVE_STATVFS64
-        sprintf(logmessage,"%" LONG_LONG_FORMAT " %" LONG_LONG_FORMAT " %lu %" LONG_LONG_FORMAT " %" LONG_LONG_FORMAT " %lu", statfsbuf.f_blocks, statfsbuf.f_bavail, statfsbuf.f_frsize, statfsbuf.f_files, statfsbuf.f_ffree, statfsbuf.f_namemax) ;
-#elif defined(HAVE_STATVFS)
-        sprintf(logmessage,"%ld %ld %lu %ld %ld %lu", statfsbuf.f_blocks, statfsbuf.f_bavail, statfsbuf.f_bsize, statfsbuf.f_files, statfsbuf.f_ffree, statfsbuf.f_namemax) ;
-#elif _SX
-        sprintf(logmessage,"%ld %ld %ld %ld %ld %ld", statfsbuf.f_blocks, statfsbuf.f_bfree, statfsbuf.f_bsize, statfsbuf.f_files, statfsbuf.f_ffree, 0) ;
-#else
-#ifdef DARWIN
-		sprintf(logmessage,"%ld %ld %ld %ld", statfsbuf.f_blocks, statfsbuf.f_bsize, statfsbuf.f_files, statfsbuf.f_ffree) ;
-#else
-        sprintf(logmessage,"%ld %ld %ld %ld %ld %ld", statfsbuf.f_blocks, statfsbuf.f_b_avail, statfsbuf.f_bsize, statfsbuf.f_files, statfsbuf.f_ffree, statfsbuf.f_namelen) ;
-#endif
-#endif
-        reply(MSG_OK,logmessage) ;
-        FREE(buffer) ;
-        FREE(logmessage) ;
-        return 0 ;
-    }
-#else
-    reply(MSG_BAD_NO_RETRY,"operation not supported by the server") ;
-    return 0 ;
+   bbftpd_msg_reply (MSG_OK,
+		     "%" LONG_LONG_FORMAT " %" LONG_LONG_FORMAT " %lu %" LONG_LONG_FORMAT " %" LONG_LONG_FORMAT " %lu",
+		     (long long) stfs.f_blocks,
+		     (long long) stfs.f_bavail,
+# ifdef HAVE_STATVFS64
+		     stfs.f_frsize,
+# else
+		     stfs.f_bsize,
+# endif
+		     (long long) stfs.f_files,
+		     (long long) stfs.f_ffree,
+# if defined(HAVE_STATVFS64) || defined(HAVE_STATVFS) || !defined(DARWIN)
+		     stfs.f_namemax
+# else
+		     255       /* DARWIN?? */
+# endif
+		    );
+   return 0 ;
 #endif
 }

@@ -36,21 +36,12 @@
                 v 2.1.0  2001/06/11 - Change file name
 
 *****************************************************************************/
-#include <errno.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-/* #include <syslog.h> */
-#ifdef TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <time.h>
-#else
-# ifdef HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
-#endif
+#include <sys/time.h>
+#include <errno.h>
 
 #include <bbftpd.h>
 #include <common.h>
@@ -137,13 +128,10 @@ void sendcrypt(void)
     }
 }
 
-int decodersapass(char *buffer, char *username, char *password) 
+int decodersapass(struct mess_rsa *msg_rsa, char *username, char *password) 
 {
-    struct mess_rsa *msg_rsa ;
     int    lenuser ;
     int lenpass ;
-
-    msg_rsa = (struct mess_rsa *) buffer ;
 
 #ifndef WORDS_BIGENDIAN
     msg_rsa->numuser = ntohl(msg_rsa->numuser) ;
@@ -153,6 +141,41 @@ int decodersapass(char *buffer, char *username, char *password)
     username[lenuser] = '\0' ;
     lenpass = RSA_private_decrypt(msg_rsa->numpass,(unsigned char *)msg_rsa->cryptpass,(unsigned char *)password,myrsa,RSA_PKCS1_OAEP_PADDING) ;
     password[lenpass] = '\0' ;
-    
+
     return 0 ;
+}
+
+int bbftpd_crypt_init_random (void)
+{
+   char buffrand[NBITSINKEY] ;
+   struct timeval tp ;
+   unsigned int i, seed;
+
+   /*
+    ** Load the error message from the crypto lib
+    */
+#if !defined(OPENSSL_API_COMPAT) || (OPENSSL_API_COMPAT < 0x10100000L)
+   ERR_load_crypto_strings() ;
+#endif
+   /*
+    ** Initialize the buffrand buffer which is giong to be used to initialize the 
+    ** random generator
+    */
+
+   /*
+    ** Take the usec to initialize the random session
+    */
+   gettimeofday(&tp,NULL) ;
+   seed = tp.tv_usec ;
+   srandom(seed) ;
+
+   for (i=0; i < (int) sizeof(buffrand) ; i++)
+     buffrand[i] = random() ;
+
+   /*
+    ** Initialize the random generator
+    */
+   RAND_seed(buffrand,NBITSINKEY) ;
+
+   return 0;
 }
