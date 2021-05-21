@@ -474,6 +474,8 @@ Options:\n\
   -d          Run in debug mode (RFIO)\n\
   -e p0:p1    Use ephemeral ports p0 to p1\n\
   -f          Bind to the first available port\n\
+  -l level    Set the log-level to the specified value\n\
+  -L logfile  Write to logfile instead of using syslog\n\
   -m N        Limit the number of streams to N\n\
   -R file     Use file as the bbftpdrc file\n\
   -s          Use when started via ssh\n\
