@@ -1,0 +1,33 @@
+NEWS:
+
+  bbftpd: (server)
+
+   New command line options:
+
+    -A
+      When started via ssh and the client is running behind a
+      firewall, the server will be unable to get the IP address of the
+      client.  This option tells the server to ask the client for its
+      IP address.  The bbftp client has been modified to support this
+      feature.  This is useful when the server is behind a firewall
+      and can connect to the client, but the client cannot connect to
+      the server.  In this mode, the bbftp-client `-D' option should
+      be used to specify protocol version 2 (non-passive).
+
+    -h
+      Print a usage message
+
+    -L logfile
+      This command line option may be used to write server logs to the
+      specified file instead of syslog.  This is particularly useful
+      when invoked via ssh.
+
+  bbftp (client)
+
+     Added support for telling the server the client's IP address when
+     requested.
+
+  bbftp-get
+
+     This is an slsh script that allows bbftp to be used in a similar
+     way as scp

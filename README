@@ -20,5 +20,7 @@ original source code.
 The test code is in the tests subdirectory.  In order to use it, you
 will need to have slsh installed.  See <https://jedsoft.org/slang/>.
 
+See the NEWS file for additional information.
+
 John E. Davis
 <jed@jedsoft.org>
