@@ -113,9 +113,9 @@
 #include "_bbftpd.h"
 
 #ifdef CERTIFICATE_AUTH
-#define OPTIONS    "Abcd:fl:L:m:pR:suvw:"
+#define OPTIONS    "Abcd:fhl:L:m:pR:suvw:"
 #else
-#define OPTIONS    "Abd:e:fl:L:m:R:suvw:"
+#define OPTIONS    "Abd:e:fhl:L:m:R:suvw:"
 #endif
 /*
 ** Common variables for BBFTP protocole version 1 and 2
@@ -464,6 +464,29 @@ static int init_default_server_config (int argc, char **argv, Server_Config_Type
    return 0;
 }
 
+static void exit_usage (void)
+{
+   (void) fputs ("\
+Usage: bbftpd [options]\n\
+Options:\n\
+  -A          Ask client for its IP address (SSH mode only)\n\
+  -b          Run in the backgound as a daemon\n\
+  -d          Run in debug mode (RFIO)\n\
+  -e p0:p1    Use ephemeral ports p0 to p1\n\
+  -f          Bind to the first available port\n\
+  -m N        Limit the number of streams to N\n\
+  -R file     Use file as the bbftpdrc file\n\
+  -s          Use when started via ssh\n\
+  -u          Permit non-encrypted username/password\n\
+  -c          Force authentification via certificates\n\
+  -p          Force authentification via username/password\n\
+  -v          Show version\n\
+  -h          Show this usage message\n\
+",
+		 stdout);
+   exit (0);
+}
+
 static int process_cmdline_options (int argc, char **argv, Server_Config_Type *server_config)
 {
    int i, j, k;
@@ -508,9 +531,13 @@ static int process_cmdline_options (int argc, char **argv, Server_Config_Type *s
 	       }
 	     break;
 
-            case 'f' :
+	   case 'f' :
 	     fixeddataport = 0 ;
 	     break ;
+
+	   case 'h':
+	     exit_usage ();
+	     break;
 
 	   case 'm' :
 	     sscanf(optarg,"%d",&i) ;
