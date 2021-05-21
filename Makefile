@@ -13,6 +13,8 @@ config:
 install:
 	cd bbftp-client/bbftpc && $(MAKE) install
 	cd bbftp-server/bbftpd && $(MAKE) install
+version:
+	update_changes_version changes.txt bbftp-client/includes/version.h bbftp-server/includes/version.h
 clean:
 	cd bbftp-client/bbftpc && $(MAKE) clean
 	cd bbftp-server/bbftpd && $(MAKE) clean
@@ -24,5 +26,5 @@ distclean: clean
 	cd tests && $(MAKE) distclean
 check: all
 	cd tests && $(MAKE) check
-.PHONY: all install clean config check distclean
+.PHONY: all install clean config check distclean version
 

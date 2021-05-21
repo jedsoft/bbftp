@@ -5,12 +5,13 @@ the GNU General Public License.
 
 Version 3.2.1 was released in early 2013.  As such, it will no longer
 compile with recent versions of the OpenSSL library.  I made the
-necessary modifications to version 3.2.1 of bbftp client to enable it
-to work with OpenSSL 1.1.0.  I made several attempts to contact the
+necessary modifications to version 3.2.1 of the bbftp client to enable
+it to work with OpenSSL 1.1.0.  I made several attempts to contact the
 authors at bbftp@in2p3.fr with my patches.  So far I received no
-responses.
+responses and I have concluded that the project is no longer
+maintained by the original authors.
 
-I testing the code with valgrind and discovered a number of leaks and
+I tested the code with valgrind and discovered a number of leaks and
 various access errors.  In the process of correcting these, I made
 many other changes to the code in an effort to clean it up to compile
 without warnings with my standard set of compiler flags.  As a result,
@@ -20,7 +21,8 @@ original source code.
 The test code is in the tests subdirectory.  In order to use it, you
 will need to have slsh installed.  See <https://jedsoft.org/slang/>.
 
-See the NEWS file for additional information.
+See the NEWS file for additional information.  The changes.txt file
+will be updated with development notes.
 
 John E. Davis
 <jed@jedsoft.org>

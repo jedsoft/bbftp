@@ -1,0 +1,2 @@
+Changes since 3.2.1
+0. Numerous cleanups, memory leaks corrected, etc.  See README and NEWS.
