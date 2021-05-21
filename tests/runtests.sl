@@ -139,10 +139,12 @@ private define test_script ()
      [
       "dir /tmp\n",
       "cd /tmp\n",
+%      "cd xxxsssuuu\n",		       %  BAD command
       "put $bigfile $bigfile1\n"$,
       "get $bigfile1 $bigfile2\n"$,
       "stat $bigfile1\n"$,
       "rm $bigfile1\n"$,
+      "df /tmp\n",
       "mput ../bbftp-server/bbftpd/*.c /tmp/xxx/\n",
 %      "mget xxx/*.c yyy/\n",
       "setbuffersize 512\n",
@@ -183,7 +185,7 @@ private define test_script ()
    variable result_file = testscript + ".res";
    () = remove (result_file);
 
-   variable status = run_bbftp (["-i", testscript] ; stdout=testscript+".log");
+   variable status = run_bbftp (["-i", testscript] ; stdout=testscript+"-stdout.log");
    if (status != 0)
      {
 	() = fprintf (stderr, "bbftp returned a non-0 status (%d)\n", status);
@@ -273,9 +275,13 @@ define slsh_main ()
    variable
      rsa_id_file = "$HOME/.ssh/id_rsa"$,
      bbftp_exec = path_concat (testdir, "../bbftp-client/bbftpc/bbftp"),
-     bbftpd_pgm = path_concat (remote_dir, "bbftpd");
+     bbftpd_pgm = path_concat (remote_dir, "bbftpd"),
+     bbftpd_logfile = "/tmp/bbftpd.log-" + string(_time) + string(getpid);
 
-   BBftp_Common_Argv = [bbftp_exec, "-r", "1", "-E", bbftpd_pgm, "-p", "2", "-V",
+   bbftpd_pgm = bbftpd_pgm + " -A" + " -l DEBUG -L $bbftpd_logfile"$;
+
+   BBftp_Common_Argv = [bbftp_exec, "-r", "1", "-E", bbftpd_pgm,
+			"-p", "2", "-V", "-W",
 			"-I", rsa_id_file, "-u", remote_user];
    BBftp_Remote_Host = remote_host;
 
@@ -289,9 +295,11 @@ define slsh_main ()
 
    if (failed)
      {
-	() = fprintf (stderr, "\n\n\n  ***** TESTS FAILED *****\n\n");
+	() = fprintf (stderr, "%s", "\n\n\n  ***** TESTS FAILED *****\n\n");
+	() = fprintf (stderr, "See %s for server logs\n\n", bbftpd_logfile);
 	exit (1);
      }
+   () = remove (bbftpd_logfile);
    () = fprintf (stdout, "\nTests PASSED\n\n");
 }
 
