@@ -1,0 +1,194 @@
+#!/usr/bin/env slsh
+
+private variable Script_Version_String = "0.1.0";
+
+require ("cmdopt");
+require ("process");
+
+private define exit_version ()
+{
+   () = fprintf (stdout, "Version: %S\n", Script_Version_String);
+   exit (0);
+}
+
+private define exit_usage ()
+{
+   variable fp = stderr;
+   () = fprintf (fp, "Usage: %s [options] user@host:remote-file local-file\n", __argv[0]);
+   variable opts =
+     [
+      "Options:\n",
+      " -A                           Tell server to query client for IP address\n",
+      " -D                           Use non-passive mode\n",
+      " -i ssh-identity-file         SSH identity file\n",
+      " -E|--bbftpd=/remote/bbftpd   Remote bbftpd path\n",
+      " --bbftp=/path/to/bbftp       Local bbftp path\n",
+      " -r|--retries=N               Number of retries (default=5)\n",
+      " -p|--num-streams=N           Use N streams (default is 2)\n",
+      " -o|options=list              Comma separated list of bbftp setoption values\n",
+      "   Options include: createdir,gzip,keepaccess,keepmode,[tmpfile]\n",
+      " -v|--version                 Print version\n",
+      " -h|--help                    This message\n",
+     ];
+   foreach (opts)
+     {
+        variable opt = ();
+        () = fputs (opt, fp);
+     }
+   exit (1);
+}
+
+private define run_pgm (argv)
+{
+   variable argvstr = "'" + strjoin (argv, "' '") + "'";
+   () = fprintf (stdout, "Running %S\n", argvstr); () = fflush (stdout);
+
+   variable e;
+   try(e)
+     {
+	variable p = new_process (argv;; __qualifiers);
+     }
+   catch AnyError:
+     {
+	() = fprintf (stderr, "%s failed: %s\n",
+		      argvstr, e.message);
+	return -1;
+     }
+
+   if (p == NULL)
+     {
+	() = fprintf (stderr, "*** new_process %S failed: %S\n",
+		      argvstr, errno_string());
+	return -1;
+     }
+   variable w = p.wait ();
+   if (w.exited)
+     {
+	if (w.exit_status == 0) return 0;
+	() = fprintf (stderr, "*** %S returned exit status %d\n",
+		      argvstr, w.exit_status);
+	return w.exit_status;
+     }
+   () = fprintf (stderr, "*** %S was killed with signal %S\n",
+		 argvstr, w.signal);
+   return -1;
+}
+
+private define parse_remote (remote)
+{
+   variable user = NULL, host, filespec;
+   variable i = is_substr (remote, ":");
+   if (i == 0)
+     {
+	() = fprintf (stderr, "Expecting remote-file-spec to be of the form [user@]host:file-spec\n");
+	return NULL;
+     }
+   host = substr (remote, 1, i-1);
+   filespec = substr (remote, i+1, -1);
+   if (filespec == "")
+     {
+	() = fprintf (stderr, "The remote file-spec cannot be empty\n");
+	return NULL;
+     }
+
+   i = is_substr (host, "@");
+   if (i != 0)
+     {
+	user = substr (host, 1, i-1);
+	host = substr (host, i+1, -1);
+     }
+
+   return struct
+     {
+	user = user,
+	host = host,
+	filespec = filespec,
+     };
+}
+
+private define parse_local (local)
+{
+   return local;
+}
+
+
+define slsh_main ()
+{
+   variable
+     bbftp_cmd = "bbftp",
+     bbftpd_cmd = NULL,
+     identity_file = NULL,
+     retries = NULL,
+     drydun = 0,
+     non_passive = 0,
+     options = "",
+     num_streams = 2,
+     ask_for_ip = 0;
+
+   variable c = cmdopt_new ();
+   c.add("h|help", &exit_usage);
+   c.add("v|version", &exit_version);
+   c.add("E", &bbftpd_cmd; type="str");
+   c.add("D", &non_passive; type="int", optional=1);
+   c.add("A", &ask_for_ip; type="int", optional=1);
+   c.add("p", &num_streams; type="int");
+   c.add("I", &identity_file; type="str");
+   c.add("r|retries", &retries; type="int");
+   c.add("o|options", &options; type="str");
+   c.add("n", &drydun; type="int", optional=1);
+
+   variable i = c.process (__argv, 1);
+
+   if (i + 2 != __argc)
+     exit_usage ();
+
+   variable remote_info = parse_remote (__argv[i]);
+   if (remote_info == NULL) exit (1);
+
+   variable local_file = parse_local (__argv[i+1]);
+
+   variable getcmd = "get";
+   variable st = stat_file (local_file);
+   if (st != NULL)
+     {
+	if (stat_is ("dir", st.st_mode))
+	  getcmd = "mget";
+     }
+
+   if (ask_for_ip)
+     {
+	bbftpd_cmd = bbftpd_cmd + " -A";
+	non_passive = 1;
+     }
+   if (num_streams < 1) num_streams = 2;
+
+   variable connect_argv = ["-S"];  %  ssh batch mode
+   if (bbftpd_cmd != NULL) connect_argv = [connect_argv, "-E", bbftpd_cmd];
+   if (non_passive) connect_argv = [connect_argv, "-D"];
+   if (identity_file != NULL) connect_argv = [connect_argv, "-I", identity_file];
+   if (remote_info.user != NULL) connect_argv = [connect_argv, "-u", remote_info.user];
+   variable control_argv = String_Type[0];
+
+   options = "tmpfile,$options"$;
+   control_argv = [control_argv, "setoption " + strtok(options, ", ")];
+   control_argv = [control_argv,
+		   getcmd + " " + remote_info.filespec + " " + local_file,
+		  ];
+
+   control_argv = ["-e", strjoin(control_argv, ";")];
+   variable cmd_argv =
+     [
+      %strtok ("valgrind --tool=memcheck --leak-check=yes --error-limit=no --num-callers=25", " "),
+      %"gdb", "--args",
+      bbftp_cmd,
+      %"-d", "-W",
+      (drydun ? "-n" : ()),
+      "-p", string(num_streams),
+      control_argv,
+      connect_argv,
+      remote_info.host,
+     ];
+
+   variable status = run_pgm (cmd_argv);
+   exit (status);
+}
