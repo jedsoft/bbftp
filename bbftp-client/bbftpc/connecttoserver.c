@@ -833,6 +833,10 @@ int connectviapassword(void)
         printmessage(stderr,CASE_ERROR,58, "Error sending username : %s\n",strerror(errno)) ;
         return -1 ;
     }
+
+   /* Note that valgrind will show the use of unitialized bytes here.  This might
+    * be associated with randomization.
+    */
     /*
     ** Then crypte type
     */

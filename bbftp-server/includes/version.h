@@ -28,5 +28,5 @@
 
 *****************************************************************************/
 
-#define VERSION	            "3.2.1-jed"
+#define VERSION	            "3.3.0-0"
 #define PROTOCOLVERSION     3
