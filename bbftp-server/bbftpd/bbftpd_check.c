@@ -142,7 +142,7 @@ static int exchange_addessses_with_client (void)
    if (-1 == get_ip_address (NULL, &local))
      return -1;
 
-   if (-1 == bbftpd_msgwrite_bytes (MSG_IPADDR, (char *)&local, 4))
+   if (-1 == bbftpd_msgwrite_msg_bytes (MSG_IPADDR, (char *)&local, 4))
      {
 	bbftpd_log(BBFTPD_ERR,"%s", "Error writing MSG_IPADDR to client\n");
 	reply (MSG_BAD, "Error writing MSG_IPADDR");

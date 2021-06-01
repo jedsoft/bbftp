@@ -202,7 +202,8 @@ extern int bbftpd_msgread_msg (struct message *msg);
 extern int bbftpd_msgread_int32 (int32_t *valp);
 extern int bbftpd_msgread_int32_array (int32_t *a, int num);
 extern int bbftpd_msgread_bytes (char *bytes, int num);
-extern int bbftpd_msgwrite_bytes (int code, char *bytes, int len);
+extern int bbftpd_msgwrite_msg_bytes (int code, char *bytes, int len);
+extern int bbftpd_msgwrite_bytes (char *bytes, int len);
 extern int _bbftpd_write_int32_array (int32_t *a, int len);
 
 extern void bbftpd_msg_reply (int code, const char *format, ...) ATTRIBUTE_PRINTF(2,3);

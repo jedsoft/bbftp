@@ -238,6 +238,12 @@ int writemessage (int sock, const char *buffer, int msglen, int to)
     return(0) ;
 }
 
+int bbftpd_msgwrite_bytes (char *bytes, int len)
+{
+   return writemessage (outcontrolsock, bytes, len, sendcontrolto);
+}
+
+
 int bbftpd_fd_msgwrite_int32_2 (int fd, int code, int i, int j)
 {
    int32_t buf[4];
@@ -293,7 +299,7 @@ int bbftpd_msgwrite_len (int code, int len)
    return bbftpd_fd_msgwrite_len (outcontrolsock, code, len);
 }
 
-int bbftpd_msgwrite_bytes (int code, char *bytes, int len)
+int bbftpd_msgwrite_msg_bytes (int code, char *bytes, int len)
 {
    if ((-1 == bbftpd_fd_msgwrite_len (outcontrolsock, code, len))
        || (-1 == writemessage (outcontrolsock, bytes, len, sendcontrolto)))

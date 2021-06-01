@@ -336,7 +336,7 @@ static int init_and_send_msg_store_v2 (int send_ports)
 
    /* V2: active, V3: passive */
    code = (protocolversion == 2) ? MSG_TRANS_OK_V2 : MSG_TRANS_OK_V3;
-   if (-1 == bbftpd_msgwrite_bytes (code, (char *)&msg_store_v2, STORMESSLEN_V2))
+   if (-1 == bbftpd_msgwrite_msg_bytes (code, (char *)&msg_store_v2, STORMESSLEN_V2))
      {
 	bbftpd_log (BBFTPD_ERR,"Error writing MSG_TRANS_OK_V2/3");
 	return -1;

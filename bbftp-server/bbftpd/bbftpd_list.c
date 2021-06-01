@@ -72,7 +72,7 @@ int bbftpd_list (char *pattern)
 	return 0;
      }
 
-   if (-1 == (status = bbftpd_msgwrite_bytes (MSG_LIST_REPL_V2, filelist, filelistlen)))
+   if (-1 == (status = bbftpd_msgwrite_msg_bytes (MSG_LIST_REPL_V2, filelist, filelistlen)))
      bbftpd_log (BBFTPD_ERR,"Error sending filelist");
 
    FREE(filelist);

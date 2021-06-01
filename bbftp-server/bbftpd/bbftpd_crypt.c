@@ -60,24 +60,58 @@
 */
 RSA        *myrsa ;
 
+static RSA *generate_key (void)
+{
+   RSA *r;
+#if (OPENSSL_VERSION_NUMBER < 0x00908000L)
+   if (NULL != (r = RSA_generate_key(NBITSINKEY,3,NULL,NULL)))
+     return r;
+   /* fall through to error */
+#else
+   if (NULL != (r = RSA_new ()))
+     {
+	BIGNUM *bne = BN_new ();
+
+	if (bne == NULL)
+	  {
+	     RSA_free (r);
+	     goto return_error;
+	  }
+	if ((0 == BN_set_word (bne, RSA_F4))
+	    || (0 == RSA_generate_key_ex (r, NBITSINKEY, bne, NULL)))
+	  {
+	     BN_free (bne);
+	     RSA_free (r);
+	     goto return_error;
+	  }
+	BN_free (bne);
+	return r;
+     }
+
+return_error:
+#endif
+
+   bbftpd_log (BBFTPD_ERR, "%s", ERR_error_string(ERR_get_error(),NULL));
+
+   return r;
+}
+
+
 void sendcrypt(void)
 {
-    struct message    *mess ;
-    struct mess_sec    *msg_sec ;
-    char    buf[MAXMESSLEN] ;
-    unsigned char    pubkey[NBITSINKEY] ;
-    unsigned char    pubexponent[NBITSINKEY] ;
-    int        lenkey ;
-    int        lenexpo ;
+   struct mess_sec msg_sec ;
+   unsigned char    pubkey[NBITSINKEY] ;
+   unsigned char    pubexponent[NBITSINKEY] ;
+   int        lenkey ;
+   int        lenexpo ;
    const BIGNUM *rsa_n, *rsa_e, *rsa_d;
 
     /*
     ** Ask for the private and public Key
     */
-    if ( (myrsa = RSA_generate_key(NBITSINKEY,3,NULL,NULL)) == NULL) {
-        bbftpd_log(BBFTPD_ERR,"%s",ERR_error_string(ERR_get_error(),NULL) ) ;
-        exit(1) ;
-    }
+   if (NULL == (myrsa = generate_key ()))
+     exit (1);
+
     /*
     ** Now extract the public key in order to send it
     */
@@ -89,60 +123,56 @@ void sendcrypt(void)
    (void) rsa_d;
 #endif
 
-    lenkey  = BN_bn2mpi(rsa_n,pubkey) ;
-    lenexpo = BN_bn2mpi(rsa_e,pubexponent) ;
-    mess = (struct message *) buf ;
-    mess->code = MSG_CRYPT ;
-#ifndef WORDS_BIGENDIAN
-    mess->msglen = ntohl(CRYPTMESSLEN+lenkey+lenexpo) ;
-#else
-    mess->msglen = CRYPTMESSLEN+lenkey+lenexpo ;
-#endif
-    if (writemessage(outcontrolsock,buf,MINMESSLEN,sendcontrolto) < 0 ) {
+   lenkey  = BN_bn2mpi(rsa_n,pubkey) ;
+   lenexpo = BN_bn2mpi(rsa_e,pubexponent) ;
+
+   if (-1 == bbftpd_msgwrite_len (MSG_CRYPT, CRYPTMESSLEN+lenkey+lenexpo))
+     {
         bbftpd_log(BBFTPD_ERR,"Error on sendcrypt 1") ;
         exit(1) ;
-    }
-    msg_sec  = (struct mess_sec    *) buf ;
-    msg_sec->crtype  = CRYPT_RSA_PKCS1_OAEP_PADDING ;
-#ifndef WORDS_BIGENDIAN
-    msg_sec->pubkeylen  = ntohl(lenkey) ;
-    msg_sec->expolen  = ntohl(lenexpo) ;
-#else
-    msg_sec->pubkeylen  = lenkey ;
-    msg_sec->expolen  = lenexpo ;
-#endif
-    if (writemessage(outcontrolsock,buf,CRYPTMESSLEN,sendcontrolto) < 0 ) {
-        bbftpd_log(BBFTPD_ERR,"Error on sendcrypt 2") ;
-        exit(1) ;
-    }
-    /*
+     }
+
+   msg_sec.crtype = CRYPT_RSA_PKCS1_OAEP_PADDING;
+   msg_sec.pubkeylen = htonl (lenkey);
+   msg_sec.expolen = htonl (lenexpo);
+
+   if (-1 == bbftpd_msgwrite_bytes ((char *)&msg_sec, sizeof(msg_sec)))
+     {
+	bbftpd_log(BBFTPD_ERR,"Error on sendcrypt 2") ;
+	exit(1) ;
+     }
+
+   /*
     ** Send Key and exponent
     */
-    if (writemessage(outcontrolsock,(char *)pubkey,lenkey,sendcontrolto) < 0 ) {
+   if (-1 == bbftpd_msgwrite_bytes ((char *)pubkey, lenkey))
+     {
         bbftpd_log(BBFTPD_ERR,"Error on sendcrypt pubkey") ;
         exit(1) ;
-    }
-    if (writemessage(outcontrolsock,(char *)pubexponent,lenexpo,sendcontrolto) < 0 ) {
+     }
+   if (-1 == bbftpd_msgwrite_bytes ((char *)pubexponent, lenexpo))
+     {
         bbftpd_log(BBFTPD_ERR,"Error on sendcrypt pubexponent") ;
         exit(1) ;
     }
 }
 
-int decodersapass(struct mess_rsa *msg_rsa, char *username, char *password) 
+int decodersapass(struct mess_rsa *msg_rsa, char *username, char *password)
 {
-    int    lenuser ;
-    int lenpass ;
+   int lenuser ;
+   int lenpass ;
 
 #ifndef WORDS_BIGENDIAN
-    msg_rsa->numuser = ntohl(msg_rsa->numuser) ;
-    msg_rsa->numpass = ntohl(msg_rsa->numpass) ;
+   msg_rsa->numuser = ntohl(msg_rsa->numuser) ;
+   msg_rsa->numpass = ntohl(msg_rsa->numpass) ;
 #endif
-    lenuser = RSA_private_decrypt(msg_rsa->numuser,(unsigned char *)msg_rsa->cryptuser,(unsigned char *)username,myrsa,RSA_PKCS1_OAEP_PADDING) ;
-    username[lenuser] = '\0' ;
-    lenpass = RSA_private_decrypt(msg_rsa->numpass,(unsigned char *)msg_rsa->cryptpass,(unsigned char *)password,myrsa,RSA_PKCS1_OAEP_PADDING) ;
-    password[lenpass] = '\0' ;
 
-    return 0 ;
+   lenuser = RSA_private_decrypt(msg_rsa->numuser,(unsigned char *)msg_rsa->cryptuser,(unsigned char *)username,myrsa,RSA_PKCS1_OAEP_PADDING) ;
+   username[lenuser] = '\0' ;
+   lenpass = RSA_private_decrypt(msg_rsa->numpass,(unsigned char *)msg_rsa->cryptpass,(unsigned char *)password,myrsa,RSA_PKCS1_OAEP_PADDING) ;
+   password[lenpass] = '\0' ;
+
+   return 0 ;
 }
 
 int bbftpd_crypt_init_random (void)
