@@ -91,15 +91,21 @@ int bbftpd_log_open (int use_syslog, int log_level, const char *logfile)
 	Log_Level = log_level;
      }
 
-   if ((logfile != NULL) && (logfile != Log_File))
+   if (logfile != NULL)
      {
-	if (Log_File != NULL) free (Log_File);
+	if ((Log_File != NULL) && (logfile != Log_File))
+	  {
+	     free (Log_File);
+	     Log_File = NULL;
+	  }
 
-	if (NULL == (Log_File = bbftpd_strdup (logfile)))
+	if ((Log_File == NULL)
+	    && (NULL == (Log_File = bbftpd_strdup (logfile))))
 	  {
 	     (void) fprintf (stderr, "Unable to allocate space for the logfile name\n");
 	     return -1;
 	  }
+
 	if (NULL == (_pBBftp_Log_Fp = fopen (Log_File, "a")))
 	  {
 	     (void) fprintf (stderr, "Unable to open logfile %s: %s\n", Log_File, strerror(errno));

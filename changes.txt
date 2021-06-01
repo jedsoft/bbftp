@@ -5,3 +5,5 @@ Changes since 3.2.1
 2. bbftpd: Use RSA_generate_key_ex instead of deprecated
    RSA_generate_key.  Additional code simplification/cleanup in
    bbftpd_crypt.c.
+3. bbftpd: bbftpd_log_reopen was not opening the user-specified
+   logfile in child processes
