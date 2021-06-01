@@ -37,14 +37,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <dirent.h>
-#include <errno.h>
-#include <fnmatch.h>
-#include <netinet/in.h>
-/* #include <syslog.h> */
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <utime.h>
 
 #include <bbftpd.h>
 #include <common.h>
@@ -57,41 +49,32 @@
 
 int bbftpd_list (char *pattern)
 {
-   char logmessage[1024];
-    char    *filelist ;
-    int     filelistlen ;
-    int     retcode ;
-    char    send_buffer[MINMESSLEN] ;
-    struct message *msg ;
+   char msgbuf[1024];
+   char    *filelist ;
+   int     filelistlen ;
+   int status;
 
-    if ( (retcode = bbftpd_retrlistdir(pattern,&filelist,&filelistlen,logmessage) ) < 0) {
-        reply(MSG_BAD_NO_RETRY,logmessage) ;
-        return 0 ;
-    } else if ( retcode > 0 ) {
-        reply(MSG_BAD,logmessage) ;
-        return 0 ;
-    } else {
-        msg = (struct message *) send_buffer ;
-        msg->code = MSG_LIST_REPL_V2 ;
-#ifndef WORDS_BIGENDIAN
-        msg->msglen = ntohl(filelistlen) ;
-#else 
-        msg->msglen = filelistlen ;
+   if ( (transferoption & TROPT_RFIO) == TROPT_RFIO )
+     {
+#if defined(WITH_RFIO) || defined(WITH_RFIO64)
+	status = bbftpd_retrlistdir_rfio (pattern,filelist,filelistlen,msgbuf) ;
+#else
+	reply (MSG_BAD_NO_RETRY, "Fail to LIST : RFIO not supported");
+        return -1 ;
 #endif
-        if ( writemessage(outcontrolsock,send_buffer,MINMESSLEN,recvcontrolto) < 0 ) {
-            bbftpd_log(BBFTPD_ERR,"Error sending LISTREPL_V2 part 1") ;
-            FREE(filelist) ;
-            return -1 ;
-        }
-        if (filelistlen != 0 ) {
-            if ( writemessage(outcontrolsock,filelist,filelistlen,recvcontrolto) < 0 ) {
-                FREE(filelist) ;
-                bbftpd_log(BBFTPD_ERR,"Error sending filelist") ;
-                return -1 ;
-            }
-            FREE(filelist) ;
-            return 0 ;
-        }
-        return 0 ;
     }
+   else
+     status = bbftpd_retrlistdir (pattern, &filelist, &filelistlen, msgbuf, sizeof(msgbuf));
+
+   if (status != 0)
+     {
+        reply (((status < 0) ? MSG_BAD_NO_RETRY : MSG_BAD), "bbftpd_retrlistdir failed");
+	return 0;
+     }
+
+   if (-1 == (status = bbftpd_msgwrite_bytes (MSG_LIST_REPL_V2, filelist, filelistlen)))
+     bbftpd_log (BBFTPD_ERR,"Error sending filelist");
+
+   FREE(filelist);
+   return status;
 }

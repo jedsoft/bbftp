@@ -104,6 +104,19 @@ void free_all_var(void)
     nbpidchild = 0 ;
 }
 
+void *bbftpd_malloc (size_t size)
+{
+   void *p;
+
+   if (size == 0) size = 1;
+   if (NULL == (p = malloc (size)))
+     {
+	bbftpd_log (BBFTPD_ERR, "malloc failed: failed to allocate %lu bytes",
+		    (unsigned long) size);
+     }
+   return p;
+}
+
 char *bbftpd_strdup (const char *in)
 {
    size_t len;

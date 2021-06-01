@@ -1,2 +1,4 @@
 Changes since 3.2.1
 0. Numerous cleanups, memory leaks corrected, etc.  See README and NEWS.
+1. Code cleanup and simplification of directory listing and file
+   retrieval code.

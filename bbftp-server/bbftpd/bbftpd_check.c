@@ -357,7 +357,7 @@ int checkfromwhere (int ask_remote, int ctrlport)
     /*
     ** Now read the message
     */
-   if (-1 == bbftpd_fd_msgread_msg (ns, &msg))
+   if (-1 == bbftpd_fd_msgread_msg (ns, &msg, recvcontrolto))
      {
         bbftpd_log(BBFTPD_ERR,"Error reading checkreceive socket") ;
         reply(MSG_BAD,"Error reading checkreceive socket") ;

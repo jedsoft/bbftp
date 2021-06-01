@@ -148,6 +148,7 @@ void bbftpd_log (int priority, const char *format, ...)
 {
    char msg[4096];
    va_list ap;
+   int save_errno = errno;
 
    if (0 == (Log_Mask & (LOG_MASK(priority))))
      return;
@@ -157,6 +158,7 @@ void bbftpd_log (int priority, const char *format, ...)
    va_end(ap);
 
    write_to_log (priority, msg);
+   errno = save_errno;
 }
 
 /* Log to files and stderr */
@@ -164,6 +166,7 @@ void bbftpd_log_stderr (int priority, const char *format, ...)
 {
    char msg[4096];
    va_list ap;
+   int save_errno = errno;
 
    va_start(ap, format);
    (void) vsnprintf (msg, sizeof(msg), format, ap);
@@ -175,6 +178,8 @@ void bbftpd_log_stderr (int priority, const char *format, ...)
    (void) fputs (msg, stderr);
    if (*msg && (msg[strlen(msg)-1] != '\n'))
      (void) fputs ("\n", stderr);
+
+   errno = save_errno;
 }
 
 void bbftpd_log_close (void)

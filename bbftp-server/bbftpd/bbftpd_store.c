@@ -204,7 +204,7 @@ int bbftpd_storecheckoptions (void)
 **           >0  Creation failed recoverable error                             *
 **                                                                             *
 *******************************************************************************/
-int bbftpd_storemkdir(char *dirname,char *logmessage, size_t logmsg_size, int recursif)
+int bbftpd_storemkdir(char *dirname,char *msgbuf, size_t msgbuf_size, int recursif)
 {
     char    *dirpath;
     char    *basedir ;
@@ -220,7 +220,7 @@ int bbftpd_storemkdir(char *dirname,char *logmessage, size_t logmsg_size, int re
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
         return bbftpd_storemkdir_rfio(dirname,logmessage,recursif) ;
 #else
-        sprintf(logmessage,"Fail to mkdir : RFIO not supported") ;
+        (void) snprintf (msgbuf, msgbuf_size, "Fail to mkdir : RFIO not supported") ;
         return -1 ;
 #endif
     }
@@ -228,7 +228,7 @@ int bbftpd_storemkdir(char *dirname,char *logmessage, size_t logmsg_size, int re
     ** make a copy of dirname for security
     */
     if ( (dirpath = (char *) malloc (strlen(dirname)+1) ) == NULL ) {
-        sprintf(logmessage,"Error allocating memory for dirpath : %s",strerror(errno)) ;
+        (void) snprintf (msgbuf, msgbuf_size, "Error allocating memory for dirpath : %s",strerror(errno)) ;
         return 1 ;
     }
     strcpy (dirpath, dirname);
@@ -269,7 +269,7 @@ int bbftpd_storemkdir(char *dirname,char *logmessage, size_t logmsg_size, int re
 #else
                 if ( stat64 (basedir,&statbuf ) ) {
 #endif
-                    sprintf(logmessage,"Error creation directory %s (%s)",basedir,strerror(savederrno)) ; 
+                    (void) snprintf (msgbuf, msgbuf_size, "Error creation directory %s (%s)",basedir,strerror(savederrno)) ; 
                     /*
                     ** We tell the client not to retry in the following case (even in waiting
                     ** WAITRETRYTIME the problem will not be solved) :
@@ -299,7 +299,7 @@ int bbftpd_storemkdir(char *dirname,char *logmessage, size_t logmsg_size, int re
                         return 1 ;
                     }
                 } else if ( (statbuf.st_mode & S_IFDIR) != S_IFDIR) {
-                    sprintf(logmessage,"%s exists but is not a directory",basedir) ; 
+                    (void) snprintf (msgbuf, msgbuf_size, "%s exists but is not a directory",basedir) ; 
                     FREE(dirpath) ;
                     return -1 ;
                 } else {
@@ -328,7 +328,7 @@ int bbftpd_storemkdir(char *dirname,char *logmessage, size_t logmsg_size, int re
 #else
         if ( stat64 (basedir,&statbuf ) ) {
 #endif
-            sprintf(logmessage,"Error creation directory %s (%s)",basedir,strerror(savederrno)) ; 
+            (void) snprintf (msgbuf, msgbuf_size, "Error creation directory %s (%s)",basedir,strerror(savederrno)) ; 
             /*
             ** We tell the client not to retry in the following case (even in waiting
             ** WAITRETRYTIME the problem will not be solved) :
@@ -358,7 +358,7 @@ int bbftpd_storemkdir(char *dirname,char *logmessage, size_t logmsg_size, int re
                 return 1 ;
             }
         } else if ( (statbuf.st_mode & S_IFDIR) != S_IFDIR) {
-            sprintf(logmessage,"%s exists but is not a directory",basedir) ; 
+            (void) snprintf (msgbuf, msgbuf_size, "%s exists but is not a directory",basedir) ; 
             FREE(dirpath) ;
             return -1 ;
         } else {
@@ -393,7 +393,7 @@ int bbftpd_storemkdir(char *dirname,char *logmessage, size_t logmsg_size, int re
 **                                                                             *
 *******************************************************************************/
  
-int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
+int bbftpd_storecreatefile(char *filename, char *msgbuf, size_t msgbuf_size)
 {
     char    *filepath ;
     int     fd ;
@@ -415,7 +415,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
         return bbftpd_storecreatefile_rfio(filename,logmessage) ;
 #else
-        sprintf(logmessage,"Fail to create file : RFIO not supported") ;
+        (void) snprintf (msgbuf, msgbuf_size, "Fail to create file : RFIO not supported") ;
         return -1 ;
 #endif
     }
@@ -423,7 +423,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
     ** make a copy of filename for security
     */
     if ( (filepath = (char *) malloc (strlen(filename)+1) ) == NULL ) {
-        sprintf(logmessage,"Error allocating memory for filepath : %s",strerror(errno)) ;
+        (void) snprintf (msgbuf, msgbuf_size, "Error allocating memory for filepath : %s",strerror(errno)) ;
         return 1 ;
     }
     strcpy (filepath, filename);
@@ -449,7 +449,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
         /*
         ** The filename end with a slash ..... error
         */
-        sprintf(logmessage,"Filename %s ends with a /",filepath) ;
+        (void) snprintf (msgbuf, msgbuf_size, "Filename %s ends with a /",filepath) ;
         FREE(filepath) ;
         return -1 ;
     } else {
@@ -476,7 +476,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
                 savederrno == ELOOP ||
                 savederrno == ENAMETOOLONG ||
                 savederrno == ENOTDIR ) {
-                sprintf(logmessage,"Error stating directory %s : %s ",filepath,strerror(savederrno)) ;
+                (void) snprintf (msgbuf, msgbuf_size, "Error stating directory %s : %s ",filepath,strerror(savederrno)) ;
                 FREE(filepath) ;
                 return -1 ;
             } else if (savederrno == ENOENT) {
@@ -485,18 +485,18 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
                 ** option 
                 */
                 if ( (transferoption & TROPT_DIR ) != TROPT_DIR ) {
-                    sprintf(logmessage,"Directory (%s) creation needed but TROPT_DIR not set",filepath) ;
+                    (void) snprintf (msgbuf, msgbuf_size, "Directory (%s) creation needed but TROPT_DIR not set",filepath) ;
                     FREE(filepath) ;
                     return -1 ;
                 } else {
-                    if ( (retcode = bbftpd_storemkdir(filepath,logmessage,logmsg_size, 1)) != 0 ) {
+                    if ( (retcode = bbftpd_storemkdir(filepath, msgbuf, msgbuf_size, 1)) != 0 ) {
                         FREE(filepath) ;
                         return retcode ;
                     }
                     filepath[lastslash] = '/';
                 }
             } else {
-                sprintf(logmessage,"Error stating directory %s : %s ",filepath,strerror(savederrno)) ;
+                (void) snprintf (msgbuf, msgbuf_size, "Error stating directory %s : %s ",filepath,strerror(savederrno)) ;
                 FREE(filepath) ;
                 return 1 ;
             }
@@ -510,7 +510,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
                 */
                 filepath[lastslash] = '/';
             } else {
-                sprintf(logmessage,"%s is a not a directory",filepath) ;
+                (void) snprintf (msgbuf, msgbuf_size, "%s is a not a directory",filepath) ;
                 FREE(filepath) ;
                 return -1 ;
             }
@@ -538,7 +538,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
             savederrno == ELOOP ||
             savederrno == ENAMETOOLONG ||
             savederrno == ENOTDIR ) {
-            sprintf(logmessage,"Error stating file %s : %s ",filepath,strerror(savederrno)) ;
+            (void) snprintf (msgbuf, msgbuf_size, "Error stating file %s : %s ",filepath,strerror(savederrno)) ;
             FREE(filepath) ;
             return -1 ;
         } else if (savederrno == ENOENT) {
@@ -546,7 +546,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
             ** That is normal the file does not exist
             */
         } else {
-            sprintf(logmessage,"Error stating file %s : %s ",filepath,strerror(savederrno)) ;
+            (void) snprintf (msgbuf, msgbuf_size, "Error stating file %s : %s ",filepath,strerror(savederrno)) ;
             FREE(filepath) ;
             return 1 ;
         }
@@ -555,7 +555,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
         ** The file exists so check if it is a directory
         */
         if ( (statbuf.st_mode & S_IFDIR) == S_IFDIR) {
-            sprintf(logmessage,"File %s is a directory",filepath) ;
+            (void) snprintf (msgbuf, msgbuf_size, "File %s is a directory",filepath) ;
             FREE(filepath) ;
             return -1 ;
         }
@@ -563,7 +563,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
         ** check if it is writable
         */
         if ( (statbuf.st_mode & S_IWUSR) != S_IWUSR) {
-            sprintf(logmessage,"File %s is not writable",filepath) ;
+            (void) snprintf (msgbuf, msgbuf_size, "File %s is not writable",filepath) ;
             FREE(filepath) ;
             return -1 ;
         }
@@ -586,7 +586,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
         ** retry or not
         */
         savederrno = errno ;
-        sprintf(logmessage,"Error creation file %s : %s ",filepath,strerror(errno)) ;
+        (void) snprintf (msgbuf, msgbuf_size, "Error creation file %s : %s ",filepath,strerror(errno)) ;
         /*
         ** We tell the client not to retry in the following case (even in waiting
         ** WAITRETRYTIME the problem will not be solved) :
@@ -630,7 +630,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
 *#else
 *    if ( lseek64(fd,toseek,SEEK_SET) < 0 ) {
 *#endif
-*        sprintf(logmessage,"Error seeking file %s : %s ",filepath,strerror(errno)) ;
+*        (void) snprintf (msgbuf, msgbuf_size, "Error seeking file %s : %s ",filepath,strerror(errno)) ;
 *        close(fd) ;
 *        unlink(filepath) ;
 *        free(filepath) ;
@@ -642,7 +642,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
     */
 /*    if ( write(fd,"\0",1) != 1) {
 *        savederrno = errno ;
-*        sprintf(logmessage,"Error writing file %s : %s ",filepath,strerror(errno)) ;
+*        (void) snprintf (msgbuf, msgbuf_size, "Error writing file %s : %s ",filepath,strerror(errno)) ;
 *        close(fd) ;
 *        unlink(filepath) ;
 */
@@ -668,7 +668,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
     if ( close(fd) < 0 ) {
         savederrno = errno ;
         unlink(filepath) ;
-        sprintf(logmessage,"Error closing file %s : %s ",filepath,strerror(savederrno)) ;
+        (void) snprintf (msgbuf, msgbuf_size, "Error closing file %s : %s ",filepath,strerror(savederrno)) ;
         if ( savederrno == ENOSPC ) {
             FREE(filepath) ;
             return -1 ;
@@ -701,7 +701,7 @@ int bbftpd_storecreatefile(char *filename, char *logmessage, size_t logmsg_size)
 **                                                                             *
 *******************************************************************************/
  
-int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage) 
+int bbftpd_storetransferfile(char *filename,int simulation,char *msgbuf, size_t msgbuf_size)
 {
 #ifdef STANDART_FILE_CALL
     off_t         nbperchild ;
@@ -745,7 +745,7 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
     */
     if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        return bbftpd_storetransferfile_rfio(filename,simulation,logmessage) ;
+        return bbftpd_storetransferfile_rfio(filename,simulation,msgbuf) ;
 #else
         return 0 ;
 #endif
@@ -780,7 +780,7 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
           */
           recsock = 0 ;
           while (recsock == 0 ) {
-            recsock = bbftpd_createreceivesocket(*portnumber,logmessage) ;
+            recsock = bbftpd_createreceivesocket(*portnumber,msgbuf,msgbuf_size) ;
           }
           if ( recsock < 0 ) {
             
@@ -792,7 +792,7 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
             */
             if ( childendinerror == 0 ) {
                 childendinerror = 1 ;
-                reply(MSG_BAD,logmessage) ;
+                reply(MSG_BAD,msgbuf) ;
             }
             clean_child() ;
             return 1 ;
@@ -1064,10 +1064,10 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage)
                 */
                 bbftpd_log(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
                 unlink(filename) ;
-                sprintf(logmessage,"fork failed : %s ",strerror(errno)) ;
+                sprintf(msgbuf,"fork failed : %s ",strerror(errno)) ;
                 if ( childendinerror == 0 ) {
                     childendinerror = 1 ;
-                    reply(MSG_BAD,logmessage) ;
+                    reply(MSG_BAD,msgbuf) ;
                 }
                 clean_child() ;
                 return 1 ;

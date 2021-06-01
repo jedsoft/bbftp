@@ -137,6 +137,9 @@ private define test_script ()
 
    variable cmds =
      [
+      "setoption tmpfile\n",
+      "setoption gzip\n",
+      "setnbstream 4\n",
       "dir /tmp\n",
       "cd /tmp\n",
 %      "cd xxxsssuuu\n",		       %  BAD command
@@ -150,7 +153,6 @@ private define test_script ()
       "setbuffersize 512\n",
       % "setlocalcos 044\n",
       "setlocalumask 022\n",
-      "setnbstream 4\n",
       "setremotecos 0777\n",
       "setremoteumask 022\n",
       "setrecvwinsize 1024\n",
@@ -160,12 +162,10 @@ private define test_script ()
       "setackto 100\n",
       "setdatato 100\n",
       "setoption createdir\n",
-      "setoption tmpfile\n",
       "setoption remoterfio\n",
       % "setoption localrfio\n",
       "setoption keepmode\n",
       "setoption keepaccess\n",
-      "setoption gzip\n",
       "setoption qbss\n",
      ];
 

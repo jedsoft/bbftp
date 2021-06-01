@@ -214,7 +214,8 @@ int writemessage (int sock, const char *buffer, int msglen, int to)
 	if ( retcode == 0 )
 	  {
 	     bbftpd_log(BBFTPD_ERR,"Write message : Time out : MSG (%d,%d)",msglen,nbsent) ;
-		  return -1 ;
+	     errno = ETIMEDOUT;
+	     return -1 ;
 	  }
 
 	while (-1 == (retcode = write(sock, buffer + nbsent, msglen - nbsent)))
@@ -361,9 +362,9 @@ int bbftpd_msg_pending (int timeout)
    return bbftpd_input_pending (incontrolsock, timeout);
 }
 
-int bbftpd_fd_msgread_msg (int fd, struct message *msg)
+int bbftpd_fd_msgread_msg (int fd, struct message *msg, int timeout)
 {
-   if (-1 == readmessage (fd, (char *)msg, MINMESSLEN, recvcontrolto))
+   if (-1 == readmessage (fd, (char *)msg, MINMESSLEN, timeout))
      return -1;
 
    msg->msglen = ntohl (msg->msglen);
@@ -376,7 +377,7 @@ int bbftpd_fd_msgread_msg (int fd, struct message *msg)
  */
 int bbftpd_msgread_msg (struct message *msg)
 {
-   return bbftpd_fd_msgread_msg (incontrolsock, msg);
+   return bbftpd_fd_msgread_msg (incontrolsock, msg, recvcontrolto);
 }
 
 int bbftpd_msgread_int32 (int32_t *val)

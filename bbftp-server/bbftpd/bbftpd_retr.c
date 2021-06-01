@@ -72,6 +72,26 @@
 
 #include "_bbftpd.h"
 
+#if defined(STANDART_FILE_CALL) || defined(STANDART_READDIR_CALL)
+# define READDIR readdir
+#else
+# define READDIR readdir64
+#endif
+
+#ifdef STANDART_FILE_CALL
+# define LSTAT lstat
+# define STAT stat
+# define OPEN open
+# define LSEEK lseek
+# define OFF_T off_t
+#else
+# define LSTAT lstat64
+# define STAT stat64
+# define OPEN open64
+# define LSEEK lseek64
+# define OFF_T off64_t
+#endif
+
 /*******************************************************************************
 ** bbftpd_retrlisdir :                                                         *
 **                                                                             *
@@ -91,317 +111,239 @@
 **                                                                             *
 *******************************************************************************/
 
-int bbftpd_retrlistdir(char *pattern,char **filelist,int *filelistlen,char *logmessage)
+static int do_opendir (const char *dir, DIR **dp, char *msgbuf, size_t msgbuf_size)
 {
-    int     lastslash ;
-    char    *pointer ;
-    char    *dirpath ;
-     DIR     *curdir ;
+   DIR *d;
+   int status;
+
+   if (NULL != (d = opendir (dir)))
+     {
+	*dp = d;
+	return 0;
+     }
+
+   if (errno == EACCES)
+     status = -1;
+   else
+     status = 1;
+
+   (void) snprintf (msgbuf, msgbuf_size, "opendir %s failed : %s ", dir, strerror(errno));
+   return status;
+}
+
+typedef struct Keep_File_Type
+{
+   char    *filename ;
+   struct  Keep_File_Type *next ;
+   char    filechar[3] ;
+}
+Keep_File_Type;
+
+static void free_keepfile_list (Keep_File_Type *list)
+{
+   while (list != NULL)
+     {
+	Keep_File_Type *next;
+	free (list->filename);
+	next = list->next;
+	free (list);
+	list = next;
+     }
+}
+
+static char *get_basename (char *path)
+{
+   char *p = path + strlen (path);
+
+   while (p != path)
+     {
+	p--;
+	if (*p == '/') return p+1;
+     }
+   return p;
+}
+
+int bbftpd_retrlistdir(char *pattern,char **filelist,int *filelistlen,
+		       char *msgbuf, size_t msgbuf_size)
+{
+   char    *pointer ;
+   char    *dirpath ;
+   DIR     *curdir ;
 #ifdef STANDART_FILE_CALL
-    struct dirent *dp ;
-    struct stat statbuf;
+   struct dirent *dp ;
+   struct stat statbuf;
 #else
-#ifdef STANDART_READDIR_CALL
-    struct dirent *dp ;
-#else
-    struct dirent64 *dp ;
+# ifdef STANDART_READDIR_CALL
+   struct dirent *dp ;
+# else
+   struct dirent64 *dp ;
+# endif
+   struct stat64 statbuf ;
 #endif
-    struct stat64 statbuf ;
-#endif
-    int     lengthtosend;
-    int     numberoffile ;
-    /*
+   int     lengthtosend;
+   int status;
+   /*
     ** Structure to keep the filenames
     */
-    struct keepfile {
-        char    *filename ;
-        char    filechar[3] ;
-        struct  keepfile *next ;
-    } ;
-    struct keepfile *first_item ;
-    struct keepfile *current_item ;
-    struct keepfile *used_item ;
-    char    *filepos ;
-    int     i ;
-    int     savederrno ;
-    
-    /*
-    ** Check if it is a rfio list
-    */
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
-#if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        return bbftpd_retrlistdir_rfio(pattern,filelist,filelistlen,logmessage) ;
-#else
-        /*
-        ** Just reply that RFIO is not supported
-        */
-        sprintf(logmessage,"Fail to LIST : RFIO not supported") ;
-        return -1 ;
-#endif
-    }
+   Keep_File_Type *first_item, *current_item, *prev_item;
+   char    *filepos ;
+
     /*
     **  We are going allocate memory for the directory name
-    **  We allocate stelent(pattern) + 1 char for \0 + 3 char
+    **  We allocate stlen(pattern) + 1 char for \0 + 3 char
     **  if the directory is "." 
     */
-    if ( (dirpath = (char *) malloc ( strlen(pattern) + 1 + 3 )) == NULL ) {
-        sprintf(logmessage,"Error allocating memory for dirpath %s",strerror(errno)) ;
-        return -1 ;
-    } 
-    pointer = pattern ;
-    lastslash = strlen(pointer) - 1 ;
-    while ( lastslash >= 0 && pointer[lastslash] != '/') lastslash-- ;
-    if ( lastslash == -1 ) {
+   if (NULL == (dirpath = (char *) bbftpd_malloc ( strlen(pattern) + 1 + 3 )))
+     {
+	snprintf (msgbuf, msgbuf_size, "%s", "Out of memory");
+	return -1;
+     }
+
+   pointer = get_basename (pattern);
+   if (*pointer == 0)
+     {
+	snprintf (msgbuf, msgbuf_size, "Pattern %s ends with a /", pattern);
+        free(dirpath);
+	return -1;
+     }
+
+   if (pointer == pattern)
+     strcpy(dirpath, "./") ;
+   else
+     {
+	*(pointer-1) = 0;	       /* zero out the final / */
+        strcpy (dirpath, pattern);
         /*
-        ** No slash in the path, so this is a pattern and we have
-        ** to opendir .
-        */
-        if ( (curdir = opendir(".")) == NULL ) {
-            savederrno = errno ;
-            sprintf(logmessage,"opendir . failed : %s ",strerror(errno)) ;
-            if ( savederrno == EACCES ) {
-                FREE(dirpath) ;
-                return -1 ;
-            } else {
-                FREE(dirpath) ;
-                return 1 ;
-            }
-        }
-        strcpy(dirpath,"./") ;
-    } else if ( lastslash == 0 ) {
-        /*
-        ** A slash in first position so we are going to open the
-        ** / directory
-        */
-        if ( (curdir = opendir("/")) == NULL ) {
-            savederrno = errno ;
-            sprintf(logmessage,"opendir / failed : %s ",strerror(errno)) ;
-            if ( savederrno == EACCES ) {
-                FREE(dirpath) ;
-                return -1 ;
-            } else {
-                FREE(dirpath) ;
-                return 1 ;
-            }
-        }
-        strcpy(dirpath,"/") ;
-        pointer++ ;
-    } else if ( lastslash == (int)strlen(pointer) - 1 ) {
-        /*
-        ** The filename end with a slash ..... error
-        */
-        sprintf(logmessage,"Pattern %s ends with a /",pattern) ;
-        FREE(dirpath) ;
-        return -1 ;
-    } else {
-        pointer[lastslash] = '\0';
-        /*
-        ** Srip unnecessary / at the end of dirpath and reset 
-        ** only one
-        */
-        strcpy(dirpath,pointer) ;
-        strip_trailing_slashes(dirpath) ;
-        dirpath[strlen(dirpath)+1] = '\0';
-        dirpath[strlen(dirpath)] = '/';
-        if ( (curdir = opendir(dirpath)) == NULL ) {
-            savederrno = errno ;
-            sprintf(logmessage,"opendir %s failed : %s ",dirpath,strerror(errno)) ;
-            if ( savederrno == EACCES ) {
-                FREE(dirpath) ;
-                return -1 ;
-            } else {
-                FREE(dirpath) ;
-                return 1 ;
-            }
-        }
-        for ( i = 0 ; i <= lastslash ; i++ ) pointer++ ;
-    }
+	 ** Strip unnecessary / at the end of dirpath and reset 
+	 ** only one
+	 */
+        strip_trailing_slashes(dirpath);
+	strcat (dirpath, "/");
+     }
+
+   status = do_opendir (dirpath, &curdir, msgbuf, msgbuf_size);
+   if (status != 0)
+     {
+	free(dirpath);
+	return status;
+     }
+
     /*
     ** At this stage pointer point to the pattern and curdir
     ** is the opened directory and dirpath contain the
     ** directory name
     */
+
     /*
     ** As we are using the fnmatch routine we are obliged to
     ** first count the number of bytes we are sending.
     */
-    lengthtosend = 0 ;
-    numberoffile = 0 ;
-    errno = 0 ;
-    first_item = NULL ;
-#ifdef STANDART_FILE_CALL
-    while ( (dp = readdir(curdir) ) != NULL) {
-#else
-#ifdef STANDART_READDIR_CALL 
-    while ( (dp = readdir(curdir) ) != NULL) {
-#else
-    while ( (dp = readdir64(curdir) ) != NULL) {
-#endif
-#endif
-        if ( fnmatch(pointer, dp->d_name,0) == 0) {
-            numberoffile++ ;
-            lengthtosend = lengthtosend +  strlen(dirpath) + strlen(dp->d_name) + 1 + 3 ;
-            if ( ( current_item = (struct keepfile *) malloc( sizeof(struct keepfile)) ) == NULL ) {
-                sprintf(logmessage,"Error getting memory for structure : %s",strerror(errno)) ;
-                current_item = first_item ;
-                while ( current_item != NULL ) {
-                    free(current_item->filename) ;
-                    used_item = current_item->next ;
-                    free(current_item) ;
-                    current_item = used_item ;
-                }
-                closedir(curdir) ;
-                FREE(dirpath) ;
-                return 1 ;
-            }
-            if ( ( current_item->filename = (char *) malloc( strlen(dirpath) + strlen(dp->d_name) + 1) ) == NULL ) {
-                sprintf(logmessage,"Error getting memory for filename : %s",strerror(errno)) ;
-                /*
-                ** Clean memory
-                */
-                FREE(current_item) ;
-                current_item = first_item ;
-                while ( current_item != NULL ) {
-                    free(current_item->filename) ;
-                    used_item = current_item->next ;
-                    free(current_item) ;
-                    current_item = used_item ;
-                }
-                closedir(curdir) ;
-                FREE(dirpath) ;
-                return 1 ;
-            }
-            current_item->next = NULL ;
-            if ( first_item == NULL ) {
-                first_item = current_item ;
-                used_item = first_item ;
-            } else {
-                used_item = first_item ;
-                while ( used_item->next != NULL ) used_item = used_item->next ;
-                used_item->next = current_item ;
-            }
-            sprintf(current_item->filename,"%s%s",dirpath,dp->d_name) ;
-#ifdef STANDART_FILE_CALL
-            if ( lstat(current_item->filename,&statbuf) < 0 ) {
-#else
-            if ( lstat64(current_item->filename,&statbuf) < 0 ) {
-#endif
-                sprintf(logmessage,"Error lstating file %s",current_item->filename) ;
-                current_item = first_item ;
-                while ( current_item != NULL ) {
-                    free(current_item->filename) ;
-                    used_item = current_item->next ;
-                    free(current_item) ;
-                    current_item = used_item ;
-                }
-                closedir(curdir) ;
-                FREE(dirpath) ;
-                return 1 ;
-             }
-             if ( (statbuf.st_mode & S_IFLNK) == S_IFLNK) {
-                current_item->filechar[0] = 'l' ;
-#ifdef STANDART_FILE_CALL
-                if ( stat(current_item->filename,&statbuf) < 0 ) {
-#else
-                if ( stat64(current_item->filename,&statbuf) < 0 ) {
-#endif
-                    /*
-                    ** That means that the link refer to an unexisting file
-                    */
-                    current_item->filechar[1] = 'u' ;
-                } else {
-                    if ( (statbuf.st_mode & S_IFDIR) == S_IFDIR) {
-                        current_item->filechar[1] = 'd' ;
-                    } else {
-                        current_item->filechar[1] = 'f' ;
-                    }
-                }
-            } else {
-                current_item->filechar[0] = ' ' ;
-                if ( (statbuf.st_mode & S_IFDIR) == S_IFDIR) {
-                    current_item->filechar[1] = 'd' ;
-                } else {
-                    current_item->filechar[1] = 'f' ;
-                }
-            }
-            current_item->filechar[2] = '\0' ;
-        }
-        errno = 0 ;
-    }
-    /*
-    ** Check errno in case of error during readdir
-    ** for the following readir we are not going to check
-    ** so that may be a cause of problem
-    */
-    if ( errno != 0 ) {
-        sprintf(logmessage,"Error on readdir %s (%s) ",dirpath,strerror(errno)) ;
-        current_item = first_item ;
-        while ( current_item != NULL ) {
-            free(current_item->filename) ;
-            used_item = current_item->next ;
-            free(current_item) ;
-            current_item = used_item ;
-        }
-        closedir(curdir) ;
-        FREE(dirpath) ;
-        return 1 ;
-    }
+   lengthtosend = 0 ;
+   prev_item = first_item = NULL ;
+
+   while (1)
+     {
+	int is_link;
+
+	errno = 0;
+	if (NULL == (dp = READDIR(curdir)))
+	  {
+	     if (errno == 0)
+	       break;
+
+	     snprintf (msgbuf, msgbuf_size, "Error on readdir %s (%s) ",dirpath, strerror(errno)) ;
+	     free_keepfile_list (first_item);
+	     closedir (curdir);
+	     free (dirpath);
+	     return 1;
+	  }
+
+        if (0 != fnmatch(pointer, dp->d_name, 0))
+	  continue;
+
+	lengthtosend = lengthtosend +  strlen(dirpath) + strlen(dp->d_name) + 1 + 3 ;
+	if ((NULL == (current_item = (Keep_File_Type *) bbftpd_malloc(sizeof(Keep_File_Type))))
+	    || (NULL == (current_item->filename = (char *) malloc( strlen(dirpath) + strlen(dp->d_name) + 1))))
+	  {
+	     snprintf (msgbuf, msgbuf_size, "Error getting memory for keepfile item : %s", strerror(errno));
+	     if (current_item != NULL) free (current_item);
+	     free_keepfile_list (first_item);
+	     closedir(curdir) ;
+	     free(dirpath) ;
+	     return 1 ;
+	  }
+	current_item->next = NULL;
+	sprintf (current_item->filename, "%s%s", dirpath, dp->d_name) ;
+
+	if ( first_item == NULL )
+	  first_item = current_item ;
+	else
+	  prev_item->next = current_item;
+
+	prev_item = current_item;
+
+	if (-1 == LSTAT(current_item->filename, &statbuf))
+	  {
+	     snprintf (msgbuf, msgbuf_size, "Error lstating file %s", current_item->filename) ;
+	     free_keepfile_list (first_item);
+	     closedir(curdir) ;
+	     free(dirpath) ;
+	     return 1 ;
+	  }
+
+	is_link = ((statbuf.st_mode & S_IFLNK) == S_IFLNK);
+	current_item->filechar[0] = (is_link ? 'l' : ' ');
+	if (is_link && (-1 == STAT(current_item->filename, &statbuf)))
+	  current_item->filechar[1] = 'u';
+	else if ((statbuf.st_mode & S_IFDIR) == S_IFDIR)
+	  current_item->filechar[1] = 'd';
+	else
+	  current_item->filechar[1] = 'f';
+
+	current_item->filechar[2] = '\0' ;
+     }
+
+   closedir(curdir) ;
+
     /*
     ** Check if numberoffile is zero and reply now in this
     ** case 
     */
-    if ( numberoffile == 0 ) {
+   if (first_item == NULL)
+     {
         *filelistlen = 0 ;
-        closedir(curdir) ;
-        current_item = first_item ;
-        while ( current_item != NULL ) {
-            free(current_item->filename) ;
-            used_item = current_item->next ;
-            free(current_item) ;
-            current_item = used_item ;
-        }
-        FREE(dirpath) ;
+        free (dirpath);
         return 0 ;
-    }
-    /*
+     }
+
+   /*
     ** Now everything is ready so prepare the answer
     */
-    if ( ( *filelist = (char *) malloc (lengthtosend) ) == NULL ) {
-        sprintf(logmessage,"Error allocating memory for filelist %s",strerror(errno)) ;
-        closedir(curdir) ;
-        current_item = first_item ;
-        while ( current_item != NULL ) {
-            free(current_item->filename) ;
-            used_item = current_item->next ;
-            free(current_item) ;
-            current_item = used_item ;
-        }
-        FREE(dirpath) ;
-        return -1 ;
+   if (NULL == (*filelist = (char *) bbftpd_malloc (lengthtosend)))
+     {
+	snprintf (msgbuf, msgbuf_size,  "Error allocating memory for filelist %s",strerror(errno));
+	free_keepfile_list (first_item);
+	free(dirpath);
+	return -1 ;
     }
-    current_item = first_item ;
-    filepos = *filelist ;
-    while ( current_item != NULL ) {
-        sprintf(filepos,"%s",current_item->filename) ;
-        filepos = filepos + strlen(filepos) + 1 ;
-        sprintf(filepos,"%s",current_item->filechar) ;
-        filepos = filepos + strlen(filepos) + 1 ;
+
+   current_item = first_item ;
+   filepos = *filelist ;
+   while ( current_item != NULL )
+     {
+	strcpy (filepos, current_item->filename);
+	filepos += strlen(filepos)+1;  /* skip trailing \0 */
+	strcpy (filepos, current_item->filechar);
+	filepos += strlen(filepos)+1;  /* skip trailing \0 */
+
         current_item = current_item->next ;
-    }
-    *filelistlen = lengthtosend ;
-    closedir(curdir) ;
-    current_item = first_item ;
-    while ( current_item != NULL ) {
-        free(current_item->filename) ;
-        used_item = current_item->next ;
-        free(current_item) ;
-        current_item = used_item ;
-    }
-    FREE(dirpath) ;
-    return 0 ;   
+     }
+   *filelistlen = lengthtosend ;
+
+   free_keepfile_list (first_item);
+   free(dirpath) ;
+   return 0;
 }
-
-
 
 
 
@@ -428,7 +370,7 @@ int bbftpd_retrlistdir(char *pattern,char **filelist,int *filelistlen,char *logm
 **                                                                             *
 *******************************************************************************/
 
-int bbftpd_retrcheckfile(char *filename,char *logmessage, size_t logmsg_size)
+int bbftpd_retrcheckfile(char *filename, char *msgbuf, size_t msgbuf_size)
 {
 #ifdef STANDART_FILE_CALL
     struct stat statbuf;
@@ -442,18 +384,15 @@ int bbftpd_retrcheckfile(char *filename,char *logmessage, size_t logmsg_size)
     */
     if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        return bbftpd_retrcheckfile_rfio(filename,logmessage) ;
+        return bbftpd_retrcheckfile_rfio(filename,msgbuf) ;
 #else
-        sprintf(logmessage,"Fail to retreive : RFIO not supported") ;
+        snprintf(msgbuf,msgbuf_size,"Fail to retreive : RFIO not supported") ;
         return -1 ;
 #endif
     }
 
-#ifdef STANDART_FILE_CALL
-    if ( stat(filename,&statbuf) < 0 ) {
-#else
-    if ( stat64(filename,&statbuf) < 0 ) {
-#endif
+   if (-1 == STAT(filename, &statbuf))
+     {
         /*
         ** It may be normal to get an error if the file
         ** does not exist but some error code must lead
@@ -465,43 +404,89 @@ int bbftpd_retrcheckfile(char *filename,char *logmessage, size_t logmsg_size)
         **        ENOTDIR        : A component in path is not a directory
         */
         savederrno = errno ;
-        sprintf(logmessage,"Error stating file %s : %s ",filename,strerror(savederrno)) ;
-        if ( savederrno == EACCES ||
-            savederrno == ELOOP ||
-            savederrno == ENAMETOOLONG ||
-            savederrno == ENOENT ||
-            savederrno == ENOTDIR ) {
-            return -1 ;
-        } else {
-            return 1 ;
-        }
-    } else {
-        /*
-        ** The file exists so check if it is a directory
-        */
-        if ( (statbuf.st_mode & S_IFDIR) == S_IFDIR) {
-            sprintf(logmessage,"File %s is a directory",filename) ;
-            return -1 ;
-        }
+	snprintf(msgbuf, msgbuf_size, "Error stating file %s : %s ", filename, strerror(savederrno)) ;
+	if ((savederrno == EACCES)
+            || (savederrno == ELOOP)
+            || (savederrno == ENAMETOOLONG)
+            || (savederrno == ENOENT)
+            || (savederrno == ENOTDIR))
+	  return -1 ;
+
+	return 1;
     }
-    sprintf(lastaccess,"%08lx",(unsigned long)statbuf.st_atime) ;
-    sprintf(lastmodif,"%08lx",(unsigned long)statbuf.st_mtime) ;
+
+   /*
+    ** The file exists so check if it is a directory
+    */
+   if ( (statbuf.st_mode & S_IFDIR) == S_IFDIR)
+     {
+	snprintf (msgbuf, msgbuf_size, "File %s is a directory",filename) ;
+	return -1 ;
+     }
+
+    sprintf (lastaccess, "%08lx", (unsigned long)statbuf.st_atime) ;
+    sprintf (lastmodif, "%08lx", (unsigned long)statbuf.st_mtime) ;
     lastaccess[8] = '\0' ;
     lastmodif[8]  = '\0' ;
-    if (S_ISREG(statbuf.st_mode)) {
-        filemode = statbuf.st_mode & ~S_IFREG;
-    } else {
-        filemode = statbuf.st_mode;
-    }
+
+   if (S_ISREG(statbuf.st_mode))
+     filemode = statbuf.st_mode & ~S_IFREG;
+   else
+     filemode = statbuf.st_mode;
+
     filesize = statbuf.st_size ;
-    tmpnbport = filesize/(buffersizeperstream*1024) ;
-    if ( tmpnbport == 0 ) {
-        requestedstreamnumber = 1 ;
-    } else if ( tmpnbport < requestedstreamnumber ) {
-        requestedstreamnumber = tmpnbport ;
-    }
-    if ( requestedstreamnumber > maxstreams ) requestedstreamnumber = maxstreams ;
-    return 0 ;   
+
+   tmpnbport = filesize / (buffersizeperstream*1024) ;
+   if ( tmpnbport == 0 )
+     requestedstreamnumber = 1 ;
+   else if ( tmpnbport < requestedstreamnumber )
+     requestedstreamnumber = tmpnbport ;
+
+   if ( requestedstreamnumber > maxstreams ) requestedstreamnumber = maxstreams ;
+   return 0 ;
+}
+
+static void wait_for_parent (void)
+{
+   int waitedtime = 0;
+   /*
+    ** Pause until father send a SIGHUP in order to prevent
+    ** child to die before father has started all children
+    */
+   while ((flagsighup == 0) && (waitedtime < STARTCHILDTO))
+     {
+	sleep (1);
+	waitedtime = waitedtime + 1 ;
+     }
+}
+
+static int open_file_fragment (const char *filename, OFF_T ofs, int *errp)
+{
+   int fd;
+
+   while (-1 == (fd = OPEN (filename, O_RDONLY)))
+     {
+	/*
+	 ** An error on openning the local file is considered
+	 ** as fatal. Maybe this need to be improved depending
+	 ** on errno
+	 */
+	if (errno == EINTR) continue;
+	*errp = errno;
+	bbftpd_log (BBFTPD_ERR, "Error opening local file %s : %s",filename,strerror(errno)) ;
+	return -1;
+     }
+
+   while (-1 == LSEEK (fd, ofs, SEEK_SET))
+     {
+	if (errno == EINTR) continue;
+	*errp = errno;
+	bbftpd_log(BBFTPD_ERR,"Error seeking file : %s",strerror(errno)) ;
+	close(fd);
+	return -1;
+     }
+
+   return fd;
 }
 
 /*******************************************************************************
@@ -513,7 +498,7 @@ int bbftpd_retrcheckfile(char *filename,char *logmessage, size_t logmsg_size)
 **          filename    :  file to send    NOT MODIFIED                        *
 **                                                                             *
 **      OUTPUT variable :                                                      *
-**          logmessage :  to write the error message in case of error          *
+**          msgbuf :  to write the error message in case of error          *
 **                                                                             *
 **      GLOBAL VARIABLE USED :                                                 *                                                                      *
 **                                                                             *
@@ -525,31 +510,19 @@ int bbftpd_retrcheckfile(char *filename,char *logmessage, size_t logmsg_size)
 **                                                                             *
 *******************************************************************************/
  
-int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage) 
+int bbftpd_retrtransferfile(char *filename, int simulation, char *msgbuf, size_t msgbuf_size)
 {
-#ifdef STANDART_FILE_CALL
-    off_t         nbperchild ;
-    off_t         nbtosend;
-    off_t         startpoint ;
-    off_t         nbread ;
-    off_t         numberread ;
-    off_t         nbsent ;
-    off_t        realnbtosend ;
-#else
-    off64_t     nbperchild ;
-    off64_t     nbtosend;
-    off64_t        startpoint ;
-    off64_t     nbread ;
-    off64_t     numberread ;
-    off64_t     nbsent ;
-    off64_t        realnbtosend ;
-#endif
-    my64_t    toprint64 ;
+   OFF_T         nbperchild ;
+   OFF_T         nbtosend;
+   OFF_T         startpoint ;
+   OFF_T         nbread ;
+   OFF_T         numberread ;
+   OFF_T        realnbtosend ;
+   my64_t    toprint64 ;
 #ifdef WITH_GZIP                        
     uLong    buflen ;
     uLong    bufcomplen ;
 #endif
-    int        lentosend ;
     int     sendsock ;
     int        retcode ;
 
@@ -557,73 +530,79 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage)
     int     *sockfree ; /* for PASV mode only */
     int     *portnumber ;
     int     i ;
-    int     nfds ; 
-    fd_set    selectmask ;
-    struct timeval    wait_timer;
     int     fd ;
 
-    struct mess_compress *msg_compress ;
-    struct message *msg ;
-    int     waitedtime ;
+    struct message msg ;
     /*
     ** Check if it is a rfio transfer
     */
     if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        return bbftpd_retrtransferfile_rfio(filename,simulation,logmessage) ;
+        return bbftpd_retrtransferfile_rfio(filename,simulation,msgbuf) ;
 #else
         return 0 ;
 #endif
     }
-    childendinerror = 0 ; /* No child so no error */
-    if ( protocolversion <= 2 ) { /* Active mode */
-      portnumber = myports ;
-	} else {
-	  sockfree = mysockets ;
-	}
-    nbperchild = filesize/requestedstreamnumber ;
-    pidfree = mychildren ;
-    nbpidchild = 0 ;
-    unlinkfile = 3 ;
 
-    /*
+   childendinerror = 0 ; /* No child so no error */
+   if ( protocolversion <= 2 ) /* Active mode */
+     portnumber = myports ;
+   else
+     sockfree = mysockets ;
+
+   nbperchild = filesize/requestedstreamnumber ;
+   pidfree = mychildren ;
+   nbpidchild = 0 ;
+   unlinkfile = 3 ;
+
+   /*
     ** Now start all our children
     */
-    for (i = 1 ; i <= requestedstreamnumber ; i++) {
-        if ( i == requestedstreamnumber ) {
-            startpoint = (i-1)*nbperchild;
-            nbtosend = filesize-(nbperchild*(requestedstreamnumber-1)) ;
-        } else {
-            startpoint = (i-1)*nbperchild;
-            nbtosend = nbperchild ;
-        }
-        if (protocolversion <= 2) { /* ACTIVE MODE */
-          /*
-          ** Now create the socket to send
-          */
-          sendsock = 0 ;
-          while (sendsock == 0 ) {
-            sendsock = bbftpd_createreceivesocket(*portnumber,logmessage) ;
-          }
-          if ( sendsock < 0 ) {
-            /*
-            ** We set childendinerror to 1 in order to prevent the father
-            ** to send a BAD message which can desynchronize the client and the
-            ** server (We need only one error message)
-            ** Bug discovered by amlutz on 2000/03/11
-            */
-            if ( childendinerror == 0 ) {
-                childendinerror = 1 ;
-                reply(MSG_BAD,logmessage) ;
-            }
-            clean_child() ;
-            return 1 ;
-          }
-          portnumber++ ;
-        } else { /* PASSIVE MODE */
-          sendsock = *sockfree ;
-          sockfree++ ;
-        }
+   for (i = 1 ; i <= requestedstreamnumber ; i++)
+     {
+	int ns, err;
+
+	startpoint = (i-1)*nbperchild;
+        if ( i == requestedstreamnumber )
+	  nbtosend = filesize - (nbperchild*(requestedstreamnumber-1)) ;
+	else
+	  nbtosend = nbperchild ;
+
+        if (protocolversion <= 2)
+	  {
+	     /* ACTIVE MODE */
+	     /*
+	      ** Now create the socket to send
+	      */
+	     sendsock = 0 ;
+	     while (1)
+	       {
+		  sendsock = bbftpd_createreceivesocket (*portnumber, msgbuf, msgbuf_size);
+		  if (sendsock > 0) break;
+		  if (sendsock == 0) continue;   /* try again */
+
+		  /*
+		   ** We set childendinerror to 1 in order to prevent the father
+		   ** to send a BAD message which can desynchronize the client and the
+		   ** server (We need only one error message)
+		   ** Bug discovered by amlutz on 2000/03/11
+		   */
+		  if (childendinerror == 0)
+		    {
+		       childendinerror = 1 ;
+		       reply(MSG_BAD, msgbuf) ;
+		    }
+		  clean_child() ;
+		  return 1 ;
+	       }
+	     portnumber++ ;
+	  }
+	else
+	  { /* PASSIVE MODE */
+	     sendsock = *sockfree ;
+	     sockfree++ ;
+	  }
+
         /*
         ** Set flagsighup to zero in order to be able in child
         ** not to wait STARTCHILDTO if signal was sent before 
@@ -634,241 +613,174 @@ int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage)
         ** At this stage we are ready to receive packets
         ** So we are going to fork
         */
-        if ( (retcode = fork()) == 0 ) {
-		    int     ns ;
-            /*
-            ** We are in child
-            */
-            /*
-            ** Pause until father send a SIGHUP in order to prevent
-            ** child to die before father has started all children
-            */
-            waitedtime = 0 ;
-            while (flagsighup == 0 && waitedtime < STARTCHILDTO) {
-                int nfds2 ;
-				wait_timer.tv_sec  = 1 ;
-                wait_timer.tv_usec = 0 ;
-                nfds2 = sysconf(_SC_OPEN_MAX) ;
-                select(nfds2,0,0,0,&wait_timer) ;
-                waitedtime = waitedtime + 1 ;
-            }
-            bbftpd_log(BBFTPD_DEBUG,"Child %d starting",getpid()) ;
-            /*
-            ** Close all unnecessary stuff
-            */
-            close(incontrolsock) ;
-            close(outcontrolsock) ; 
-            /*
-            ** And open the file 
-            */
-#ifdef STANDART_FILE_CALL
-            if ( (fd = open(filename,O_RDONLY)) < 0 ) {
-#else
-            if ( (fd = open64(filename,O_RDONLY)) < 0 ) {
-#endif
-                /*
-                ** An error on openning the local file is considered
-                ** as fatal. Maybe this need to be improved depending
-                ** on errno
-                */
-                i = errno ;
-                bbftpd_log(BBFTPD_ERR,"Error opening local file %s : %s",filename,strerror(errno)) ;
-                close(sendsock) ;
-                exit(i) ;
-            }
-#ifdef STANDART_FILE_CALL
-            if ( lseek(fd,startpoint,SEEK_SET) < 0 ) {
-#else
-            if ( lseek64(fd,startpoint,SEEK_SET) < 0 ) {
-#endif
-                i = errno ;
-                close(fd) ;
-                bbftpd_log(BBFTPD_ERR,"Error seeking file : %s",strerror(errno)) ;
-                close(sendsock) ;
-                exit(i)  ;
-            }
-            /*
-			** PASSIVE MODE: accept connection
-			*/
-            if ( protocolversion >= 3 ) {
-              if ( (ns = accept(sendsock,0,0) ) < 0 ) {
-                i = errno ;
-                close(fd) ;
-                bbftpd_log(BBFTPD_ERR,"Error accept socket : %s",strerror(errno)) ;
-                close(sendsock) ;
-                exit(i)  ;
-              }
-			  close(sendsock) ;
-			} else {
-			  ns = sendsock ;
-			}
+	if (-1 == (retcode = fork ()))
+	  {
+	     bbftpd_log(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
+	     snprintf (msgbuf, msgbuf_size, "fork failed : %s ",strerror(errno)) ;
+	     if ( childendinerror == 0 )
+	       {
+		  childendinerror = 1 ;
+		  reply(MSG_BAD,msgbuf) ;
+	       }
+	     clean_child() ;
+	     return 1 ;
+	  }
 
-            /*
-            ** Start the sending loop
-            ** Handle the simulation mode
-            */
-            if (!simulation) {
-              nbread = 0 ;
-              while ( nbread < nbtosend ) {
-                if ( (numberread = read ( fd, readbuffer, ( (buffersizeperstream*1024) <= nbtosend - nbread) ?  (buffersizeperstream*1024) : nbtosend-nbread) ) > 0 ) {
-                    nbread = nbread+numberread ;
-                    if ( (transferoption & TROPT_GZIP ) == TROPT_GZIP ) {
-#ifdef WITH_GZIP                        
-                        /*
-                        ** In case of compression we are going to use
-                        ** a temporary buffer
-                        */
-                        bufcomplen = buffersizeperstream*1024 ;
-                        buflen = numberread ;
-                        retcode = compress((Bytef *)compbuffer,&bufcomplen,(Bytef *)readbuffer,buflen) ;
-                        if ( retcode != 0 ) {
-                            msg_compress = ( struct mess_compress *) compbuffer;
-                            /*
-                            ** Compress error, in this cas we are sending the
-                            ** date uncompressed
-                            */
-                            msg_compress->code = DATA_NOCOMPRESS ;
-                            lentosend = numberread ;
-#ifndef WORDS_BIGENDIAN
-                            msg_compress->datalen = ntohl(lentosend) ;
-#else
-                            msg_compress->datalen = lentosend ;
+	if (retcode != 0)
+	  {
+	     /* Parent */
+	     nbpidchild++ ;
+	     *pidfree++ = retcode ;
+	     close (sendsock) ;
+	     continue;
+	  }
+
+	/* Child */
+	wait_for_parent ();
+	bbftpd_log(BBFTPD_DEBUG,"Child %d starting",getpid()) ;
+	/*
+	 ** Close all unnecessary stuff
+	 */
+	close(incontrolsock) ;
+	close(outcontrolsock) ;
+
+	if (-1 == (fd = open_file_fragment (filename, startpoint, &err)))
+	  {
+	     close (sendsock);
+	     _exit (err);
+	  }
+
+	/*
+	 ** PASSIVE MODE: accept connection
+	 */
+	if ( protocolversion >= 3 )
+	  {
+	     while (-1 == (ns = accept(sendsock,0,0)))
+	       {
+		  if (errno == EINTR)
+		    continue;
+
+		  i = errno ;
+		  close(fd) ;
+		  bbftpd_log(BBFTPD_ERR,"Error accept socket : %s",strerror(i)) ;
+		  close(sendsock) ;
+		  _exit(i);
+	       }
+	     close(sendsock) ;
+	  }
+	else
+	  {
+	     ns = sendsock ;
+	  }
+
+	if (simulation)
+	  {
+	     /* Don't send anything */
+	     close(fd) ;
+	     close(ns) ;
+	     _exit(0) ;
+	  }
+
+	/*
+	 ** Start the sending loop
+	 ** Handle the simulation mode
+	 */
+	nbread = 0 ;
+	while ( nbread < nbtosend )
+	  {
+	     OFF_T num_to_read = nbtosend - nbread;
+	     char *databuffer = readbuffer;
+
+	     /* The readbuffer array has size buffersizeperstream*1024 */
+	     if (num_to_read > buffersizeperstream*1024)
+	       num_to_read = (buffersizeperstream*1024);
+
+	     while (-1 == (numberread = read (fd, readbuffer, num_to_read)))
+	       {
+		  if (errno == EINTR)
+		    continue;
+
+		  err = errno;
+		  bbftpd_log(BBFTPD_ERR,"Child Error reading : %s",strerror(errno)) ;
+		  close(ns) ;
+		  close(fd) ;
+		  _exit(err);
+	       }
+
+	     nbread = nbread + numberread ;
+	     realnbtosend = numberread ;
+	     databuffer = readbuffer;
+
+	     if ( (transferoption & TROPT_GZIP ) == TROPT_GZIP )
+	       {
+		  struct mess_compress msg_compress;
+		  int code = DATA_NOCOMPRESS;
+#ifdef WITH_GZIP
+		  /*
+		   ** In case of compression we are going to use a temporary buffer
+		   */
+		  bufcomplen = buffersizeperstream*1024 ;
+		  buflen = numberread ;
+		  if (0 == (retcode = compress((Bytef *)compbuffer,&bufcomplen,(Bytef *)readbuffer,buflen)))
+		    {
+		       databuffer = compbuffer;
+		       realnbtosend =  bufcomplen ;
+		       code = DATA_COMPRESS ;
+		    }
 #endif
-                            realnbtosend = numberread ;
-                        } else {
-                            memcpy(readbuffer,compbuffer,buffersizeperstream*1024) ;
-                            msg_compress = ( struct mess_compress *) compbuffer;
-                            msg_compress->code = DATA_COMPRESS ;
-                            lentosend = bufcomplen ;
-#ifndef WORDS_BIGENDIAN
-                            msg_compress->datalen = ntohl(lentosend) ;
-#else
-                            msg_compress->datalen = lentosend ;
-#endif
-                            realnbtosend =  bufcomplen ;
-                        }
-#else
-                        msg_compress = ( struct mess_compress *) compbuffer;
-                        /*
-                        ** Compress unavailable, in this cas we are sending the
-                        ** date uncompressed
-                        */
-                        msg_compress->code = DATA_NOCOMPRESS ;
-                        lentosend = numberread ;
-#ifndef WORDS_BIGENDIAN
-                        msg_compress->datalen = ntohl(lentosend) ;
-#else
-                        msg_compress->datalen = lentosend ;
-#endif
-                        realnbtosend = numberread ;
-#endif                        
-                        /*
-                        ** Send the header
-                        */
-                        if ( writemessage(ns,compbuffer,COMPMESSLEN,datato) < 0 ) {
-                            i = ETIMEDOUT ;
-                            bbftpd_log(BBFTPD_ERR,"Error sending header data") ;
-                            close(ns) ;
-                            exit(i) ;
-                        }
-                    } else {
-                        realnbtosend = numberread ;
-                    }
-                    /*
-                    ** Send the data
-                    */
-                    nbsent = 0 ;
-                    while ( nbsent < realnbtosend ) {
-                        lentosend = realnbtosend-nbsent ;
-                        nfds = sysconf(_SC_OPEN_MAX) ;
-                        FD_ZERO(&selectmask) ;
-                        FD_SET(ns,&selectmask) ;
-                        wait_timer.tv_sec  = datato  ;
-                        wait_timer.tv_usec = 0 ;
-                        if ( (retcode = select(nfds,0,&selectmask,0,&wait_timer) ) == -1 ) {
-                            /*
-                            ** Select error
-                            */
-                            i = errno ;
-                            bbftpd_log(BBFTPD_ERR,"Error select while sending : %s",strerror(errno)) ;
-                            close(fd) ;
-                            close(ns) ;
-                            exit(i) ;
-                        } else if ( retcode == 0 ) {
-                            bbftpd_log(BBFTPD_ERR,"Time out while selecting") ;
-                            close(fd) ;
-                            i=ETIMEDOUT ;
-                            close(ns) ;
-                            exit(i) ;
-                        } else {
-                            retcode = send(ns,&readbuffer[nbsent],lentosend,0) ;
-                            if ( retcode < 0 ) {
-                                i = errno ;
-                                bbftpd_log(BBFTPD_ERR,"Error while sending %s",strerror(i)) ;
-                                close(ns) ;
-                                exit(i) ;
-                            } else if ( retcode == 0 ) {
-                                i = ECONNRESET ;
-                                bbftpd_log(BBFTPD_ERR,"Connexion breaks") ;
-                                close(fd) ;
-                                close(ns) ;
-                                exit(i) ;
-                            } else {
-                                nbsent = nbsent+retcode ;
-                            }
-                        }
-                    }
-                } else {
-                    i = errno ;
-                    bbftpd_log(BBFTPD_ERR,"Child Error reading : %s",strerror(errno)) ;
-                    close(ns) ;
-                    close(fd) ;
-                    exit(i) ;
-                }
-              }
-              /*
-              ** All data has been sent so wait for the acknoledge
-              */
-              if ( readmessage(ns,readbuffer,MINMESSLEN,ackto) < 0 ) {
-                bbftpd_log(BBFTPD_ERR,"Error waiting ACK") ;
-                close(ns) ;
-                exit(ETIMEDOUT) ;
-              }
-              msg = (struct message *) readbuffer ;
-              if ( msg->code != MSG_ACK) {
-                bbftpd_log(BBFTPD_ERR,"Error unknown messge while waiting ACK %d",msg->code) ;
-                close(ns) ;
-                exit(1) ;
-              }
-              toprint64 = nbtosend ;
-              bbftpd_log(BBFTPD_DEBUG,"Child send %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
-            }
-            close(fd) ;
-            close(ns) ;
-            exit(0) ;
-        } else {
-            /*
-            ** We are in father
-            */
-            if ( retcode == -1 ) {
-                /*
-                ** Fork failed ...
-                */
-                bbftpd_log(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
-                sprintf(logmessage,"fork failed : %s ",strerror(errno)) ;
-                if ( childendinerror == 0 ) {
-                    childendinerror = 1 ;
-                    reply(MSG_BAD,logmessage) ;
-                }
-                clean_child() ;
-                return 1 ;
-            } else {
-                nbpidchild++ ;
-                *pidfree++ = retcode ;
-		close (sendsock) ;
-            }
-        }
-    }
+		  msg_compress.code = code;
+		  msg_compress.datalen = htonl(realnbtosend);
+
+		  /*
+		   ** Send the header
+		   */
+		  if ( writemessage(ns, (char *)&msg_compress, sizeof(msg_compress), datato))
+		    {
+		       err = errno;
+		       bbftpd_log(BBFTPD_ERR,"Error sending header data") ;
+		       close (fd);
+		       close(ns) ;
+		       _exit(err) ;
+		    }
+	       }
+
+	     if (-1 == writemessage (ns, databuffer, realnbtosend, datato))
+	       {
+		  err = errno;
+		  bbftpd_log(BBFTPD_ERR,"Error occurred select while sending : %s",strerror(errno));
+		  close(fd) ;
+		  close(ns) ;
+		  _exit(err);
+	       }
+	  }
+
+	close(fd) ;
+
+	/*
+	 ** All data has been sent so wait for the acknoledge
+	 */
+	if (-1 == bbftpd_fd_msgread_msg (ns, &msg, ackto))
+	  {
+	     err = errno;
+	     bbftpd_log (BBFTPD_ERR,"Error waiting/reading ACK") ;
+	     close(ns) ;
+	     _exit(err) ;
+	  }
+	if (msg.code != MSG_ACK)
+	  {
+	     bbftpd_log(BBFTPD_ERR,"Error unknown messge while waiting ACK %d", msg.code) ;
+	     close(ns) ;
+	     _exit(1);
+
+	     toprint64 = nbtosend ;
+	     bbftpd_log(BBFTPD_DEBUG,"Child send %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
+	  }
+	close(ns) ;
+	_exit(0);
+     }
+
+   /* Parent again */
+
     /*
     ** Set the state before starting children because if the file was
     ** small the child has ended before state was setup to correct value

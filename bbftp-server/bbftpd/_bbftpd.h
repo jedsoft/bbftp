@@ -21,11 +21,12 @@ extern int set_signals_v1 (void);
 extern int bbftpd_rm(int sock,int msglen);
 extern int bbftpd_stat(struct mess_dir *msg_file);
 extern int bbftpd_statfs(struct mess_dir *msg_file);
-extern int bbftpd_createreceivesocket(int portnumber,char *logmessage);
+extern int bbftpd_createreceivesocket(int portnumber,char *msgbuf, size_t msgbuf_size);
 extern int bbftpd_getdatasock(int nbsock);
 extern int bbftpd_crypt_init_random (void);
 extern int checkfromwhere (int ask_remote, int ctrlport);
 
+extern void *bbftpd_malloc (size_t);
 extern int discardmessage(int sock,int msglen,int to);
 extern void reply(int n, const char *str) ;
 extern int writemessage(int sock, const char *buffer,int msglen,int to) ;
@@ -189,7 +190,7 @@ extern int bbftpd_input_pending (int fd, int timeout);
 extern int bbftpd_fd_msgwrite_int32 (int fd, int code, int i);
 extern int bbftpd_fd_msgwrite_int32_2 (int fd, int code, int i, int j);
 extern int bbftpd_fd_msgwrite_len (int fd, int code, int len);
-extern int bbftpd_fd_msgread_msg (int fd, struct message *msg);
+extern int bbftpd_fd_msgread_msg (int fd, struct message *msg, int timeout);
 extern int bbftpd_fd_msgread_int32 (int32_t *valp);
 
 /* Like above but use outcontrolsock */

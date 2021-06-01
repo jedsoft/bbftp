@@ -216,11 +216,12 @@ static int do_msg_list_v2 (struct message *msg)
    if (0 != read_string (msg->msglen, "MSG_LIST_V2", (char **)&msg_dir))
      return -1;
 
-   /* The library transferoption variable is bigendian */
-   transferoption  = msg_dir->transferoption ;
    bbftpd_log (BBFTPD_DEBUG, "Pattern = %s", msg_dir->dirname) ;
 
-   status = bbftpd_list (msg_dir->dirname) ;
+   /* The library transferoption variable is bigendian */
+   transferoption  = msg_dir->transferoption ;
+   status = bbftpd_list (msg_dir->dirname);
+
    free (msg_dir);
    return status;
 }
@@ -585,9 +586,9 @@ static int do_msg_trans_start (struct message *msg, int simulate, int is_store, 
      }
 
    if (is_store)
-     retcode = bbftpd_storetransferfile(realfilename,simulate,logmessage);
+     retcode = bbftpd_storetransferfile(realfilename,simulate,logmessage, sizeof(logmessage));
    else
-     retcode = bbftpd_retrtransferfile(curfilename,simulate,logmessage);
+     retcode = bbftpd_retrtransferfile(curfilename,simulate,logmessage, sizeof(logmessage));
 
    if (retcode == 0) return 0;
    if (retcode > 0)

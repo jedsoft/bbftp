@@ -62,8 +62,8 @@ int bbftpd_private_auth(char *logmessage) ;
 ** Prototype for retr routines
 */
 int bbftpd_retrcheckfile(char *filename,char *logmsg, size_t sizeof_logmsg) ;
-int bbftpd_retrlistdir(char *pattern,char **filelist,int *filelistlen,char *logmessage) ;
-int bbftpd_retrtransferfile(char *filename,int simulation,char *logmessage) ;
+int bbftpd_retrlistdir(char *pattern,char **filelist,int *filelistlen,char *msgbuf, size_t msgbuf_size) ;
+int bbftpd_retrtransferfile(char *filename,int simulation,char *msgbuf, size_t msgbuf_size) ;
 
 int bbftpd_retrcheckfile_rfio(char *filename,char *logmessage) ;
 int bbftpd_retrlistdir_rfio(char *pattern,char **filelist,int *filelistlen,char *logmessage) ;
@@ -78,7 +78,7 @@ int bbftpd_storecheckoptions (void) ;
 int bbftpd_storeclosecastfile(char *filename,char *logmessage) ;
 int bbftpd_storecreatefile(char *filename, char *logmsg, size_t logmsg_size) ;
 int bbftpd_storemkdir(char *dirname,char *logmessage, size_t logmsg_size, int recursif) ;
-int bbftpd_storetransferfile(char *filename,int simulation,char *logmessage) ;
+int bbftpd_storetransferfile(char *filename,int simulation,char *msgbuf, size_t msgbuf_size) ;
 int bbftpd_storeunlink(char *filename) ;
 
 int bbftpd_storecheckoptions_rfio(char *logmessage) ;
