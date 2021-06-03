@@ -460,11 +460,11 @@ static void wait_for_parent (void)
      }
 }
 
-static int open_file_fragment (const char *filename, OFF_T ofs, int *errp)
+static int open_file_fragment (const char *filename, int flags, OFF_T ofs, int *errp)
 {
    int fd;
 
-   while (-1 == (fd = OPEN (filename, O_RDONLY)))
+   while (-1 == (fd = OPEN (filename, flags)))
      {
 	/*
 	 ** An error on openning the local file is considered
@@ -519,36 +519,35 @@ int bbftpd_retrtransferfile(char *filename, int simulation, char *msgbuf, size_t
    OFF_T         numberread ;
    OFF_T        realnbtosend ;
    my64_t    toprint64 ;
-#ifdef WITH_GZIP                        
-    uLong    buflen ;
-    uLong    bufcomplen ;
+#ifdef WITH_GZIP
+   uLong    buflen ;
+   uLong    bufcomplen ;
 #endif
-    int     sendsock ;
-    int        retcode ;
+   int     sendsock ;
+   int        retcode ;
 
-    int     *pidfree ;
-    int     *sockfree ; /* for PASV mode only */
-    int     *portnumber ;
-    int     i ;
-    int     fd ;
+   int     *pidfree ;
+   int     *port_or_sock;
+   int     i ;
+   int     fd ;
 
-    struct message msg ;
-    /*
+   struct message msg ;
+   /*
     ** Check if it is a rfio transfer
     */
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
+   if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        return bbftpd_retrtransferfile_rfio(filename,simulation,msgbuf) ;
+      return bbftpd_retrtransferfile_rfio(filename,simulation,msgbuf) ;
 #else
-        return 0 ;
+      return 0 ;
 #endif
-    }
+   }
 
    childendinerror = 0 ; /* No child so no error */
    if ( protocolversion <= 2 ) /* Active mode */
-     portnumber = myports ;
+     port_or_sock = myports ;
    else
-     sockfree = mysockets ;
+     port_or_sock = mysockets ;
 
    nbperchild = filesize/requestedstreamnumber ;
    pidfree = mychildren ;
@@ -577,7 +576,7 @@ int bbftpd_retrtransferfile(char *filename, int simulation, char *msgbuf, size_t
 	     sendsock = 0 ;
 	     while (1)
 	       {
-		  sendsock = bbftpd_createreceivesocket (*portnumber, msgbuf, msgbuf_size);
+		  sendsock = bbftpd_createreceivesocket (*port_or_sock, msgbuf, msgbuf_size);
 		  if (sendsock > 0) break;
 		  if (sendsock == 0) continue;   /* try again */
 
@@ -595,13 +594,11 @@ int bbftpd_retrtransferfile(char *filename, int simulation, char *msgbuf, size_t
 		  clean_child() ;
 		  return 1 ;
 	       }
-	     portnumber++ ;
 	  }
-	else
-	  { /* PASSIVE MODE */
-	     sendsock = *sockfree ;
-	     sockfree++ ;
-	  }
+	else /* PASSIVE MODE */
+	  sendsock = *port_or_sock;
+
+	port_or_sock++;
 
         /*
         ** Set flagsighup to zero in order to be able in child
@@ -644,7 +641,7 @@ int bbftpd_retrtransferfile(char *filename, int simulation, char *msgbuf, size_t
 	close(incontrolsock) ;
 	close(outcontrolsock) ;
 
-	if (-1 == (fd = open_file_fragment (filename, startpoint, &err)))
+	if (-1 == (fd = open_file_fragment (filename, O_RDONLY, startpoint, &err)))
 	  {
 	     close (sendsock);
 	     _exit (err);
@@ -683,7 +680,6 @@ int bbftpd_retrtransferfile(char *filename, int simulation, char *msgbuf, size_t
 
 	/*
 	 ** Start the sending loop
-	 ** Handle the simulation mode
 	 */
 	nbread = 0 ;
 	while ( nbread < nbtosend )
@@ -757,7 +753,7 @@ int bbftpd_retrtransferfile(char *filename, int simulation, char *msgbuf, size_t
 	close(fd) ;
 
 	/*
-	 ** All data has been sent so wait for the acknoledge
+	 ** All data has been sent so wait for the acknowledgement
 	 */
 	if (-1 == bbftpd_fd_msgread_msg (ns, &msg, ackto))
 	  {

@@ -327,8 +327,8 @@ static int init_and_send_msg_store_v2 (int send_ports)
    msg_store_v2.filesize = ntohll(filesize) ;
    msg_store_v2.transferoption = transferoption ;
    msg_store_v2.filemode = ntohl(filemode) ;
-   strncpy(msg_store_v2.lastaccess,lastaccess,8) ; msg_store_v2.lastaccess[8] = '0' ;
-   strncpy(msg_store_v2.lastmodif,lastmodif,8) ; msg_store_v2.lastmodif[8] = '0' ;
+   strncpy(msg_store_v2.lastaccess,lastaccess,sizeof(msg_store_v2.lastaccess)) ;
+   strncpy(msg_store_v2.lastmodif,lastmodif,sizeof(msg_store_v2.lastmodif)) ;
    msg_store_v2.sendwinsize = ntohl(sendwinsize) ;
    msg_store_v2.recvwinsize = ntohl(recvwinsize) ;
    msg_store_v2.buffersizeperstream  = ntohl(buffersizeperstream) ;

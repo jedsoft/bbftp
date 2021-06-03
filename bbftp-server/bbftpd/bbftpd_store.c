@@ -77,6 +77,18 @@
 
 #include "_bbftpd.h"
 
+#ifdef STANDART_FILE_CALL
+# define STAT stat
+# define OPEN open
+# define LSEEK lseek
+# define OFF_T off_t
+#else
+# define STAT stat64
+# define OPEN open64
+# define LSEEK lseek64
+# define OFF_T off64_t
+#endif
+
 /*******************************************************************************
 ** bbftpdstoreclosecastfile :                                                  *
 **                                                                             *
@@ -96,17 +108,17 @@
 
 int bbftpd_storeclosecastfile(char *filename,char *logmessage)
 {
-    
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
+   if ( (transferoption & TROPT_RFIO) == TROPT_RFIO )
+     {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
         return bbftpd_storeclosecastfile_rfio(filename,logmessage) ;
 #else
-       (void) filename;
-       (void) logmessage;
+	(void) filename;
+	(void) logmessage;
         return 0 ;
 #endif
     }
-    return 0 ;
+   return 0 ;
 }
 
 
@@ -129,14 +141,14 @@ int bbftpd_storeclosecastfile(char *filename,char *logmessage)
 
 int bbftpd_storeunlink(char *filename)
 {
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
+   if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        return bbftpd_storeunlink_rfio(filename) ;
+      return bbftpd_storeunlink_rfio(filename) ;
 #else
-        return 0 ;
+      return 0 ;
 #endif
-    }
-    return unlink(filename) ;
+   }
+   return unlink(filename) ;
 }
 
 /*******************************************************************************
@@ -159,28 +171,78 @@ int bbftpd_storeunlink(char *filename)
 
 int bbftpd_storecheckoptions (void)
 {
-    int tmpoptions ;
+   int tmpoptions ;
 
 #ifndef WITH_GZIP
-    /*
+   /*
     ** Check if Compress is available int    case of GZIP option
     */
-    if ( (transferoption & TROPT_GZIP) == TROPT_GZIP ) {
+   if ( (transferoption & TROPT_GZIP) == TROPT_GZIP )
+     {
         bbftpd_log(BBFTPD_WARNING,"Compression is not available for this server: option ignored") ;
         transferoption = transferoption & ~TROPT_GZIP ;
-    }
+     }
 #endif
 
-    /*
+   /*
     ** Check all known options
     */
-    tmpoptions = TROPT_TMP | TROPT_ACC | TROPT_MODE | TROPT_DIR | TROPT_GZIP ;
-    transferoption = transferoption & tmpoptions ;
-    /*
+   tmpoptions = TROPT_TMP | TROPT_ACC | TROPT_MODE | TROPT_DIR | TROPT_GZIP ;
+   transferoption = transferoption & tmpoptions ;
+   /*
     ** Check the maxstreams
     */
-    if ( requestedstreamnumber > maxstreams ) requestedstreamnumber = maxstreams ;
-    return 0 ;
+   if ( requestedstreamnumber > maxstreams ) requestedstreamnumber = maxstreams ;
+   return 0 ;
+}
+
+static int do_mkdir (const char *basedir, char *msgbuf, size_t msgbuf_size)
+{
+   struct STAT statbuf;
+   int savederrno;
+
+   /*
+    ** The mkdir and stat calls below appear to be reversed.
+    ** They are not.  It is important to call mkdir first and then to
+    ** call stat (to distinguish the three cases) only if mkdir fails.
+    ** The alternative to this approach is to `stat' each directory,
+    ** then to call mkdir if it doesn't exist.  But if some other process
+    ** were to create the directory between the stat & mkdir, the mkdir
+    ** would fail with EEXIST. 
+    ** We create it with mode = 777 because the umask is set by bbftpd
+    */
+
+   if (0 == mkdir (basedir, 0777))
+     return 0;
+
+   savederrno = errno ;
+   if (0 == STAT (basedir,&statbuf))
+     {
+	if ((statbuf.st_mode & S_IFDIR) != S_IFDIR)
+	  {
+	     (void) snprintf (msgbuf, msgbuf_size, "%s exists but is not a directory",basedir) ; 
+	     return -1 ;
+	  }
+	return 0;
+     }
+
+   (void) snprintf (msgbuf, msgbuf_size, "Error creation directory %s (%s)",basedir,strerror(savederrno)) ;
+   /*
+    ** We tell the client not to retry in the following cases (even in waiting
+    ** WAITRETRYTIME the problem will not be solved) :
+    */
+   if ((savederrno == EACCES)   /* Search permission denied */
+       || (savederrno == EDQUOT)  /* no more quota */
+       || (savederrno == ENOSPC)   /* no more space */
+       || (savederrno == ELOOP)   /* too many symbolic links */
+       || (savederrno == ENAMETOOLONG)   /* pathname too long */
+       || (savederrno == ENOTDIR) /* path component is not a dir */
+       || (savederrno == EROFS)   /* read-only filesystem */
+       || (savederrno == ENOENT)  /* component of the path does not exist */
+       || (savederrno == EEXIST)) /* the named file already exists */
+     return -1 ;
+
+   return 1 ;
 }
 
 /*******************************************************************************
@@ -204,19 +266,13 @@ int bbftpd_storecheckoptions (void)
 **           >0  Creation failed recoverable error                             *
 **                                                                             *
 *******************************************************************************/
-int bbftpd_storemkdir(char *dirname,char *msgbuf, size_t msgbuf_size, int recursif)
+int bbftpd_storemkdir (char *dirname,char *msgbuf, size_t msgbuf_size, int recursif)
 {
-    char    *dirpath;
-    char    *basedir ;
-    char    *slash ;
-    int     savederrno ;
-#ifdef STANDART_FILE_CALL
-    struct stat statbuf;
-#else
-    struct stat64 statbuf ;
-#endif
+   char *dirpath;
+   int status;
 
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
+   if ( (transferoption & TROPT_RFIO) == TROPT_RFIO )
+     {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
         return bbftpd_storemkdir_rfio(dirname,logmessage,recursif) ;
 #else
@@ -224,154 +280,93 @@ int bbftpd_storemkdir(char *dirname,char *msgbuf, size_t msgbuf_size, int recurs
         return -1 ;
 #endif
     }
-    /*
-    ** make a copy of dirname for security
+
+   /*
+    ** make a copy of dirname that can be modified
     */
-    if ( (dirpath = (char *) malloc (strlen(dirname)+1) ) == NULL ) {
+   if (NULL == (dirpath = bbftpd_strdup (dirname)))
+     {
         (void) snprintf (msgbuf, msgbuf_size, "Error allocating memory for dirpath : %s",strerror(errno)) ;
         return 1 ;
-    }
-    strcpy (dirpath, dirname);
-    /*
+     }
+
+   /*
     ** Strip trailing slash
     */
-    strip_trailing_slashes(dirpath) ;
-    slash = dirpath ;
-    if ( recursif == 1 ) {
-        /*
-        ** Recursif, we are going to create all directory
-        */
-        /*
-        ** If this is an absolute path strip the leading slash
-        */
-        if ( *dirpath == '/' ) {
-            while (*slash == '/') slash++;
-        }
-        while (1) {
-            slash = (char *) strchr (slash, '/');
-            if ( slash == NULL ) break ;
-            basedir = dirpath ;
-            /*
-            ** The mkdir and stat calls below appear to be reversed.
-            ** They are not.  It is important to call mkdir first and then to
-            ** call stat (to distinguish the three cases) only if mkdir fails.
-            ** The alternative to this approach is to `stat' each directory,
-            ** then to call mkdir if it doesn't exist.  But if some other process
-            ** were to create the directory between the stat & mkdir, the mkdir
-            ** would fail with EEXIST. 
-            ** We create it with mode = 777 because the umask is set by bbftpd
-            */
-             *slash = '\0';
-            if ( mkdir (basedir, 0777) ) {
-                savederrno = errno ;
-#ifdef STANDART_FILE_CALL
-                if ( stat (basedir,&statbuf ) ) {
-#else
-                if ( stat64 (basedir,&statbuf ) ) {
-#endif
-                    (void) snprintf (msgbuf, msgbuf_size, "Error creation directory %s (%s)",basedir,strerror(savederrno)) ; 
-                    /*
-                    ** We tell the client not to retry in the following case (even in waiting
-                    ** WAITRETRYTIME the problem will not be solved) :
-                    **        EACCES        : Search permission denied
-                    **        EDQUOT        : No more quota 
-                    **        ENOSPC        : No more space
-                    **        ELOOP        : To many symbolic links on path
-                    **        ENAMETOOLONG: Path argument too long
-                    **        ENOTDIR        : A component in path is not a directory
-                    **        EROFS        : The path prefix resides on a read-only file system.
-                    **        ENOENT      : A component of the path prefix does not exist or is a null pathname.
-                    **        EEXIST      : The named file already exists.
-                    */
-                     if ( savederrno == EACCES ||
-                            savederrno == EDQUOT ||
-                            savederrno == ENOSPC ||
-                            savederrno == ELOOP ||
-                            savederrno == ENAMETOOLONG ||
-                            savederrno == ENOTDIR ||
-                            savederrno == EROFS ||
-                            savederrno == ENOENT ||
-                            savederrno == EEXIST ) {
-                        FREE(dirpath) ;
-                        return -1 ;
-                    } else {
-                        FREE(dirpath) ;
-                        return 1 ;
-                    }
-                } else if ( (statbuf.st_mode & S_IFDIR) != S_IFDIR) {
-                    (void) snprintf (msgbuf, msgbuf_size, "%s exists but is not a directory",basedir) ; 
-                    FREE(dirpath) ;
-                    return -1 ;
-                } else {
-                     /*
-                    ** dirpath already exists and is a directory. 
-                    */
-                }
-            }
-             *slash++ = '/';
+   strip_trailing_slashes(dirpath) ;
+   if ( recursif == 1 )		       /* create all directories */
+     {
+	char *slash = dirpath ;
+        while (1)
+	  {
+	     while (*slash == '/') slash++;   /* skip leading slashes */
+	     slash = (char *) strchr (slash, '/');
+	     if ( slash == NULL ) break ;
+	     *slash = 0;	       /* truncate the path */
 
-            /* 
-            ** Avoid unnecessary calls to `stat' when given
-            ** pathnames containing multiple adjacent slashes.  
-            */
-            while (*slash == '/') slash++;
-       }
-    }
-    /*
-    ** We have created all leading directories so let see the last one
-    */
-    basedir = dirpath ;
-    if ( mkdir (basedir, 0777) ) {
-        savederrno = errno ;
-#ifdef STANDART_FILE_CALL
-        if ( stat (basedir,&statbuf ) ) {
-#else
-        if ( stat64 (basedir,&statbuf ) ) {
-#endif
-            (void) snprintf (msgbuf, msgbuf_size, "Error creation directory %s (%s)",basedir,strerror(savederrno)) ; 
-            /*
-            ** We tell the client not to retry in the following case (even in waiting
-            ** WAITRETRYTIME the problem will not be solved) :
-            **        EACCES        : Search permission denied
-            **        EDQUOT        : No more quota 
-            **        ENOSPC        : No more space
-            **        ELOOP        : To many symbolic links on path
-            **        ENAMETOOLONG: Path argument too long
-            **        ENOTDIR        : A component in path is not a directory
-            **        EROFS        : The path prefix resides on a read-only file system.
-            **        ENOENT      : A component of the path prefix does not exist or is a null pathname.
-            **        EEXIST      : The named file already exists.
-            */
-             if ( savederrno == EACCES ||
-                    savederrno == EDQUOT ||
-                    savederrno == ENOSPC ||
-                    savederrno == ELOOP ||
-                    savederrno == ENAMETOOLONG ||
-                    savederrno == ENOTDIR ||
-                    savederrno == EROFS ||
-                    savederrno == ENOENT ||
-                    savederrno == EEXIST ) {
-                FREE(dirpath) ;
-                return -1 ;
-            } else {
-                FREE(dirpath) ;
-                return 1 ;
-            }
-        } else if ( (statbuf.st_mode & S_IFDIR) != S_IFDIR) {
-            (void) snprintf (msgbuf, msgbuf_size, "%s exists but is not a directory",basedir) ; 
-            FREE(dirpath) ;
-            return -1 ;
-        } else {
-             /*
-            ** dirpath already exists and is a directory. 
-            */
-            FREE(dirpath) ;
-            return 0 ;
-        }
-    }
-    FREE(dirpath) ;
-    return 0 ;
+	     if (0 != (status = do_mkdir (dirpath, msgbuf, msgbuf_size)))
+	       {
+		  FREE(dirpath);
+		  return status;
+	       }
+             *slash++ = '/'; 	       /* restore the slash */
+	  }
+     }
+
+   status = do_mkdir (dirpath, msgbuf, msgbuf_size);
+   FREE (dirpath);
+   return status;
 }
+
+static int do_check_dir (char *dir, char *msgbuf, size_t msgbuf_size)
+{
+   struct STAT statbuf;
+
+   /*
+    ** Check the existence of the directory 
+    */
+   if (0 == STAT (dir, &statbuf))
+     {
+	if ( (statbuf.st_mode & S_IFDIR) == S_IFDIR)
+	  return 0;
+
+	(void) snprintf (msgbuf, msgbuf_size, "%s is a not a directory", dir) ;
+	return -1 ;
+     }
+
+   /*
+    ** It may be normal to get an error if the directory
+    ** does not exist but some error code must lead
+    ** to the interruption of the transfer:
+    **        EACCES        : Search permission denied
+    **        ELOOP        : To many symbolic links on path
+    **        ENAMETOOLONG: Path argument too long
+    **        ENOTDIR        : A component in path is not a directory
+    */
+   if ((errno == EACCES)
+       || (errno == ELOOP)
+       || (errno == ENAMETOOLONG)
+       || (errno == ENOTDIR))
+     {
+	(void) snprintf (msgbuf, msgbuf_size, "Error stating directory %s : %s ", dir, strerror(errno)) ;
+	return -1 ;
+     }
+
+   if (errno == ENOENT)
+     {
+	/* dir does not exist.  Create it if allowed */
+	if ( (transferoption & TROPT_DIR ) != TROPT_DIR )
+	  {
+	     (void) snprintf (msgbuf, msgbuf_size, "Directory (%s) creation needed but TROPT_DIR not set", dir) ;
+	     return -1 ;
+	  }
+	return bbftpd_storemkdir (dir, msgbuf, msgbuf_size, 1);
+     }
+
+   (void) snprintf (msgbuf, msgbuf_size, "Error stating directory %s : %s ", dir, strerror(errno)) ;
+   return 1 ;
+}
+
 /*******************************************************************************
 ** bbftpd_storecreatefile :                                                    *
 **                                                                             *
@@ -392,294 +387,222 @@ int bbftpd_storemkdir(char *dirname,char *msgbuf, size_t msgbuf_size, int recurs
 **           1  Transfer failed calling has to close the connection            *
 **                                                                             *
 *******************************************************************************/
- 
-int bbftpd_storecreatefile(char *filename, char *msgbuf, size_t msgbuf_size)
+
+int bbftpd_storecreatefile (char *filename, char *msgbuf, size_t msgbuf_size)
 {
-    char    *filepath ;
-    int     fd ;
-    int     lastslash ;
-    int     savederrno ;
-    int     retcode ;
-#ifdef STANDART_FILE_CALL
-     /* off_t        toseek ; */
-    struct stat statbuf ;
-#else
-    /* off64_t        toseek ; */
-    struct stat64 statbuf ;
-#endif
-   
-    /*
+   struct STAT statbuf;
+   char    *filepath ;
+   int     fd ;
+   int     lastslash ;
+   int status, savederrno;
+
+   /*
     ** Check if it is a rfio creation
     */
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
+   if ( (transferoption & TROPT_RFIO) == TROPT_RFIO )
+     {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
-        return bbftpd_storecreatefile_rfio(filename,logmessage) ;
+        return bbftpd_storecreatefile_rfio(filename, msgbuf);
 #else
         (void) snprintf (msgbuf, msgbuf_size, "Fail to create file : RFIO not supported") ;
         return -1 ;
 #endif
     }
-    /*
+
+   if (*filename == 0)
+     {
+	(void) snprintf (msgbuf, msgbuf_size, "%s", "filepath is empty");
+	return -1;
+     }
+
+   /*
     ** make a copy of filename for security
     */
-    if ( (filepath = (char *) malloc (strlen(filename)+1) ) == NULL ) {
-        (void) snprintf (msgbuf, msgbuf_size, "Error allocating memory for filepath : %s",strerror(errno)) ;
-        return 1 ;
-    }
-    strcpy (filepath, filename);
-    /*
+   if (NULL == (filepath = bbftpd_strdup (filename)))
+     {
+	(void) snprintf (msgbuf, msgbuf_size, "Error allocating memory for filepath : %s",strerror(errno)) ;
+        return 1;
+     }
+
+   /*
     ** Check if the file exist
     **      We are going to first see if the directory exist
     **      and then look at the options 
     **      and then look if the file exist
     */
-    lastslash = strlen(filepath) - 1 ;
-    while ( lastslash >= 0 && filepath[lastslash] != '/') lastslash-- ;
-    if ( lastslash == -1 ) {
-        /*
-        ** No slash in the path, that means that we have done a chdir
-        ** before so do not care for the directory problem
-        */
-    } else if ( lastslash == 0 ) {
-        /*
-        ** A slash in first position so we suppose the "/" directory 
-        ** exist ... nothing to do
-        */
-    } else if ( lastslash == (int) strlen(filepath) - 1 ) {
-        /*
-        ** The filename end with a slash ..... error
-        */
-        (void) snprintf (msgbuf, msgbuf_size, "Filename %s ends with a /",filepath) ;
-        FREE(filepath) ;
+   lastslash = strlen(filepath) - 1;
+   if (filepath[lastslash] == '/')
+     {
+	/*
+	 ** The filename ends with a slash ..... error
+	 */
+        (void) snprintf (msgbuf, msgbuf_size, "Filename %s ends with a /", filepath) ;
+        FREE(filepath);
         return -1 ;
-    } else {
-        filepath[lastslash] = '\0';
-        /*
-        ** Check the existence of the directory 
-        */
-#ifdef STANDART_FILE_CALL
-        if ( stat(filepath,&statbuf) < 0 ) {
-#else
-        if ( stat64(filepath,&statbuf) < 0 ) {
-#endif
-            /*
-            ** It may be normal to get an error if the directory
-            ** does not exist but some error code must lead
-            ** to the interruption of the transfer:
-            **        EACCES        : Search permission denied
-            **        ELOOP        : To many symbolic links on path
-            **        ENAMETOOLONG: Path argument too long
-            **        ENOTDIR        : A component in path is not a directory
-            */
-             savederrno = errno ;
-            if ( savederrno == EACCES ||
-                savederrno == ELOOP ||
-                savederrno == ENAMETOOLONG ||
-                savederrno == ENOTDIR ) {
-                (void) snprintf (msgbuf, msgbuf_size, "Error stating directory %s : %s ",filepath,strerror(savederrno)) ;
-                FREE(filepath) ;
-                return -1 ;
-            } else if (savederrno == ENOENT) {
-                /*
-                ** The directory does not exist so check for the TROPT_DIR
-                ** option 
-                */
-                if ( (transferoption & TROPT_DIR ) != TROPT_DIR ) {
-                    (void) snprintf (msgbuf, msgbuf_size, "Directory (%s) creation needed but TROPT_DIR not set",filepath) ;
-                    FREE(filepath) ;
-                    return -1 ;
-                } else {
-                    if ( (retcode = bbftpd_storemkdir(filepath, msgbuf, msgbuf_size, 1)) != 0 ) {
-                        FREE(filepath) ;
-                        return retcode ;
-                    }
-                    filepath[lastslash] = '/';
-                }
-            } else {
-                (void) snprintf (msgbuf, msgbuf_size, "Error stating directory %s : %s ",filepath,strerror(savederrno)) ;
-                FREE(filepath) ;
-                return 1 ;
-            }
-        } else {
-            /*
-            ** The directory exist, check if it is a directory
-            */
-            if ( (statbuf.st_mode & S_IFDIR) == S_IFDIR) {
-                /*
-                ** OK correct
-                */
-                filepath[lastslash] = '/';
-            } else {
-                (void) snprintf (msgbuf, msgbuf_size, "%s is a not a directory",filepath) ;
-                FREE(filepath) ;
-                return -1 ;
-            }
-        }
-    }
+     }
+
+   while ((lastslash >= 0)
+	  && (filepath[lastslash] != '/'))
+     lastslash-- ;
+
+   /* If lastslash == 0, it refers to root dir.
+    * If lastslash == -1, it refers to current working dir
+    * Otherwise a directory was specified
+    */
+   if (lastslash > 0)
+     {
+        filepath[lastslash] = 0;
+
+	status = do_check_dir (filepath, msgbuf, msgbuf_size);
+	if (status != 0)
+	  {
+	     FREE(filepath);
+	     return status;
+	  }
+	filepath[lastslash] = '/';
+     }
+
     /*
     ** At this stage all directory exists so check for the file 
     */
-#ifdef STANDART_FILE_CALL
-    if ( stat(filepath,&statbuf) < 0 ) {
-#else
-    if ( stat64(filepath,&statbuf) < 0 ) {
-#endif
-        /*
-        ** It may be normal to get an error if the file
-        ** does not exist but some error code must lead
-        ** to the interruption of the transfer:
-        **        EACCES        : Search permission denied
-        **        ELOOP        : To many symbolic links on path
-        **        ENAMETOOLONG: Path argument too long
-        **        ENOTDIR        : A component in path is not a directory
-        */
-        savederrno = errno ;
-        if ( savederrno == EACCES ||
-            savederrno == ELOOP ||
-            savederrno == ENAMETOOLONG ||
-            savederrno == ENOTDIR ) {
-            (void) snprintf (msgbuf, msgbuf_size, "Error stating file %s : %s ",filepath,strerror(savederrno)) ;
-            FREE(filepath) ;
-            return -1 ;
-        } else if (savederrno == ENOENT) {
-            /*
-            ** That is normal the file does not exist
-            */
-        } else {
-            (void) snprintf (msgbuf, msgbuf_size, "Error stating file %s : %s ",filepath,strerror(savederrno)) ;
-            FREE(filepath) ;
-            return 1 ;
-        }
-    } else {
-        /*
-        ** The file exists so check if it is a directory
-        */
-        if ( (statbuf.st_mode & S_IFDIR) == S_IFDIR) {
-            (void) snprintf (msgbuf, msgbuf_size, "File %s is a directory",filepath) ;
-            FREE(filepath) ;
-            return -1 ;
-        }
-        /*
-        ** check if it is writable
-        */
-        if ( (statbuf.st_mode & S_IWUSR) != S_IWUSR) {
-            (void) snprintf (msgbuf, msgbuf_size, "File %s is not writable",filepath) ;
-            FREE(filepath) ;
-            return -1 ;
-        }
-        /*
-        ** In order to set correctly the user and group id we
-        ** erase the file first
-        */
-        unlink(filepath) ;
-    }                
+   if (-1 == (status = STAT (filepath, &statbuf))
+       && (errno != ENOENT))
+     {
+	savederrno = errno;
+
+	(void) snprintf (msgbuf, msgbuf_size, "Error stating file %s : %s ",filepath,strerror(savederrno)) ;
+	FREE(filepath) ;
+
+        if ((savederrno == EACCES)
+	    || (savederrno == ELOOP)
+            || (savederrno == ENAMETOOLONG)
+            || (savederrno == ENOTDIR))
+	  return -1 ;		       /* non-recoverable */
+
+	return 1 ;		       /* can recover */
+     }
+
+   if (status == 0)
+     {
+	/*
+	 ** The file exists so check if it is a directory
+	 */
+	if ((statbuf.st_mode & S_IFDIR) == S_IFDIR)
+	  {
+	     (void) snprintf (msgbuf, msgbuf_size, "File %s is a directory",filepath) ;
+	     FREE(filepath) ;
+	     return -1 ;
+	  }
+
+	/*
+	 ** check if it is writable
+	 */
+	if ( (statbuf.st_mode & S_IWUSR) != S_IWUSR)
+	  {
+	     (void) snprintf (msgbuf, msgbuf_size, "File %s is not writable",filepath) ;
+	     FREE(filepath) ;
+	     return -1 ;
+	  }
+     }
+
+   /*
+    ** In order to set correctly the user and group id we
+    ** remove the file first
+    */
+   (void) unlink(filepath) ;
+
     /*
     ** We create the file
     */
-#ifdef STANDART_FILE_CALL
-    if ((fd = open(filepath,O_WRONLY|O_CREAT|O_TRUNC,0666)) < 0 ) {
-#else
-    if ((fd = open64(filepath,O_WRONLY|O_CREAT|O_TRUNC,0666)) < 0 ) {
-#endif
+   if (-1 == (fd = OPEN (filepath, O_WRONLY|O_CREAT|O_TRUNC, 0666)))
+     {
         /*
-        ** Depending on errno we are going to tell the client to 
-        ** retry or not
-        */
+	 ** Depending on errno we are going to tell the client to 
+	 ** retry or not
+	 */
         savederrno = errno ;
         (void) snprintf (msgbuf, msgbuf_size, "Error creation file %s : %s ",filepath,strerror(errno)) ;
+	FREE(filepath) ;
         /*
-        ** We tell the client not to retry in the following case (even in waiting
-        ** WAITRETRYTIME the problem will not be solved) :
-        **        EACCES        : Search permission denied
-        **        EDQUOT        : No more quota 
-        **        ENOSPC        : No more space
-        **        ELOOP        : To many symbolic links on path
-        **        ENAMETOOLONG: Path argument too long
-        **        ENOTDIR        : A component in path is not a directory
-        */
-        if ( savederrno == EACCES ||
-                savederrno == EDQUOT ||
-                savederrno == ENOSPC ||
-                savederrno == ELOOP ||
-                savederrno == ENAMETOOLONG ||
-                savederrno == ENOTDIR ) {
-                FREE(filepath) ;
-                return -1 ;
-        } else {
-            FREE(filepath) ;
-            return 1 ;
-        }
-    }
-    if ( filesize == 0 ) {
-	char statmessage[1024];
-        close(fd) ;
-        sprintf(statmessage,"PUT %s %s 0 0 0.0 0.0", currentusername, filepath);
-        bbftpd_log(BBFTPD_NOTICE,"%s",statmessage);
-        FREE(filepath) ;
-        return 0 ;
-    }
-    /*
-    ** Lseek to set it to the correct size
-    ** We use toseek because filesize is of type my64t and 
-    ** call to lseek can be done with off_t which may be
-    ** of length 64 bits or 32 bits
-    */
-/*    toseek = filesize-1 ;
-*#ifdef STANDART_FILE_CALL
-*    if ( lseek(fd,toseek,SEEK_SET) < 0 ) {
-*#else
-*    if ( lseek64(fd,toseek,SEEK_SET) < 0 ) {
-*#endif
-*        (void) snprintf (msgbuf, msgbuf_size, "Error seeking file %s : %s ",filepath,strerror(errno)) ;
-*        close(fd) ;
-*        unlink(filepath) ;
-*        free(filepath) ;
-*        return 1 ;
-*    }
-*/
-    /*
-    ** Write one byte 
-    */
-/*    if ( write(fd,"\0",1) != 1) {
-*        savederrno = errno ;
-*        (void) snprintf (msgbuf, msgbuf_size, "Error writing file %s : %s ",filepath,strerror(errno)) ;
-*        close(fd) ;
-*        unlink(filepath) ;
-*/
-        /*
-        ** We tell the client not to retry in the following case (even in waiting
-        ** WAITRETRYTIME the problem will not be solved) :
-        **        EDQUOT        : No more quota 
-        **        ENOSPC        : No space on device
-        */
-/*        if ( savederrno == EDQUOT ||
-*                savederrno == ENOSPC ) {
-*            free(filepath) ;
-*            return -1 ;
-*        } else {
-*            free(filepath) ;
-*            return 1 ;
-*        }
-*    }
-*/
-    /*
+	 ** We tell the client not to retry in the following case (even in waiting
+	 ** WAITRETRYTIME the problem will not be solved) :
+	 */
+        if ((savederrno == EACCES)
+	    || (savederrno == EDQUOT)
+	    || (savederrno == ENOSPC)
+	    || (savederrno == ELOOP)
+	    || (savederrno == ENAMETOOLONG)
+	    || (savederrno == ENOTDIR))
+	  return -1;
+	else
+	  return 1 ;
+     }
+
+   /*
     ** And close the file
     */
-    if ( close(fd) < 0 ) {
+   if (-1 == (status = close (fd)))
+     {
         savederrno = errno ;
         unlink(filepath) ;
-        (void) snprintf (msgbuf, msgbuf_size, "Error closing file %s : %s ",filepath,strerror(savederrno)) ;
-        if ( savederrno == ENOSPC ) {
-            FREE(filepath) ;
-            return -1 ;
-        } else {
-            FREE(filepath) ;
-            return 1 ;
-        }
-    }
-    FREE(filepath) ;
-    return 0 ;
+
+        (void) snprintf (msgbuf, msgbuf_size, "Error closing file %s : %s ", filepath, strerror(savederrno)) ;
+        if (savederrno == ENOSPC)
+	  status = -1;
+	else
+	  status = 1;
+     }
+   else if (filesize == 0)
+     bbftpd_log (BBFTPD_NOTICE,"PUT %s %s 0 0 0.0 0.0", currentusername, filepath);;
+
+   FREE(filepath) ;
+   return status;
 }
+
+static void wait_for_parent (void)
+{
+   int waitedtime = 0;
+   /*
+    ** Pause until father send a SIGHUP in order to prevent
+    ** child to die before father has started all children
+    */
+   while ((flagsighup == 0) && (waitedtime < STARTCHILDTO))
+     {
+	sleep (1);
+	waitedtime = waitedtime + 1 ;
+     }
+}
+
+static int open_file_fragment (const char *filename, int flags, OFF_T ofs, int *errp)
+{
+   int fd;
+
+   while (-1 == (fd = OPEN (filename, flags)))
+     {
+	/*
+	 ** An error on openning the local file is considered
+	 ** as fatal. Maybe this need to be improved depending
+	 ** on errno
+	 */
+	if (errno == EINTR) continue;
+	*errp = errno;
+	bbftpd_log (BBFTPD_ERR, "Error opening local file %s : %s",filename,strerror(errno)) ;
+	return -1;
+     }
+
+   while (-1 == LSEEK (fd, ofs, SEEK_SET))
+     {
+	if (errno == EINTR) continue;
+	*errp = errno;
+	bbftpd_log(BBFTPD_ERR,"Error seeking file : %s",strerror(errno)) ;
+	close(fd);
+	return -1;
+     }
+
+   return fd;
+}
+
+
 /*******************************************************************************
 ** bbftpd_storetransferfile :                                                  *
 **                                                                             *
@@ -703,381 +626,326 @@ int bbftpd_storecreatefile(char *filename, char *msgbuf, size_t msgbuf_size)
  
 int bbftpd_storetransferfile(char *filename,int simulation,char *msgbuf, size_t msgbuf_size)
 {
-#ifdef STANDART_FILE_CALL
-    off_t         nbperchild ;
-    off_t         nbtoget;
-    off_t         startpoint ;
-    off_t         nbget ;
-    struct stat statbuf ;
-#else
-    off64_t     nbperchild ;
-    off64_t     nbtoget;
-    off64_t     startpoint ;
-    off64_t     nbget ;
-    struct stat64 statbuf ;
-#endif
+   struct STAT statbuf ;
+   OFF_T         nbperchild ;
+   OFF_T         nbtoget;
+   OFF_T         startpoint ;
+   OFF_T         nbget ;
 #ifdef WITH_GZIP
-    uLong    buflen ;
-    uLong    bufcomplen ;
+   uLong    bufcomplen ;
 #endif
     int     lentowrite;
     int     lenwrited;
     int     datatoreceive;
     int     dataonone;
-
     int     *pidfree ;
-    int     *sockfree ; /* for PASV mode only */
-    int     *portnumber ;
+   int *port_or_sock;
     int     i ;
     int     recsock ;
     int        retcode ;
     int        compressionon ;
-    int     nfds ; 
-    fd_set    selectmask ;
-    struct timeval    wait_timer;
     int     fd ;
-    my64_t    toprint64 ;
-    struct mess_compress *msg_compress ;
-    struct message *msg ;
-    int     waitedtime ;
+
     /*
     ** Check if it is a rfio transfer
     */
-    if ( (transferoption & TROPT_RFIO) == TROPT_RFIO ) {
+   if ( (transferoption & TROPT_RFIO) == TROPT_RFIO )
+     {
 #if defined(WITH_RFIO) || defined(WITH_RFIO64)
         return bbftpd_storetransferfile_rfio(filename,simulation,msgbuf) ;
 #else
         return 0 ;
 #endif
-    }
-    
-    if ( protocolversion <= 2 ) { /* Active mode */
-      portnumber = myports ;
-	} else {
-	  sockfree = mysockets ;
-	}
-    nbperchild = filesize/requestedstreamnumber ;
-    pidfree = mychildren ;
-    nbpidchild = 0 ;
-    /*
+     }
+
+   if ( protocolversion <= 2 )
+     port_or_sock = myports ;  /* Active mode */
+   else
+     port_or_sock = mysockets ;
+
+   nbperchild = filesize/requestedstreamnumber ;
+   pidfree = mychildren ;
+   nbpidchild = 0 ;
+
+   /*
     ** unlinkfile is set to one in case of death of a children by a kill -9
     ** In this case the child is unable to unlink the file so that
     ** has to be done by the father
     */
-    unlinkfile = 1 ;
-    childendinerror = 0 ; /* No child so no error */
-    for (i = 1 ; i <= requestedstreamnumber ; i++) {
-        if ( i == requestedstreamnumber ) {
-            startpoint = (i-1)*nbperchild;
-            nbtoget = filesize-(nbperchild*(requestedstreamnumber-1)) ;
-        } else {
-            startpoint = (i-1)*nbperchild;
-            nbtoget = nbperchild ;
-        }
-        if (protocolversion <= 2) { /* ACTIVE MODE */
-          /*
-          ** Now create the socket to receive
-          */
-          recsock = 0 ;
-          while (recsock == 0 ) {
-            recsock = bbftpd_createreceivesocket(*portnumber,msgbuf,msgbuf_size) ;
-          }
-          if ( recsock < 0 ) {
-            
-            /*
-            ** We set childendinerror to 1 in order to prevent the father
-            ** to send a BAD message which can desynchronize the client and the
-            ** server (We need only one error message)
-            ** Bug discovered by amlutz on 2000/03/11
-            */
-            if ( childendinerror == 0 ) {
-                childendinerror = 1 ;
-                reply(MSG_BAD,msgbuf) ;
-            }
-            clean_child() ;
-            return 1 ;
-          }
-          portnumber++ ;
-        } else { /* PASSIVE MODE */
-          recsock = *sockfree ;
-          sockfree++ ;
-        }
+   unlinkfile = 1 ;
+   childendinerror = 0 ; /* No child so no error */
+
+   for (i = 1 ; i <= requestedstreamnumber ; i++)
+     {
+	int ns, err;
+
+	startpoint = (i-1)*nbperchild;
+        if ( i == requestedstreamnumber )
+	  nbtoget = filesize - (nbperchild*(requestedstreamnumber-1)) ;
+        else
+	  nbtoget = nbperchild;
+
+        if (protocolversion <= 2)
+	  {
+	     /* ACTIVE MODE */
+	     /*
+	      ** Now create the socket to receive
+	      */
+	     while (1)
+	       {
+		  recsock = bbftpd_createreceivesocket (*port_or_sock, msgbuf, msgbuf_size);
+		  if (recsock > 0) break;
+		  if (recsock == 0) continue;   /* try again */
+
+		  /*
+		   ** We set childendinerror to 1 in order to prevent the father
+		   ** to send a BAD message which can desynchronize the client and the
+		   ** server (We need only one error message)
+		   ** Bug discovered by amlutz on 2000/03/11
+		   */
+		  if ( childendinerror == 0 )
+		    {
+		       childendinerror = 1 ;
+		       reply(MSG_BAD, msgbuf) ;
+		    }
+		  clean_child() ;
+		  return 1 ;
+	       }
+	  }
+	else /* PASSIVE MODE */
+	  recsock = *port_or_sock;
+
+	port_or_sock++;
+
         /*
-        ** Set flagsighup to zero in order to be able in child
-        ** not to wait STARTCHILDTO if signal was sent before 
-        ** entering select. (Seen on Linux with one child)
-        */
+	 ** Set flagsighup to zero in order to be able in child
+	 ** not to wait STARTCHILDTO if signal was sent before 
+	 ** entering select. (Seen on Linux with one child)
+	 */
         flagsighup = 0 ;
-        if ( ( retcode = fork() ) == 0 ) {
-            int     ns ;
-            /*
-            ** We are in child
-            */
-            /*
-            ** Pause until father send a SIGHUP in order to prevent
-            ** child to die before father has started all children
-            */
-            waitedtime = 0 ;
-            while (flagsighup == 0 && waitedtime < STARTCHILDTO) {
-                wait_timer.tv_sec  = 1 ;
-                wait_timer.tv_usec = 0 ;
-                nfds = sysconf(_SC_OPEN_MAX) ;
-                select(nfds,0,0,0,&wait_timer) ;
-                waitedtime = waitedtime + 1 ;
-            }
-            bbftpd_log(BBFTPD_DEBUG,"Child %d starting",getpid()) ;
-            /*
-            ** Close all unnecessary stuff
-            */
-            close(incontrolsock) ;
-            close(outcontrolsock) ; 
-            /*
-            ** Check if file exist
-            */
-#ifdef STANDART_FILE_CALL
-            if ( stat(filename,&statbuf) < 0 ) {
-#else
-            if ( stat64(filename,&statbuf) < 0 ) {
+
+	if (-1 == (retcode = fork ()))
+	  {
+	     bbftpd_log(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
+	     snprintf (msgbuf, msgbuf_size, "fork failed : %s ",strerror(errno)) ;
+	     unlink (filename);
+	     if ( childendinerror == 0 )
+	       {
+		  childendinerror = 1 ;
+		  reply(MSG_BAD,msgbuf) ;
+	       }
+	     clean_child() ;
+	     return 1 ;
+	  }
+
+	if (retcode != 0)
+	  {
+	     /* Parent */
+	     nbpidchild++ ;
+	     *pidfree++ = retcode ;
+	     close (recsock) ;
+	     continue;
+	  }
+
+	/* Child */
+	wait_for_parent ();
+	bbftpd_log(BBFTPD_DEBUG,"Child %d starting", getpid ());
+	/*
+	 ** Close all unnecessary stuff
+	 */
+	close(incontrolsock) ;
+	close(outcontrolsock) ;
+	/*
+	 ** Check if file exist
+	 */
+	if (-1 == stat (filename, &statbuf))
+	  {
+	     /*
+	      ** If the file does not exist that means that another
+	      ** child has detroyed it
+	      */ 
+	     err = errno ;
+	     bbftpd_log(BBFTPD_ERR,"Error stating file %s : %s ",filename,strerror(err)) ;
+	     close(recsock) ;
+	     _exit(err) ;
+	  }
+
+	if (-1 == (fd = open_file_fragment (filename, O_RDWR, startpoint, &err)))
+	  {
+	     unlink(filename) ;
+	     close (recsock);
+	     if ((err == EDQUOT) || (err == ENOSPC))
+	       err = 255;
+
+	     _exit(err);
+	  }
+
+	/*
+	 ** PASSIVE MODE: accept connection
+	 */
+	if ( protocolversion >= 3 )
+	  {
+	     while (-1 == (ns = accept(recsock,0,0)))
+	       {
+		  if (errno == EINTR)
+		    continue;
+
+		  err = errno ;
+		  close (fd) ;
+		  close (recsock);
+		  unlink (filename);
+		  bbftpd_log(BBFTPD_ERR,"Error accept socket : %s",strerror(err)) ;
+		  _exit(err);
+	       }
+	     bbftpd_log (BBFTPD_DEBUG, "Accepted connection");
+	     close(recsock) ;
+	  }
+	else
+	  {
+	     ns = recsock ;
+	  }
+
+	bbftpd_log (BBFTPD_DEBUG, "Using ns=%d, will read range %" LONG_LONG_FORMAT "-%" LONG_LONG_FORMAT " of %" LONG_LONG_FORMAT,
+		    ns, (long long) startpoint, (long long)nbtoget + startpoint - 1, (long long) filesize);
+
+	if (simulation)
+	  {
+	     /* Don't send anything */
+	     close(fd) ;
+	     close(ns) ;
+	     _exit(0) ;
+	  }
+
+	/*
+	 ** start the reading loop
+	 */
+	nbget = 0 ;
+	while (nbget < nbtoget)
+	  {
+#if 0
+	     bbftpd_log (BBFTPD_DEBUG, "Read %" LONG_LONG_FORMAT "/%" LONG_LONG_FORMAT ", need %" LONG_LONG_FORMAT,
+			 (long long) nbget, (long long) nbtoget, (long long) nbtoget - nbget);
 #endif
-                /*
-                ** If the file does not exist that means that another
-                ** child has detroyed it
-                */ 
-                i = errno ;
-                bbftpd_log(BBFTPD_ERR,"Error stating file %s : %s ",filename,strerror(errno)) ;
-                close(recsock) ;
-                exit(i) ;
-            }
-            /*
-            ** Open and seek to position
-            */
-#ifdef STANDART_FILE_CALL
-            if ((fd = open(filename,O_RDWR)) < 0 ) {
-#else
-            if ((fd = open64(filename,O_RDWR)) < 0 ) {
+
+	     if ((transferoption & TROPT_GZIP ) == TROPT_GZIP)
+	       {
+		  struct mess_compress msg_compress;
+		  /*
+		   ** Receive the header first 
+		   */
+		  if (-1 == readmessage (ns, (char *)&msg_compress, sizeof(msg_compress), datato))
+		    {
+		       bbftpd_log(BBFTPD_ERR,"Error reading compression header") ;
+		       close(fd) ;
+		       close (ns);
+		       unlink(filename) ;
+		       _exit (ETIMEDOUT);
+                    }
+		  msg_compress.datalen = ntohl(msg_compress.datalen) ;
+
+		  compressionon = (msg_compress.code == DATA_COMPRESS);
+		  datatoreceive = msg_compress.datalen ;
+#if 0
+		  bbftpd_log (BBFTPD_DEBUG, "Compressed data, code=0x%X, datalen=%d", msg_compress.code, datatoreceive);
 #endif
-                i = errno ;
-                unlink(filename) ;
-                bbftpd_log(BBFTPD_ERR,"Error opening file %s : %s ",filename,strerror(errno)) ;
-                /*
-                ** At this point a non recoverable error is 
-                **        EDQUOT        : No more quota 
-                **        ENOSPC        : No more space
-                */
-                if ( i == EDQUOT ||
-                        i == ENOSPC ) {
-                    close(recsock) ;
-                    exit(255) ;
-                } else {
-                    close(recsock) ;
-                    exit(i) ;
-                }
-            }
-#ifdef STANDART_FILE_CALL
-            if ( lseek(fd,startpoint,SEEK_SET) < 0 ) {
-#else
-            if ( lseek64(fd,startpoint,SEEK_SET) < 0 ) {
-#endif
-                i = errno ;
-                close(fd) ;
-                unlink(filename) ;
-                bbftpd_log(BBFTPD_ERR,"error seeking file : %s",strerror(errno)) ;
-                close(recsock) ;
-                exit(i)  ;
-            }
-            if ( protocolversion >= 3 ) {
-              if ( (ns = accept(recsock,0,0) ) < 0 ) {
-                i = errno ;
-                close(fd) ;
-                unlink(filename) ;
-                bbftpd_log(BBFTPD_ERR,"Error accept socket : %s",strerror(errno)) ;
-                close(recsock) ;
-                exit(i)  ;
-              }
-              close(recsock) ;
-            } else {
-              ns = recsock ;
-            }
-            /*
-            ** start the reading loop
-            ** Handle the simulation mode
-            */
-            if (!simulation) {
-              nbget = 0 ;
-              while ( nbget < nbtoget) {
-                if ( (transferoption & TROPT_GZIP ) == TROPT_GZIP ) {
-                    /*
-                    ** Receive the header first 
-                    */
-                    if (readmessage(ns,readbuffer,COMPMESSLEN,datato) < 0 ) {
-                        bbftpd_log(BBFTPD_ERR,"Error reading compression header") ;
-                        close(fd) ;
-                        unlink(filename) ;
-                        i = ETIMEDOUT ;
-                        exit(i) ;
-                    }
-                    msg_compress = ( struct mess_compress *) readbuffer ;
-#ifndef WORDS_BIGENDIAN
-                    msg_compress->datalen = ntohl(msg_compress->datalen) ;
-#endif
-                    if ( msg_compress->code == DATA_COMPRESS) {
-                        compressionon = 1 ;
-                    } else {
-                        compressionon = 0 ;
-                    }
-                    datatoreceive = msg_compress->datalen ;
-                } else {
-                    /*
-                    ** No compression just adjust the length to receive
-                    */
-                    if (buffersizeperstream*1024  <= nbtoget-nbget ) {
-                        datatoreceive =  buffersizeperstream*1024 ;
-                    } else {
-                        datatoreceive = nbtoget-nbget ;
-                    }
-                }
-                /*
-                ** Start the data collection
-                */
-                dataonone = 0 ;
-                while ( dataonone < datatoreceive ) {
-                    nfds = sysconf(_SC_OPEN_MAX) ;
-                    FD_ZERO(&selectmask) ;
-                    FD_SET(ns,&selectmask) ;
-                    wait_timer.tv_sec  = datato ;
-                    wait_timer.tv_usec = 0 ;
-                    if ( (retcode = select(nfds,&selectmask,0,0,&wait_timer) ) == -1 ) {
-                        /*
-                        ** Select error
-                        */
-                        i = errno ;
-                        bbftpd_log(BBFTPD_ERR,"Error select while receiving : %s",strerror(errno)) ;
-                        close(fd) ;
-                        unlink(filename) ;
-                        close(ns) ;
-                        exit(i) ;
-                    } else if ( retcode == 0 ) {
-                        bbftpd_log(BBFTPD_ERR,"Time out while receiving") ;
-                        close(fd) ;
-                        unlink(filename) ;
-                        i=ETIMEDOUT ;
-                        close(ns) ;
-                        exit(i) ;
-                    } else {
-                        retcode = recv(ns,&readbuffer[dataonone],datatoreceive-dataonone,0) ;
-                        if ( retcode < 0 ) {
-                            i = errno ;
-                            bbftpd_log(BBFTPD_ERR,"Error while receiving : %s",strerror(errno)) ;
-                            close(fd) ;
-                            unlink(filename) ;
-                            close(ns) ;
-                            exit(i) ;
-                        } else if ( retcode == 0 ) {
-                            i = ECONNRESET ;
-                            bbftpd_log(BBFTPD_ERR,"Connexion breaks") ;
-                            close(fd) ;
-                            unlink(filename) ;
-                            close(ns) ;
-                            exit(i) ;
-                        } else {
-                            dataonone = dataonone + retcode ;
-                        }
-                    }
-                }
-                /*
-                ** We have received all data needed
-                */
+	       }
+	     else
+	       {
+		  /*
+		   ** No compression just adjust the length to receive
+		   */
+		  compressionon = 0;
+		  datatoreceive = nbtoget-nbget;
+		  if (datatoreceive > buffersizeperstream*1024)
+		    datatoreceive =  buffersizeperstream*1024 ;
+	       }
+
+	     /*
+	      ** Start the data collection
+	      */
+	     dataonone = 0 ;
+
+	     if (-1 == readmessage (ns, readbuffer, datatoreceive, datato))
+	       {
+		  err = errno;
+		  close (fd);
+		  close (ns);
+		  unlink (filename);
+		  bbftpd_log (BBFTPD_DEBUG, "Child exiting in error; read %" LONG_LONG_FORMAT "/%" LONG_LONG_FORMAT " bytes on %d",
+			      (long long) nbget + dataonone, (long long) nbtoget, ns);
+		  _exit (err);
+	       }
+	     /*
+	      ** We have received all data needed
+	      */
+	     lentowrite = datatoreceive ;
 #ifdef WITH_GZIP
-                if ( (transferoption & TROPT_GZIP ) == TROPT_GZIP ) {
-                    if ( compressionon == 1 ) {
-                        bufcomplen = buffersizeperstream*1024 ;
-                        buflen = dataonone ;
-                        retcode = uncompress((Bytef *) compbuffer, &bufcomplen, (Bytef *) readbuffer, buflen) ;
-                        if ( retcode != 0 ) {
-                            i = EILSEQ ;
-                            bbftpd_log(BBFTPD_ERR,"Error while decompressing %d ",retcode) ;
-                            close(fd) ;
-                            unlink(filename) ;
-                            close(ns) ;
-                            exit(i) ;
-                        }
-                        memcpy(readbuffer,compbuffer,buffersizeperstream*1024) ;
-                        lentowrite = bufcomplen ;
-                    } else {
-                        lentowrite = dataonone ;
-                    }
-                } else {
-                    lentowrite = dataonone ;
-                }
-#else
-                lentowrite = dataonone ;
+	     if (compressionon)
+	       {
+		  bufcomplen = buffersizeperstream*1024 ;   /* compbuffer allocated size */
+		  retcode = uncompress((Bytef *) compbuffer, &bufcomplen, (Bytef *) readbuffer, datatoreceive) ;
+		  if (retcode != 0)
+		    {
+		       bbftpd_log(BBFTPD_ERR, "Error %d while decompressing", retcode) ;
+		       close(fd) ;
+		       close(ns) ;
+		       unlink(filename) ;
+		       _exit(EILSEQ) ;
+		    }
+		  memcpy (readbuffer, compbuffer, bufcomplen);
+		  lentowrite = bufcomplen;
+	       }
 #endif
-                /*
-                ** Write it to the file
-                */
-                lenwrited = 0 ;
-                while ( lenwrited < lentowrite ) {
-                    if ( (retcode = write(fd,&readbuffer[lenwrited],lentowrite-lenwrited)) < 0 ) {
-                        i = errno ;
-                        bbftpd_log(BBFTPD_ERR,"error writing file : %s",strerror(errno)) ;
-                        close(fd) ;
-                        unlink(filename) ;
-                        if ( i == EDQUOT ||
-                                i == ENOSPC ) {
-                            close(ns) ;
-                            exit(255) ;
-                        } else {
-                            close(ns) ;
-                            exit(i) ;
-                        }
-                    } 
-                    lenwrited = lenwrited + retcode ;
-                }
-                nbget = nbget+lenwrited ;
-              }
-              /*
-              ** All data have been received so send the ACK message
-              */
-              msg = (struct message *) readbuffer ;
-              msg->code = MSG_ACK ;
-              msg->msglen = 0 ;
-              if ( writemessage(ns,readbuffer,MINMESSLEN,sendcontrolto) < 0 ) {
-                close(fd) ;
-                unlink(filename) ;
-                bbftpd_log(BBFTPD_ERR,"Error sending ACK ") ;
-                close(ns) ;
-                exit(ETIMEDOUT) ;
-              }
-              toprint64 = nbget ;
-              bbftpd_log(BBFTPD_DEBUG,"Child received %" LONG_LONG_FORMAT " bytes ; end correct ",toprint64) ;
-            }
-            close(fd) ;
-            close(ns) ;
-            exit(0) ;
-        } else {
-            /*
-            ** We are in father
-            */
-            if ( retcode == -1 ) {
-                /*
-                ** Fork failed ...
-                */
-                bbftpd_log(BBFTPD_ERR,"fork failed : %s",strerror(errno)) ;
-                unlink(filename) ;
-                sprintf(msgbuf,"fork failed : %s ",strerror(errno)) ;
-                if ( childendinerror == 0 ) {
-                    childendinerror = 1 ;
-                    reply(MSG_BAD,msgbuf) ;
-                }
-                clean_child() ;
-                return 1 ;
-            } else {
-                nbpidchild++ ;
-                *pidfree++ = retcode ;
-		close(recsock) ;
-            }
-        }
-    }
+	     /*
+	      ** Write it to the file
+	      */
+	     lenwrited = 0 ;
+	     while ( lenwrited < lentowrite )
+	       {
+		  int dn;
+
+		  if (-1 == (dn = write (fd, readbuffer+lenwrited, lentowrite-lenwrited)))
+		    {
+		       err = errno;
+		       if (err == EINTR) continue;
+		       bbftpd_log (BBFTPD_ERR, "error writing file : %s", strerror(err)) ;
+		       close(fd) ;
+		       unlink(filename) ;
+		       close (ns);
+		       if ((err == EDQUOT) || (err == ENOSPC))
+			 err = 255;
+		       _exit (err);
+		    }
+
+		  lenwrited = lenwrited + dn ;
+	       }
+
+	     nbget = nbget + lentowrite ;
+	  }
+
+	/*
+	 ** All data have been received so send the ACK message
+	 */
+	if (-1 == bbftpd_fd_msgwrite_len (ns, MSG_ACK, 0))
+	  {
+	     close(fd) ;
+	     unlink(filename) ;
+	     close(ns) ;
+	     bbftpd_log(BBFTPD_ERR,"Error sending ACK ") ;
+	     _exit(ETIMEDOUT);
+	  }
+
+	bbftpd_log(BBFTPD_DEBUG,"Child received %" LONG_LONG_FORMAT " bytes ; end correct ", (long long) nbget) ;
+
+	/* drop */
+	close(fd) ;
+	close(ns) ;
+	_exit(0) ;
+	/* End of child code */
+     }
+
+   /* Parent code */
+
     /*
     ** Set the state before starting children because if the file was
     ** small the child has ended before state was setup to correct value
@@ -1087,21 +955,23 @@ int bbftpd_storetransferfile(char *filename,int simulation,char *msgbuf, size_t 
     ** Start all children
     */
     pidfree = mychildren ;
-    for (i = 0 ; i<nbpidchild ; i++) {
-        if ( *pidfree != 0 ) {
-            kill(*pidfree,SIGHUP) ;
-        }
-       pidfree++ ;
-    }
-    if (simulation) {
-       /*
-       ** set unlinkfile = 4 in order to delete the file after
-       ** the simulated transfer
-       */
-       unlinkfile = 4 ;
-    }
-    (void) gettimeofday(&tstart, (struct timezone *)0);
-    return 0 ;
+    for (i = 0 ; i<nbpidchild ; i++)
+     {
+        if ( *pidfree != 0 ) kill(*pidfree,SIGHUP);
+	pidfree++ ;
+     }
+
+   if (simulation)
+     {
+	/*
+	 ** set unlinkfile = 4 in order to delete the file after
+	 ** the simulated transfer
+	 */
+	unlinkfile = 4 ;
+     }
+
+   (void) gettimeofday(&tstart, (struct timezone *)0);
+   return 0 ;
 }
 
 int bbftp_store_process_transfer (char *rfile, char *cfile, int unlink_rfile_upon_fail)

@@ -7,3 +7,6 @@ Changes since 3.2.1
    bbftpd_crypt.c.
 3. bbftpd: bbftpd_log_reopen was not opening the user-specified
    logfile in child processes
+4. bbftpd: Simplified the bbftpd_store functions by removing
+   large sections of duplicated code and added additional log
+   messages.  Other supporting code changes were made.

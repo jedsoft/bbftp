@@ -290,10 +290,10 @@ int bbftpd_loginsequence (struct message *msg)
 	break;
 
       case NO_CRYPT :
-	strncpy(username, msg_rsa.cryptuser, strlen(msg_rsa.cryptuser));
-	username[strlen(msg_rsa.cryptuser)]='\0';
-	strncpy(password, msg_rsa.cryptpass, strlen(msg_rsa.cryptpass));
-	password[strlen(msg_rsa.cryptpass)]='\0';
+	strncpy(username, msg_rsa.cryptuser, sizeof(username));
+	username[sizeof(username)-1]='\0';
+	strncpy(password, msg_rsa.cryptpass, sizeof(password));
+	password[sizeof(password)-1]='\0';
 	break ;
 
       default :

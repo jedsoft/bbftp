@@ -124,10 +124,11 @@ int readmessage (int sock, char *buffer, int msglen, int to)
 	if ( retcode == 0 )
 	  {
 	     bbftpd_log(BBFTPD_ERR,"Read message : Time out : MSG (%d,%d)", msglen, nbget) ;
+	     errno = ETIMEDOUT;
 	     return -1 ;
 	  }
 
-	while (-1 == (retcode = read(sock, &buffer[nbget], msglen-nbget)))
+	while (-1 == (retcode = read(sock, buffer + nbget, msglen-nbget)))
 	  {
 	     if (errno == EINTR)
 	       continue;
@@ -138,7 +139,8 @@ int readmessage (int sock, char *buffer, int msglen, int to)
 
 	if ( retcode == 0 )
 	  {
-	     bbftpd_log(BBFTPD_ERR,"Read message : Connexion breaks") ;
+	     bbftpd_log (BBFTPD_ERR,"Read message : Connexion breaks; %d/%d bytes read", nbget, msglen) ;
+	     errno = ECONNRESET;
 	     return -1 ;
 	  }
 
@@ -229,6 +231,7 @@ int writemessage (int sock, const char *buffer, int msglen, int to)
 	if (retcode == 0)
 	  {
 	     bbftpd_log(BBFTPD_ERR,"Write message : Connexion breaks") ;
+	     errno = ECONNRESET;
 	     return -1 ;
 	  }
 
