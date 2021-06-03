@@ -10,3 +10,5 @@ Changes since 3.2.1
 4. bbftpd: Simplified the bbftpd_store functions by removing
    large sections of duplicated code and added additional log
    messages.  Other supporting code changes were made.
+5. bbftpd: If an error occured during the creation of the data transfer
+   sockets, the previously opened sockets were not being closed.

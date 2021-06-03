@@ -573,7 +573,6 @@ int bbftpd_retrtransferfile(char *filename, int simulation, char *msgbuf, size_t
 	     /*
 	      ** Now create the socket to send
 	      */
-	     sendsock = 0 ;
 	     while (1)
 	       {
 		  sendsock = bbftpd_createreceivesocket (*port_or_sock, msgbuf, msgbuf_size);

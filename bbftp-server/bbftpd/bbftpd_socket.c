@@ -69,117 +69,244 @@
 **      RETURN:                                                                *
 **          -1   Creation failed unrecoverable error                           *
 **           0   OK, but retry                                                 *
- **           >0  socket descriptor                              *
+**           >0  socket descriptor                              *
 **                                                                             *
 *******************************************************************************/
-int bbftpd_createreceivesocket(int portnumber,char *msgbuf, size_t msgbuf_size)
+int bbftpd_createreceivesocket (int portnumber,char *msgbuf, size_t msgbuf_size)
 {
-    int    sock ;
-    struct sockaddr_in data_source ;
-    int    on = 1 ;
-    int tcpwinsize ;
+   struct sockaddr_in data_source ;
+   int    sock ;
+   int    on = 1 ;
+   int tcpwinsize ;
 #if defined(SUNOS) || defined(_HPUX_SOURCE) || defined(IRIX)
-    int        addrlen ;
+   int        addrlen ;
 #else
-    socklen_t        addrlen ;
+   socklen_t        addrlen ;
 #endif
-    int    retcode ;
 
-	/*bbftpd_log(BBFTPD_INFO,"New socket to: %s:%d\n",inet_ntoa(his_addr.sin_addr), portnumber);*/
-    sock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
-    if ( sock < 0 ) {
+   /*bbftpd_log(BBFTPD_INFO,"New socket to: %s:%d\n",inet_ntoa(his_addr.sin_addr), portnumber);*/
+
+   if (-1 == (sock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP )))
+     {
         bbftpd_log(BBFTPD_ERR, "Cannot create receive socket on port %d : %s",portnumber,strerror(errno));
-        snprintf(msgbuf, msgbuf_size, "Cannot create receive socket on port %d : %s",portnumber,strerror(errno)) ;
-        return (-1) ;
+        (void) snprintf(msgbuf, msgbuf_size, "Cannot create receive socket on port %d : %s",portnumber,strerror(errno)) ;
+        return -1;
     }
-    if ( setsockopt(sock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0 ) {
+
+   if (-1 == setsockopt(sock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)))
+     {
         close(sock) ;
         bbftpd_log(BBFTPD_ERR,"Cannot set SO_REUSEADDR on receive socket port %d : %s",portnumber,strerror(errno)) ;
         (void) snprintf (msgbuf, msgbuf_size, "Cannot set SO_REUSEADDR on receive socket port %d : %s",portnumber,strerror(errno)) ;
-        return (-1) ;
+        return -1;
     }
-    tcpwinsize = 1024 * recvwinsize ;
-    if ( setsockopt(sock,SOL_SOCKET, SO_RCVBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)) < 0 ) {
-        /*
-        ** In this case we are going to log a message
-        */
-        bbftpd_log(BBFTPD_ERR,"Cannot set SO_RCVBUF on receive socket port %d : %s",portnumber,strerror(errno)) ;
-    }
-    addrlen = sizeof(tcpwinsize) ;
-    if ( getsockopt(sock,SOL_SOCKET,SO_RCVBUF,(char *)&tcpwinsize,&addrlen) < 0 ) {
-         bbftpd_log(BBFTPD_ERR,"Cannot get SO_RCVBUF on receive socket port %d : %s",portnumber,strerror(errno)) ;
+
+   tcpwinsize = 1024 * recvwinsize ;
+   if (-1 == setsockopt(sock,SOL_SOCKET, SO_RCVBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)))
+     {
+	/*
+	 ** In this case we are going to log a message
+	 */
+	bbftpd_log(BBFTPD_ERR,"Cannot set SO_RCVBUF on receive socket port %d : %s",portnumber,strerror(errno)) ;
+	/* fall through */
+   }
+
+   addrlen = sizeof(tcpwinsize) ;
+   if (-1 == getsockopt(sock,SOL_SOCKET,SO_RCVBUF,(char *)&tcpwinsize,&addrlen))
+     {
+	bbftpd_log(BBFTPD_ERR,"Cannot get SO_RCVBUF on receive socket port %d : %s",portnumber,strerror(errno)) ;
         close(sock) ;
         (void) snprintf (msgbuf, msgbuf_size, "Cannot get SO_RCVBUF on receive socket port %d : %s",portnumber,strerror(errno)) ;
-        return (-1) ;
-    }
-    if ( tcpwinsize < 1024 * recvwinsize ) {
+        return -1;
+     }
+
+   if ( tcpwinsize < 1024 * recvwinsize )
+     {
         (void) snprintf (msgbuf, msgbuf_size, "Receive buffer on port %d cannot be set to %d Bytes, Value is %d Bytes",portnumber,1024*recvwinsize,tcpwinsize) ;
         reply(MSG_INFO,msgbuf) ;
-    }
-    tcpwinsize = 1024 * sendwinsize ;
-    if ( setsockopt(sock,SOL_SOCKET, SO_SNDBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)) < 0 ) {
+     }
+
+   tcpwinsize = 1024 * sendwinsize ;
+   if (-1 == setsockopt(sock,SOL_SOCKET, SO_SNDBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)))
+     {
         /*
         ** In this case we just log an error
         */
         bbftpd_log(BBFTPD_ERR,"Cannot set SO_SNDBUF  on receive socket port %d : %s",portnumber,strerror(errno)) ;
+	/* fall through */
     }
-    addrlen = sizeof(tcpwinsize) ;
-    if ( getsockopt(sock,SOL_SOCKET, SO_SNDBUF,(char *)&tcpwinsize,&addrlen) < 0 ) {
+
+   addrlen = sizeof(tcpwinsize) ;
+   if (-1 == getsockopt(sock,SOL_SOCKET, SO_SNDBUF,(char *)&tcpwinsize,&addrlen))
+     {
         bbftpd_log(BBFTPD_ERR,"Cannot get SO_SNDBUF on receive socket port %d : %s",portnumber,strerror(errno)) ;
         close(sock) ;
         (void) snprintf (msgbuf, msgbuf_size, "Cannot get SO_SNDBUF on receive socket port %d : %s",portnumber,strerror(errno)) ;
-        return (-1) ;
+        return -1;
     }
-    if ( tcpwinsize < 1024 * sendwinsize ) {
+   if ( tcpwinsize < 1024 * sendwinsize )
+     {
         (void) snprintf (msgbuf, msgbuf_size, "Send buffer on port %d cannot be set to %d Bytes, Value is %d Bytes",portnumber,1024*sendwinsize,tcpwinsize) ;
         reply(MSG_INFO,msgbuf) ;
+	/* fall through */
     }
-    if ( setsockopt(sock,IPPROTO_TCP, TCP_NODELAY,(char *)&on,sizeof(on)) < 0 ) {
+
+   if (-1 == setsockopt(sock,IPPROTO_TCP, TCP_NODELAY,(char *)&on,sizeof(on)))
+     {
         close(sock) ;
         bbftpd_log(BBFTPD_ERR,"Cannot set TCP_NODELAY on receive socket port %d : %s",portnumber,strerror(errno)) ;
         (void) snprintf (msgbuf, msgbuf_size, "Cannot set TCP_NODELAY on receive socket port %d : %s",portnumber,strerror(errno)) ;
-        return (-1) ;
-    }
-    data_source.sin_family = AF_INET;
+        return -1;
+     }
+
+   data_source.sin_family = AF_INET;
 #ifdef SUNOS
-    data_source.sin_addr = ctrl_addr.sin_addr;
+   data_source.sin_addr = ctrl_addr.sin_addr;
 #else
-    data_source.sin_addr.s_addr = INADDR_ANY;
+   data_source.sin_addr.s_addr = INADDR_ANY;
 #endif
-    if ( fixeddataport == 1 ) {
-        data_source.sin_port = htons(ntohs(ctrl_addr.sin_port) - 1);
-    } else {
-        data_source.sin_port = 0;
-    }
-    if ( bind(sock, (struct sockaddr *) &data_source,sizeof(data_source)) < 0) {
+
+    if (fixeddataport == 1)
+     data_source.sin_port = htons(ntohs(ctrl_addr.sin_port) - 1);
+   else
+     data_source.sin_port = 0;
+
+   if (-1 == bind(sock, (struct sockaddr *) &data_source,sizeof(data_source)))
+     {
         close(sock) ;
         bbftpd_log(BBFTPD_ERR,"Cannot bind on receive socket port %d : %s",portnumber,strerror(errno)) ;
         (void) snprintf (msgbuf, msgbuf_size, "Cannot bind on receive socket port %d : %s",portnumber,strerror(errno)) ;
-        return (-1) ;
-    }
-    data_source.sin_addr = his_addr.sin_addr;
-    data_source.sin_port = htons(portnumber);
-    addrlen = sizeof(data_source) ;
-    retcode = connect(sock,(struct sockaddr *) &data_source,addrlen) ;
-    if ( retcode < 0 ) {
-        if ( errno == EINTR ) {
-            /*
-            ** In this case we are going to tell the calling program 
-            ** to retry so we close the socket and set the return code
-            ** to zero 
-            */
-            close(sock) ;
-            bbftpd_log(BBFTPD_ERR,"Cannot connect receive socket port %d : %s, telling calling to retry ",portnumber,strerror(errno)) ;
-            return 0 ;
-        } else {
-            (void) snprintf (msgbuf, msgbuf_size, "Cannot connect receive socket port %s:%d : %s",inet_ntoa(his_addr.sin_addr),portnumber,strerror(errno)) ;
-            bbftpd_log(BBFTPD_ERR,"Cannot connect receive socket port %s:%d : %s",inet_ntoa(his_addr.sin_addr),portnumber,strerror(errno)) ;
-            close(sock) ;
-            return (-1) ;
-        }
-    }
-	bbftpd_log(BBFTPD_DEBUG,"Connected on port: %s:%d\n",inet_ntoa(his_addr.sin_addr),portnumber);
-    return sock ;
+        return -1;
+     }
+
+   data_source.sin_addr = his_addr.sin_addr;
+   data_source.sin_port = htons(portnumber);
+   addrlen = sizeof(data_source) ;
+
+   while (-1 == connect(sock,(struct sockaddr *) &data_source,addrlen))
+     {
+	if (errno == EINTR)
+	  continue;		       /* The original code returned 0 with a message for the client to retry */
+
+	(void) snprintf (msgbuf, msgbuf_size, "Cannot connect receive socket port %s:%d : %s",inet_ntoa(his_addr.sin_addr),portnumber,strerror(errno)) ;
+	bbftpd_log(BBFTPD_ERR,"Cannot connect receive socket port %s:%d : %s",inet_ntoa(his_addr.sin_addr),portnumber,strerror(errno)) ;
+	close(sock) ;
+	return -1;
+     }
+
+   bbftpd_log(BBFTPD_DEBUG,"Connected on port: %s:%d\n",inet_ntoa(his_addr.sin_addr),portnumber);
+   return sock ;
+}
+
+static int init_data_socket (int sock, struct sockaddr_in *sck)
+{
+   struct  linger li ;
+   int     tcpwinsize ;
+   int     on = 1 ;
+#if defined(SUNOS) || defined(_HPUX_SOURCE) || defined(IRIX)
+   int     addrlen ;
+#else
+   socklen_t        addrlen ;
+#endif
+   int     port ;
+   int qbss_value = 0x20;
+
+   if (-1 == setsockopt(sock,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)))
+     {
+	bbftpd_log(BBFTPD_ERR, "Cannot set SO_REUSEADDR on data socket : %s",strerror(errno));
+	/*            (void) snprintf (msgbuf, msgbuf_size, "Cannot set SO_REUSEADDR on data socket : %s",strerror(errno)) ;*/
+	return -1 ;
+     }
+
+   if (-1 == setsockopt(sock,IPPROTO_TCP, TCP_NODELAY,(char *)&on,sizeof(on)))
+     {
+	bbftpd_log(BBFTPD_ERR, "Cannot set TCP_NODELAY on data socket : %s",strerror(errno));
+	/*            (void) snprintf (msgbuf, msgbuf_size, "Cannot set TCP_NODELAY on data socket : %s",strerror(errno)) ;*/
+	return -1 ;
+     }
+
+   if ((transferoption & TROPT_QBSS ) == TROPT_QBSS)
+     {
+	/* Setting the value for IP_TOS to be 0x20 */
+	if (-1 == setsockopt(sock,IPPROTO_IP, IP_TOS, (char *)&qbss_value, sizeof(qbss_value)))
+	  bbftpd_log(BBFTPD_WARNING, "Cannot set IP_TOS on data socket : %s",strerror(errno));
+     }
+
+   /*
+    ** Send and receive are inversed because they are supposed
+    ** to be the daemon char
+    */
+   tcpwinsize = 1024 * recvwinsize ;
+   if (-1 == setsockopt(sock,SOL_SOCKET, SO_SNDBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)))
+     {
+	addrlen = sizeof(tcpwinsize) ;
+	if (-1 == getsockopt(sock,SOL_SOCKET,SO_SNDBUF,(char *)&tcpwinsize,&addrlen))
+	  bbftpd_log(BBFTPD_WARNING, "Unable to get send buffer size %d: %s\n",tcpwinsize,strerror(errno));
+	else
+	  bbftpd_log(BBFTPD_WARNING, "Send buffer cannot be set to %d Bytes, Value is %d Bytes\n",1024*recvwinsize,tcpwinsize);
+     }
+
+   tcpwinsize = 1024 * sendwinsize ;
+   if (-1 == setsockopt(sock,SOL_SOCKET, SO_RCVBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)))
+     {
+	addrlen = sizeof(tcpwinsize) ;
+	if (-1 == getsockopt(sock,SOL_SOCKET,SO_RCVBUF,(char *)&tcpwinsize,&addrlen))
+	  bbftpd_log(BBFTPD_WARNING, "Unable to get receive buffer size %d: %s\n",tcpwinsize,strerror(errno));
+	else
+	  bbftpd_log(BBFTPD_WARNING, "Receive buffer cannot be set to %d Bytes, Value is %d Bytes\n",1024*recvwinsize,tcpwinsize);
+     }
+
+   li.l_onoff = 1 ;
+   li.l_linger = 1 ;
+   if (-1 == setsockopt(sock,SOL_SOCKET,SO_LINGER,(char *)&li,sizeof(li)))
+     {
+	bbftpd_log(BBFTPD_ERR, "Cannot set SO_LINGER on data socket : %s",strerror(errno));
+	/*            (void) snprintf (msgbuf, msgbuf_size, "Cannot set SO_LINGER on data socket : %s",strerror(errno)) ;*/
+	return -1 ;
+     }
+
+   addrlen = sizeof(struct sockaddr_in);
+   if (pasvport_min)
+     {
+	/* Try to bind within a range */
+	for (port=pasvport_min; port<=pasvport_max; port++)
+	  {
+	     sck->sin_port = htons(port);
+	     if (-1 != bind(sock, (struct sockaddr *) sck, addrlen))
+	       break;
+	  }
+	if (port > pasvport_max)
+	  {
+	     bbftpd_log(BBFTPD_ERR, "Cannot bind on data socket in port range %d-%d: %s",
+			pasvport_min, pasvport_max, strerror(errno));
+	     return -1 ;
+	  }
+     }
+   else
+     {
+	sck->sin_port = 0;
+	if (-1 == bind(sock, (struct sockaddr *) sck, addrlen))
+	  {
+	     bbftpd_log(BBFTPD_ERR, "Cannot bind on data socket, port=%d: %s", sck->sin_port, strerror(errno));
+	     return -1 ;
+	  }
+     }
+
+   if (-1 == getsockname(sock,(struct sockaddr *)sck, &addrlen))
+     {
+	bbftpd_log(BBFTPD_ERR, "Cannot getsockname on data socket : %s",strerror(errno));
+	/*(void) snprintf (msgbuf, msgbuf_size, "Cannot getsockname on data socket : %s",strerror(errno)) ;*/
+	return -1 ;
+     }
+
+   if (-1 == listen(sock, 1))
+     {
+	bbftpd_log(BBFTPD_ERR, "Cannot listen on data socket : %s",strerror(errno));
+	/*(void) snprintf (msgbuf, msgbuf_size, "Cannot listen on data socket : %s",strerror(errno)) ;*/
+	return -1 ;
+     }
+
+   return sock;
 }
 
 /*******************************************************************************
@@ -195,121 +322,37 @@ int bbftpd_createreceivesocket(int portnumber,char *msgbuf, size_t msgbuf_size)
 **           0   OK                                                            *
 **                                                                             *
 *******************************************************************************/
-int bbftpd_getdatasock(int nbsock) 
+int bbftpd_getdatasock (int nbsock)
 {
-    int     i ;
-    int     tcpwinsize ;
-    int     on = 1 ;
-#if defined(SUNOS) || defined(_HPUX_SOURCE) || defined(IRIX)
-    int     addrlen ;
-#else
-    socklen_t        addrlen ;
-#endif
-    struct  linger li ;
-    struct  sockaddr_in sck ;
-    int     *mysockfree ;
-    int     *myportfree;
-    int     port ;
-    
-    /* Declaring the variables need to change the value of the TOS */
-    int tos_value, tos_len;
-    int qbss_value = 0x20;
-    tos_len = sizeof(tos_value);
-   (void) tos_len;
+   struct  sockaddr_in sck ;
+   int     i ;
 
-    mysockfree = mysockets ;
-    myportfree = myports ;
-    sck = ctrl_addr ;
-    for (i=0 ; i<nbsock ; i++) {
-        sck.sin_port = 0;
-        *mysockfree = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ;
-        if ( *mysockfree < 0 ) {
-            bbftpd_log(BBFTPD_ERR, "Cannot create data socket : %s",strerror(errno));
-			/*            (void) snprintf (msgbuf, msgbuf_size, "Cannot create data socket : %s",strerror(errno)) ;*/
-            return -1 ;
-        }
-        if ( setsockopt(*mysockfree,SOL_SOCKET, SO_REUSEADDR,(char *)&on,sizeof(on)) < 0 ) {
-            bbftpd_log(BBFTPD_ERR, "Cannot set SO_REUSEADDR on data socket : %s",strerror(errno));
-			/*            (void) snprintf (msgbuf, msgbuf_size, "Cannot set SO_REUSEADDR on data socket : %s",strerror(errno)) ;*/
-            return -1 ;
-        }
-        if ( setsockopt(*mysockfree,IPPROTO_TCP, TCP_NODELAY,(char *)&on,sizeof(on)) < 0 ) {
-            bbftpd_log(BBFTPD_ERR, "Cannot set TCP_NODELAY on data socket : %s",strerror(errno));
-			/*            (void) snprintf (msgbuf, msgbuf_size, "Cannot set TCP_NODELAY on data socket : %s",strerror(errno)) ;*/
-            return -1 ;
-        }
+   sck = ctrl_addr ;
 
-		/* Printing out the default value for the TOS 
-			if( getsockopt(*mysockfree,IPPROTO_IP,IP_TOS, 
-		       &tos_value,
-		       &tos_len) == 0){
-			   }
-		*/
-		if ( (transferoption & TROPT_QBSS ) == TROPT_QBSS ) {
-			/* Setting the value for IP_TOS to be 0x20 */
-			if ( setsockopt(*mysockfree,IPPROTO_IP, IP_TOS, (char *)&qbss_value, sizeof(qbss_value)) < 0 ) {
-                bbftpd_log(BBFTPD_WARNING, "Cannot set IP_TOS on data socket : %s",strerror(errno));
-			}
-		}
+   for (i=0 ; i<nbsock ; i++)
+     {
+	int sock;
 
-        /*
-        ** Send and receive are inversed because they are supposed
-        ** to be the daemon char
-        */
-        tcpwinsize = 1024 * recvwinsize ;
-        if ( setsockopt(*mysockfree,SOL_SOCKET, SO_SNDBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)) < 0 ) {
-            addrlen = sizeof(tcpwinsize) ;
-            if ( getsockopt(*mysockfree,SOL_SOCKET,SO_SNDBUF,(char *)&tcpwinsize,&addrlen) < 0 ) {
-                bbftpd_log(BBFTPD_WARNING, "Unable to get send buffer size %d: %s\n",tcpwinsize,strerror(errno));
-            } else {
-                bbftpd_log(BBFTPD_WARNING, "Send buffer cannot be set to %d Bytes, Value is %d Bytes\n",1024*recvwinsize,tcpwinsize);
-            }
-        }
-        tcpwinsize = 1024 * sendwinsize ;
-        if ( setsockopt(*mysockfree,SOL_SOCKET, SO_RCVBUF,(char *)&tcpwinsize,sizeof(tcpwinsize)) < 0 ) {
-            addrlen = sizeof(tcpwinsize) ;
-            if ( getsockopt(*mysockfree,SOL_SOCKET,SO_RCVBUF,(char *)&tcpwinsize,&addrlen) < 0 ) {
-                bbftpd_log(BBFTPD_WARNING, "Unable to get receive buffer size %d: %s\n",tcpwinsize,strerror(errno));
-            } else {
-                bbftpd_log(BBFTPD_WARNING, "Receive buffer cannot be set to %d Bytes, Value is %d Bytes\n",1024*recvwinsize,tcpwinsize);
-            }
-        }    
-        li.l_onoff = 1 ;
-        li.l_linger = 1 ;
-        if ( setsockopt(*mysockfree,SOL_SOCKET,SO_LINGER,(char *)&li,sizeof(li)) < 0 ) {
-            bbftpd_log(BBFTPD_ERR, "Cannot set SO_LINGER on data socket : %s",strerror(errno));
-			/*            (void) snprintf (msgbuf, msgbuf_size, "Cannot set SO_LINGER on data socket : %s",strerror(errno)) ;*/
-            return -1 ;
-        }
-        if (pasvport_min) { /* Try to bind within a range */
- 	        for (port=pasvport_min; port<=pasvport_max; port++) {
-     	        sck.sin_port = htons(port);
- 	            if (bind(*mysockfree, (struct sockaddr *) &sck, sizeof(sck)) >= 0) break;
- 	        }
- 	        if (port>pasvport_max) {
-                bbftpd_log(BBFTPD_ERR, "Cannot bind on data socket : %s",strerror(errno));
-                return -1 ;
- 	        }
-        } else {
-            if (bind(*mysockfree, (struct sockaddr *) &sck, sizeof(sck)) < 0) {
-                bbftpd_log(BBFTPD_ERR, "Cannot bind on data socket : %s",strerror(errno));
-                return -1 ;
- 	        }
-		}
-        addrlen = sizeof(sck) ;
-        if (getsockname(*mysockfree,(struct sockaddr *)&sck, &addrlen) < 0) {
-            bbftpd_log(BBFTPD_ERR, "Cannot getsockname on data socket : %s",strerror(errno));
-            /*(void) snprintf (msgbuf, msgbuf_size, "Cannot getsockname on data socket : %s",strerror(errno)) ;*/
-            return -1 ;
-           }
-        if (listen(*mysockfree, 1) < 0) {
-            bbftpd_log(BBFTPD_ERR, "Cannot listen on data socket : %s",strerror(errno));
-            /*(void) snprintf (msgbuf, msgbuf_size, "Cannot listen on data socket : %s",strerror(errno)) ;*/
-            return -1 ;
-        }
-       *myportfree++ = ntohs (sck.sin_port);
-        bbftpd_log(BBFTPD_DEBUG,"Listen on port %d\n", ntohs(sck.sin_port)) ; 
-        mysockfree++ ;
-    }
-    return 0 ;
+	if (-1 == (sock = socket ( AF_INET, SOCK_STREAM, IPPROTO_TCP)))
+	  bbftpd_log(BBFTPD_ERR, "Cannot create data socket : %s",strerror(errno));
+	else if (-1 == init_data_socket (sock, &sck))
+	  close (sock);
+	else
+	  {
+	     mysockets[i] = sock;
+	     myports[i] = ntohs (sck.sin_port);
+	     bbftpd_log(BBFTPD_DEBUG,"Listen on port %d\n", myports[i]);
+	     continue;
+	  }
+
+	/* Error */
+	while (i != 0)
+	  {
+	     i--;
+	     (void) close (mysockets[i]);
+	  }
+	return -1;
+     }
+
+   return 0 ;
 }
