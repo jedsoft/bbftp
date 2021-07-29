@@ -104,7 +104,7 @@ void bbftp_unsetsignal_sigchld(void) ;
 ** Prototype for connection routines
 */
 /* static int splitargs (const char* s, char** argv, size_t maxargs, char* buf, size_t maxbuf); */
-int connectviassh(void) ;
+/* int connectviassh(void) ; */
 int connectviapassword(void) ;
 int todoafterconnection(void);
 void reconnecttoserver(void) ;

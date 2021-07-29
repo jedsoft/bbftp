@@ -255,7 +255,7 @@ static int splitargs (const char* s, char** argv, size_t maxargs,
 
 *****************************************************************************/
 
-int connectviassh (void)
+static int connectviassh (void)
 {
    int port;
    /*
@@ -596,10 +596,6 @@ int connectviapassword(void)
     int     lenexpo ;
     unsigned int ui ;
 
-#ifdef WITH_SSL
-    RSA     *hisrsa ;
-    int lenrsa ;
-#endif
     /*
     ** Get the socket
     */
@@ -674,6 +670,8 @@ int connectviapassword(void)
         ** RSA
         */
        BIGNUM *rsa_n, *rsa_e;
+       RSA     *hisrsa ;
+       int lenrsa ;
         /*
         ** Load the error message from the crypto lib
         */
@@ -808,6 +806,9 @@ int connectviapassword(void)
         msg_rsa->numpass = ntohl(msg_rsa->numpass) ;
 #endif
         crtype = CRYPT_RSA_PKCS1_OAEP_PADDING ;
+
+       RSA_free (hisrsa);
+
     } else {
         free(lreadbuffer) ;
         close(tmpctrlsock) ;

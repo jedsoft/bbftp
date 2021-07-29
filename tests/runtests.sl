@@ -280,6 +280,8 @@ define slsh_main ()
 
    bbftpd_pgm = bbftpd_pgm + " -A" + " -l DEBUG -L $bbftpd_logfile"$;
 
+   % if (Use_Memcheck) bbftpd_pgm = strjoin (Memcheck, " ") + " --log-file=$bbftpd_logfile-%p "$ + bbftpd_pgm;
+
    BBftp_Common_Argv = [bbftp_exec, "-r", "1", "-E", bbftpd_pgm,
 			"-p", "2", "-V", "-W",
 			"-I", rsa_id_file, "-u", remote_user];

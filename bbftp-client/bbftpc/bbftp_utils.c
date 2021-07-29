@@ -102,7 +102,7 @@ void Usage()
 #ifdef WITH_GZIP    
     printf("           [-c (gzip compress)]\n") ;
 #endif    
-    printf("           [-D[min:max] (Domain of Ephemeral Ports) ]\n") ;
+    printf("           [-D[min:max] (Domain of Ephemeral Ports -- this will use protocol 2) ]\n") ;
     printf("           [-f errorfile]\n") ;
 #ifndef PRIVATE_AUTH
     printf("           [-E server command for ssh]\n") ;
