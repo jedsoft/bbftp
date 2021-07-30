@@ -12,3 +12,6 @@ Changes since 3.2.1
    messages.  Other supporting code changes were made.
 5. bbftpd: If an error occured during the creation of the data transfer
    sockets, the previously opened sockets were not being closed.
+6. Updated the bbftp-get script with a --verbose option
+7. bbftp:  Make connectviassh static; updated help message to indicate
+   that -D implies version 2 protocol

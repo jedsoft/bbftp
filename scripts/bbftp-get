@@ -20,7 +20,7 @@ private define exit_usage ()
    variable opts =
      [
       "Options:\n",
-      " -A                           Tell server to query client for IP address\n",
+      " -A                           Tell server to query client for IP address (implies -D)\n",
       " -D                           Use non-passive mode (i.e., use protocol v2)\n",
       " -i ssh-identity-file         SSH identity file\n",
       " -E|--bbftpd=/remote/bbftpd   Remote bbftpd path\n",
@@ -163,6 +163,7 @@ define slsh_main ()
 
    if (ask_for_ip)
      {
+	if (bbftpd_cmd == NULL) bbftpd_cmd = "bbftpd -s";
 	bbftpd_cmd = bbftpd_cmd + " -A";
 	non_passive = 1;
      }
