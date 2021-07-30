@@ -1,9 +1,11 @@
 #!/usr/bin/env slsh
 
-private variable Script_Version_String = "0.1.0";
+private variable Script_Version_String = "0.1.1";
 
 require ("cmdopt");
 require ("process");
+
+private variable Verbose = 0;
 
 private define exit_version ()
 {
@@ -19,7 +21,7 @@ private define exit_usage ()
      [
       "Options:\n",
       " -A                           Tell server to query client for IP address\n",
-      " -D                           Use non-passive mode\n",
+      " -D                           Use non-passive mode (i.e., use protocol v2)\n",
       " -i ssh-identity-file         SSH identity file\n",
       " -E|--bbftpd=/remote/bbftpd   Remote bbftpd path\n",
       " --bbftp=/path/to/bbftp       Local bbftp path\n",
@@ -29,6 +31,7 @@ private define exit_usage ()
       "   Options include: createdir,gzip,keepaccess,keepmode,[tmpfile]\n",
       " -v|--version                 Print version\n",
       " -h|--help                    This message\n",
+      " --verbose                    Be verbose\n",
      ];
    foreach (opts)
      {
@@ -41,7 +44,9 @@ private define exit_usage ()
 private define run_pgm (argv)
 {
    variable argvstr = "'" + strjoin (argv, "' '") + "'";
-   () = fprintf (stdout, "Running %S\n", argvstr); () = fflush (stdout);
+
+   if (Verbose)
+     () = fprintf (stdout, "Running %S\n", argvstr); () = fflush (stdout);
 
    variable e;
    try(e)
@@ -136,6 +141,7 @@ define slsh_main ()
    c.add("r|retries", &retries; type="int");
    c.add("o|options", &options; type="str");
    c.add("n", &drydun; type="int", optional=1);
+   c.add("verbose", &Verbose; type="int", optional=1);
 
    variable i = c.process (__argv, 1);
 
