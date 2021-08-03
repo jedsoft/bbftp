@@ -15,3 +15,5 @@ Changes since 3.2.1
 6. Updated the bbftp-get script with a --verbose option
 7. bbftp:  Make connectviassh static; updated help message to indicate
    that -D implies version 2 protocol
+8. bbftp: Rewrote essentually all of bbft.c to make it more
+   maintainable.

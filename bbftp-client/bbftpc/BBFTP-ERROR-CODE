@@ -114,3 +114,6 @@ BBFTP-ERROR-00097 : Cannot listen on data socket : %s
 #
 BBFTP-ERROR-00100 : %s
 BBFTP-ERROR-00101 : Incompatible deamon and client (remote protocol version (%d,%d), local (%d,%d)
+#
+BBFTP-ERROR-00200 : Error opening file %s : %s
+BBFTP-ERROR-00201 : Error reading file %s : %s

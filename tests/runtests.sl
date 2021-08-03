@@ -131,9 +131,11 @@ private define test_script ()
 	  return -1;
      }
    variable
+     i,
      bigfile1 = sprintf ("%s-1-%d", bigfile, getpid()),
      bigfile2 = sprintf ("%s-2-%d", bigfile, getpid()),
-     testscript = Control_File;
+     testscript = Control_File,
+     bbftprc_file = path_dirname (Control_File) + "/bbftprc.conf";
 
    variable cmds =
      [
@@ -185,14 +187,25 @@ private define test_script ()
    variable result_file = testscript + ".res";
    () = remove (result_file);
 
-   variable status = run_bbftp (["-i", testscript] ; stdout=testscript+"-stdout.log");
+   variable bbftprc_cmds =
+     [
+      "setoption tmpfile\n",
+      "setoption gzip\n",
+      "setnbstream 4\n",
+     ];
+   () = remove (bbftprc_file);
+   fp = fopen (bbftprc_file, "w");
+   () = fputslines (bbftprc_cmds, fp);
+   () = fclose (fp);
+
+   variable status = run_bbftp (["-R", bbftprc_file, "-i", testscript] ; stdout=testscript+"-stdout.log");
    if (status != 0)
      {
 	() = fprintf (stderr, "bbftp returned a non-0 status (%d)\n", status);
 	status = -1;
      }
 
-   variable lines, line, i;
+   variable lines, line;
    fp = fopen (result_file, "r");
    if ((fp == NULL)
        || (lines = fgetslines (fp), lines == NULL))
@@ -283,7 +296,7 @@ define slsh_main ()
    % if (Use_Memcheck) bbftpd_pgm = strjoin (Memcheck, " ") + " --log-file=$bbftpd_logfile-%p "$ + bbftpd_pgm;
 
    BBftp_Common_Argv = [bbftp_exec, "-r", "1", "-E", bbftpd_pgm,
-			"-p", "2", "-V", "-W",
+			"-p", "2", "-V", "-W", "-d",
 			"-I", rsa_id_file, "-u", remote_user];
    BBftp_Remote_Host = remote_host;
 
