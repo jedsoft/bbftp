@@ -17,3 +17,5 @@ Changes since 3.2.1
    that -D implies version 2 protocol
 8. bbftp: Rewrote essentually all of bbft.c to make it more
    maintainable.
+9. bbftp: Refactored the reconnecttoserver function to simplify and
+   make it easier to maintain.

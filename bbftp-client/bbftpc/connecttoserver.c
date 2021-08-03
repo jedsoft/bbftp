@@ -568,7 +568,7 @@ static int connectviassh (void)
 
 *****************************************************************************/
 
-int connectviapassword(void)
+static int connectviapassword(void)
 {
 #if defined(SUNOS) || defined(_HPUX_SOURCE) || defined(IRIX)
     int     addrlen ;
@@ -1136,7 +1136,7 @@ int connectviapassword(void)
     return 0 ;
 }
 
-int todoafterconnection()
+static int todoafterconnection (void)
 {
     int     errcode ;
     int     oldtransferoption ;
@@ -1171,75 +1171,84 @@ int todoafterconnection()
     }
     return 0 ;
 }
-void reconnecttoserver() 
-{
-    int     nbtrycon ;
-    int     retcode ;
-  /*  add multiple addresses  */
-    char **sav_h_addr_list;
-    if (BBftp_Hostent) sav_h_addr_list = BBftp_Hostent->h_addr_list;
 
-    for ( nbtrycon = 1 ; nbtrycon <= BBftp_Globaltrymax ; nbtrycon++ ) {
-        while (1) {
-            if (BBftp_Warning) printmessage(stderr,CASE_WARNING,28, "connect to address %s\n",inet_ntoa(BBftp_His_Ctladdr.sin_addr)) ;
+static int do_connect (void)
+{
 #if defined(PRIVATE_AUTH)
-            if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Private authentication...\n") ;
-            retcode = bbftp_private_connect() ;
+   if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Private authentication...\n") ;
+   return bbftp_private_connect() ;
 #else
 # ifdef CERTIFICATE_AUTH
-            if (usecert) {
-                if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Certificate authentication...\n") ;
-                retcode = bbftp_cert_connect() ;
-                /* stop at the first try */
-		/* NOT ANYMORE because of multiple IP */
-		/*
-                if (retcode != 0) {
-                    printmessage(stderr,CASE_FATAL_ERROR,33, "Connection not established\n") ;
-                }
-		*/
-            } else
+   if (usecert)
+     {
+	if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Certificate authentication...\n") ;
+	return bbftp_cert_connect();
+     }
 # endif
-            if (BBftp_Use_SSH) {
-                if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "SSH connection...\n") ;
-                retcode = connectviassh() ;
-            } else {
-                if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Password authentication...\n") ;
-                retcode = connectviapassword() ;
-            }
-#endif
-            if ( retcode == 0 ) {
-                if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Connection and authentication correct\n") ;
-                if ( sendproto() == 0 ) {
-                    retcode = todoafterconnection() ;
-                    if ( retcode == 0 ) {
-                        return ;
-                    } else {
-                        bbftp_close_control() ;
-                    }
-                } else {
-                    bbftp_close_control() ;
-                }   
-            } else {
-      /* add  multiple addresses  */
-               if ( BBftp_Hostent ) {
-                   if ( BBftp_Hostent->h_addr_list[1] ) {
-                        BBftp_Hostent->h_addr_list++;
-                        memcpy(&BBftp_His_Ctladdr.sin_addr,BBftp_Hostent->h_addr_list[0],  BBftp_Hostent->h_length);
-                        continue;
-                    } else {
-                        BBftp_Hostent->h_addr_list = sav_h_addr_list;
-                        memcpy(&BBftp_His_Ctladdr.sin_addr,BBftp_Hostent->h_addr_list[0],  BBftp_Hostent->h_length);
-                    }
-                }
-                break;
-            }
-        }
-        if ( nbtrycon != BBftp_Globaltrymax ) {
-            if (BBftp_Warning) printmessage(stderr,CASE_WARNING,22, "Retrying connection waiting %d s\n",WAITRETRYTIME) ;
-            sleep(WAITRETRYTIME) ;
-        }
-    }
-    if (nbtrycon == BBftp_Globaltrymax+1) {
-        printmessage(stderr,CASE_FATAL_ERROR,33, "Maximum try on connection reached (%d) aborting\n",BBftp_Globaltrymax) ;
-    }
+   if (BBftp_Use_SSH)
+     {
+	if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "SSH connection...\n") ;
+	return connectviassh ();
+     }
+
+   if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Password authentication...\n") ;
+   return connectviapassword();
+#endif				       /* PRIVATE_AUTH */
+}
+
+
+void reconnecttoserver (void)
+{
+   int     nbtrycon ;
+   int     retcode ;
+   /*  add multiple addresses  */
+   char **sav_h_addr_list;
+
+   if (BBftp_Hostent) sav_h_addr_list = BBftp_Hostent->h_addr_list;
+
+   for ( nbtrycon = 1 ; nbtrycon <= BBftp_Globaltrymax ; nbtrycon++ )
+     {
+        while (1)
+	  {
+	     if (BBftp_Warning) printmessage(stderr,CASE_WARNING,28, "connect to address %s\n",inet_ntoa(BBftp_His_Ctladdr.sin_addr));
+
+	     retcode = do_connect ();
+
+	     if ( retcode == 0 )
+	       {
+		  if ( BBftp_Debug ) printmessage(stdout,CASE_NORMAL,0, "Connection and authentication correct\n") ;
+
+		  if ((0 == sendproto())
+		      && (0 == todoafterconnection ()))
+		    return;
+
+		  bbftp_close_control() ;
+		  continue;	       /* try again */
+	       }
+
+	     if ( BBftp_Hostent == NULL )
+	       break;
+
+	     /* Try with the next address */
+	     if (NULL != BBftp_Hostent->h_addr_list[1])
+	       {
+		  BBftp_Hostent->h_addr_list++;
+		  memcpy (&BBftp_His_Ctladdr.sin_addr, BBftp_Hostent->h_addr_list[0],  BBftp_Hostent->h_length);
+		  continue;
+	       }
+
+	     /* Otherwise restore the address list and start over */
+	     BBftp_Hostent->h_addr_list = sav_h_addr_list;
+	     memcpy(&BBftp_His_Ctladdr.sin_addr,BBftp_Hostent->h_addr_list[0],  BBftp_Hostent->h_length);
+	     break;
+	  }			       /* end of while */
+
+        if ( nbtrycon != BBftp_Globaltrymax )
+	  {
+	     if (BBftp_Warning) printmessage(stderr,CASE_WARNING,22, "Retrying connection waiting %d s\n",WAITRETRYTIME) ;
+	     sleep(WAITRETRYTIME) ;
+	  }
+     }
+
+   printmessage(stderr,CASE_FATAL_ERROR,33, "Maximum try on connection reached (%d) aborting\n",BBftp_Globaltrymax) ;
 }
