@@ -1192,7 +1192,7 @@ static int init_hostname_vars (const char *hostname)
     */
    if (NULL == (BBftp_Hostent = gethostbyname(hostname)))
      {
-	printmessage(stderr,CASE_FATAL_ERROR,17, "BBftp_Hostname no found (%s)\n", hostname);
+	printmessage(stderr,CASE_FATAL_ERROR,17, "BBftp_Hostname not found (%s)\n", hostname);
 	return -1;
      }
    if (BBftp_Hostent->h_length > (int)sizeof(BBftp_His_Ctladdr.sin_addr))

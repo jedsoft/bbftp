@@ -19,3 +19,5 @@ Changes since 3.2.1
    maintainable.
 9. bbftp: Refactored the reconnecttoserver function to simplify and
    make it easier to maintain.
+10. Fixed a typo in a warning message in the bbftp client; updated the
+    bbftp-get script to support an output file for bbftp messages.

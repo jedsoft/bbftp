@@ -1,6 +1,6 @@
 #!/usr/bin/env slsh
 
-private variable Script_Version_String = "0.1.1";
+private variable Script_Version_String = "0.2.0";
 
 require ("cmdopt");
 require ("process");
@@ -20,16 +20,17 @@ private define exit_usage ()
    variable opts =
      [
       "Options:\n",
-      " -A                           Tell server to query client for IP address (implies -D)\n",
+      " -A                           Tell server to query client for IP address\n",
       " -D                           Use non-passive mode (i.e., use protocol v2)\n",
-      " -i ssh-identity-file         SSH identity file\n",
-      " -E|--bbftpd=/remote/bbftpd   Remote bbftpd path\n",
+      " -I ssh-identity-file         SSH identity file\n",
+      " -E|--bbftpd=CMD              Remote bbftpd command (with args)\n",
       " --bbftp=/path/to/bbftp       Local bbftp path\n",
       " -r|--retries=N               Number of retries (default=5)\n",
       " -p|--num-streams=N           Use N streams (default is 2)\n",
       " -o|options=list              Comma separated list of bbftp setoption values\n",
       "   Options include: createdir,gzip,keepaccess,keepmode,[tmpfile]\n",
       " -v|--version                 Print version\n",
+      " -O outfile-name              Output file where bbftp messages are written\n",
       " -h|--help                    This message\n",
       " --verbose                    Be verbose\n",
      ];
@@ -128,16 +129,19 @@ define slsh_main ()
      non_passive = 0,
      options = "",
      num_streams = 2,
-     ask_for_ip = 0;
+     ask_for_ip = 0,
+     bbftp_outfile = NULL;
 
    variable c = cmdopt_new ();
    c.add("h|help", &exit_usage);
    c.add("v|version", &exit_version);
    c.add("E", &bbftpd_cmd; type="str");
+   c.add("bbftp", &bbftp_cmd; type="str");
    c.add("D", &non_passive; type="int", optional=1);
    c.add("A", &ask_for_ip; type="int", optional=1);
    c.add("p", &num_streams; type="int");
    c.add("I", &identity_file; type="str");
+   c.add("O", &bbftp_outfile; type="str");
    c.add("r|retries", &retries; type="int");
    c.add("o|options", &options; type="str");
    c.add("n", &drydun; type="int", optional=1);
@@ -163,18 +167,20 @@ define slsh_main ()
 
    if (ask_for_ip)
      {
-	if (bbftpd_cmd == NULL) bbftpd_cmd = "bbftpd -s";
 	bbftpd_cmd = bbftpd_cmd + " -A";
 	non_passive = 1;
      }
    if (num_streams < 1) num_streams = 2;
 
    variable connect_argv = ["-S"];  %  ssh batch mode
+   if (bbftp_outfile != NULL) connect_argv = [connect_argv, "-o", bbftp_outfile];
    if (bbftpd_cmd != NULL) connect_argv = [connect_argv, "-E", bbftpd_cmd];
    if (non_passive) connect_argv = [connect_argv, "-D"];
    if (identity_file != NULL) connect_argv = [connect_argv, "-I", identity_file];
    if (remote_info.user != NULL) connect_argv = [connect_argv, "-u", remote_info.user];
    variable control_argv = String_Type[0];
+
+   %control_argv = [control_argv, ["setrecvwinsize 1024", "setsendwinsize 1024"]];
 
    options = "tmpfile,$options"$;
    control_argv = [control_argv, "setoption " + strtok(options, ", ")];
