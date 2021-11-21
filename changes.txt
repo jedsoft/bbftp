@@ -21,3 +21,4 @@ Changes since 3.2.1
    make it easier to maintain.
 10. Fixed a typo in a warning message in the bbftp client; updated the
     bbftp-get script to support an output file for bbftp messages.
+11. Updated the test script to remove temporary files

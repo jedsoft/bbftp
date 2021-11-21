@@ -2,8 +2,9 @@
 
 require ("process");
 require ("cmdopt");
+require ("rand");
 
-private variable Script_Version_String = "0.1.0";
+private variable Script_Version_String = "0.2.0";
 
 private define exit_version ()
 {
@@ -121,7 +122,32 @@ private define run_bbftp (testargv)
    return run_pgm (argv;; __qualifiers);
 }
 
-private define test_script ()
+private define make_tmpdir ()
+{
+   loop (100)
+     {
+	variable now = _time ();
+	variable r = rand ();
+	variable dir = "/tmp/bbftp-test-$now-$r"$;
+	if (0 == mkdir (dir))
+	  return dir;
+     }
+   () = fprintf (stderr, "Unable to make a temporary directory\n");
+   return NULL;
+}
+
+private define remove_tmpdir (tmpdir)
+{
+   if (NULL == stat_file (tmpdir))
+     return;
+
+   % tmpdir is of the form: /tmp/bbftp-test-XX...XX
+   % Since we are blowing away an entire directory, let's be paranoid
+   variable suffix = tmpdir[[16:]];
+   () = system ("/bin/rm -rf /tmp/bbftp-test-$suffix"$);
+}
+
+private define test_script (tmpdir)
 {
    variable bigfile = Bigfile_Name, size = Bigfile_Size;
    variable st = stat_file (bigfile);
@@ -150,7 +176,7 @@ private define test_script ()
       "stat $bigfile1\n"$,
       "rm $bigfile1\n"$,
       "df /tmp\n",
-      "mput ../bbftp-server/bbftpd/*.c /tmp/xxx/\n",
+      "mput ../bbftp-server/bbftpd/*.c $tmpdir/\n"$,
 %      "mget xxx/*.c yyy/\n",
       "setbuffersize 512\n",
       % "setlocalcos 044\n",
@@ -305,7 +331,15 @@ define slsh_main ()
 
    foreach f (tests)
      {
-	if (0 != (@f)()) failed++;
+	variable tmpdir = make_tmpdir ();
+	if (tmpdir == NULL)
+	  exit (1);
+
+	try
+	  {
+	     if (0 != (@f)(tmpdir)) failed++;
+	  }
+	finally: remove_tmpdir (tmpdir);
      }
 
    if (failed)

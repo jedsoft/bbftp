@@ -1,3 +1,11 @@
+-*- text -*-
+
+NOTE: Bbftp uses the crypto library, which is not included here and
+must be install before bbftp can be compiled.  Debian users should
+install the libssl-dev package to get this library:
+
+   apt-get install libssl-dev
+
 To build and install software, run the following commands:
 
    make config
@@ -11,7 +19,13 @@ a variation of
    make CONFIGOPTS="--prefix=/usr/local" config
 
 If you have slsh installed, the software can be tested prior to
-installing by running
+the installation.  Before running the test, first make sure that you
+can login to localhost by running
+
+  ssh localhost
+
+After sucessfully logging into localhost, log out, then run the test:
 
    make check
 
+Note: This test requires at least 3GB of space in /tmp
